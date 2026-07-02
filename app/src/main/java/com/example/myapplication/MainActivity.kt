@@ -116,7 +116,7 @@ fun App() {
                         )
                         Screen.FourierSeries  -> FourierSeries()
                         Screen.DoublePendulum -> DoublePendulum()
-                        Screen.ComingSoon     -> Unit
+                        Screen.ComingSoon     -> ComingSoonScreen()
                     }
                 }
 
@@ -285,5 +285,38 @@ private fun NavIconButton(
         contentAlignment = Alignment.Center
     ) {
         Text(text = label, fontSize = AppDesign.textTitleLarge, color = colors.textPrimary)
+    }
+}
+
+@Composable
+private fun ComingSoonScreen() {
+    val colors = LocalAppColors.current
+
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        GlassCard(
+            colors = colors,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier.padding(AppDesign.spacingExtraLarge),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "Coming Soon",
+                    color = colors.textPrimary,
+                    fontSize = AppDesign.textHeadline,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(AppDesign.spacingSmall))
+                Text(
+                    text = "The next simulator will appear here.",
+                    color = colors.textSecondary,
+                    fontSize = AppDesign.textBodyLarge
+                )
+            }
+        }
     }
 }

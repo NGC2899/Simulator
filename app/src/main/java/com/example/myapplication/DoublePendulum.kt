@@ -44,8 +44,6 @@ import kotlinx.coroutines.withContext
 import java.util.Locale
 import kotlin.math.PI
 import kotlin.math.atan2
-import kotlin.math.cos
-import kotlin.math.sin
 import kotlin.math.sqrt
 import kotlin.random.Random
 
@@ -107,18 +105,19 @@ fun DoublePendulum() {
                 accumulator += frameTime
             }
 
-            val newPoints = List(pendulums.size) { mutableListOf<Offset>() }
-            val newAnglePoints = List(pendulums.size) { mutableListOf<Offset>() }
+            val framePendulums = pendulums.toList()
+            val newPoints = List(framePendulums.size) { mutableListOf<Offset>() }
+            val newAnglePoints = List(framePendulums.size) { mutableListOf<Offset>() }
 
             // Perform physics steps on a background thread to keep UI responsive
             withContext(Dispatchers.Default) {
                 while (accumulator >= fixedDeltaTime) {
-                    pendulums.forEachIndexed { i, p ->
+                    framePendulums.forEachIndexed { i, p ->
                         p.logic.setGravity(gravityAmount.toDouble())
                         p.logic.setFriction(frictionAmount.toDouble())
                         p.logic.setFrictionEnabled(frictionEnabled)
                         p.logic.update()
-                        
+
                         val coords = p.logic.currentCoords
                         newPoints[i].add(Offset(coords.x2.toFloat(), coords.y2.toFloat()))
                         newAnglePoints[i].add(
@@ -134,7 +133,9 @@ fun DoublePendulum() {
 
             // Sync physics results to UI state (read cached coords, do NOT call update() again)
             androidx.compose.runtime.snapshots.Snapshot.withMutableSnapshot {
-                pendulums.forEachIndexed { i, p ->
+                framePendulums.forEachIndexed { i, p ->
+                    if (p !in pendulums) return@forEachIndexed
+
                     val coords = p.logic.currentCoords
                     p.bob1 = Offset(coords.x1.toFloat(), coords.y1.toFloat())
                     p.bob2 = Offset(coords.x2.toFloat(), coords.y2.toFloat())
@@ -230,7 +231,6 @@ fun DoublePendulum() {
                                 colors = colors
                             ) {
                                 frictionAmount = it
-                                pendulums.forEach { p -> p.logic.setFriction(it.toDouble()) }
                             }
                         }
 
@@ -295,12 +295,13 @@ fun DoublePendulum() {
                                 ),
                                 RoundedCornerShape(AppDesign.radiusButton)
                             )
-                            .clickable {
+                            .clickable(enabled = !running) {
                                 val last = pendulums.lastOrNull()
                                 val nextT1 = last?.t1 ?: templateT1
                                 val nextT2 = last?.t2 ?: templateT2
                                 val color = Color.hsv(Random.nextFloat() * 360f, 0.7f, 0.9f)
                                 pendulums.add(PendulumInstance(nextId++, color, nextT1, nextT2))
+                                hasStarted = false
                             },
                         contentAlignment = Alignment.Center
                     ) {
@@ -333,7 +334,7 @@ fun DoublePendulum() {
                                 colors.accentViolet.copy(AppDesign.opacityMedium),
                                 RoundedCornerShape(AppDesign.radiusButton)
                             )
-                            .clickable {
+                            .clickable(enabled = !running) {
                                 repeat(5) {
                                     val last = pendulums.lastOrNull()
                                     val baseT1 = last?.t1 ?: templateT1
@@ -354,6 +355,7 @@ fun DoublePendulum() {
                                         )
                                     )
                                 }
+                                hasStarted = false
                             },
                         contentAlignment = Alignment.Center
                     ) {
@@ -386,11 +388,11 @@ fun DoublePendulum() {
                                 colors.accentHell.copy(AppDesign.opacityMedium),
                                 RoundedCornerShape(AppDesign.radiusButton)
                             )
-                            .clickable {
-                                pendulums.clear()
-                                nextId = 0
+                            .clickable(enabled = !running) {
                                 running = false
                                 hasStarted = false
+                                pendulums.clear()
+                                nextId = 0
                             },
                         contentAlignment = Alignment.Center
                     ) {
@@ -438,8 +440,13 @@ fun DoublePendulum() {
                                 PendulumSettingsCard(
                                     p,
                                     colors,
-                                    pendulums.size > 1,
-                                    onParameterChange = { hasStarted = false }) {
+                                    pendulums.size > 1 && !running,
+                                    onParameterChange = {
+                                        running = false
+                                        hasStarted = false
+                                    }) {
+                                    running = false
+                                    hasStarted = false
                                     if (pendulums.size == 1) {
                                         templateT1 = p.t1
                                         templateT2 = p.t2
@@ -479,6 +486,7 @@ fun DoublePendulum() {
                     }
                     running = !running
                 },
+                enabled = pendulums.isNotEmpty(),
                 modifier = Modifier
                     .weight(1f)
                     .height(AppDesign.buttonHeight),
@@ -536,7 +544,7 @@ fun DoublePendulum() {
             Canvas(
                 modifier = Modifier
                     .fillMaxSize()
-                    .pointerInput(displayMode) {
+                    .pointerInput(displayMode, running, scale, pendulums.size) {
                         detectDragGestures(
                             onDragStart = { offset ->
                                 if (running) return@detectDragGestures
@@ -677,12 +685,13 @@ fun DoublePendulum() {
                                 }
 
                                 // Current position dot
+                                val currentAngle = p.angleTrail.lastOrNull()
                                 val currentT1 =
-                                    if (hasStarted) (p.logic.thetaOne * 180.0 / PI).toFloat() else (p.t1.toFloatOrNull()
-                                        ?: 0f)
+                                    if (hasStarted) currentAngle?.x ?: (p.t1.toFloatOrNull()
+                                        ?: 0f) else (p.t1.toFloatOrNull() ?: 0f)
                                 val currentT2 =
-                                    if (hasStarted) (p.logic.thetaTwo * 180.0 / PI).toFloat() else (p.t2.toFloatOrNull()
-                                        ?: 0f)
+                                    if (hasStarted) currentAngle?.y ?: (p.t2.toFloatOrNull()
+                                        ?: 0f) else (p.t2.toFloatOrNull() ?: 0f)
                                 drawCircle(
                                     p.currentColor,
                                     AppDesign.radiusSmall.toPx() * 0.75f,
