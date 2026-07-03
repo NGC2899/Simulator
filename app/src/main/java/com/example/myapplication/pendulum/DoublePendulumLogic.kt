@@ -1,4 +1,4 @@
-package com.example.myapplication
+package com.example.myapplication.pendulum
 
 import kotlin.math.*
 
@@ -9,12 +9,18 @@ class DoublePendulumLogic {
         private set
     var thetaTwo: Double = 1.571
         private set
-    private var omegaOne = 0.0
-    private var omegaTwo = 0.0
-    private var lengthOne = 1.0
-    private var lengthTwo = 1.0
-    private var massOne = 1.0
-    private var massTwo = 1.0
+    var omegaOne = 0.0
+        private set
+    var omegaTwo = 0.0
+        private set
+    var lengthOne = 1.0
+        private set
+    var lengthTwo = 1.0
+        private set
+    var massOne = 1.0
+        private set
+    var massTwo = 1.0
+        private set
 
     private var gravity = 9.80665
     private var friction = 0.0001

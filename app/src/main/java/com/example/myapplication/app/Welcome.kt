@@ -1,4 +1,4 @@
-package com.example.myapplication
+package com.example.myapplication.app
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*

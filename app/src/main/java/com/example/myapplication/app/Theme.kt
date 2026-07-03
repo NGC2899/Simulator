@@ -1,5 +1,7 @@
-package com.example.myapplication
+package com.example.myapplication.app
 
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.Alignment
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -320,5 +322,89 @@ fun AnimatedBlobBackground(
                 )
         )
         content()
+    }
+}
+
+// ─────────────────────────────────────────────
+//  SHARED UI COMPONENTS
+// ─────────────────────────────────────────────
+
+@Composable
+fun LabeledSlider(
+    label: String,
+    valueDisplay: String,
+    value: Float,
+    range: ClosedFloatingPointRange<Float>,
+    colors: AppColors,
+    onValueChange: (Float) -> Unit
+) {
+    Column(modifier = Modifier.padding(vertical = AppDesign.spacingSmall)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            androidx.compose.material3.Text(
+                text = label,
+                color = colors.textPrimary,
+                fontSize = AppDesign.textBody,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
+            )
+            androidx.compose.material3.Text(
+                text = valueDisplay,
+                color = colors.accentCyan,
+                fontSize = AppDesign.textBody,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                modifier = Modifier
+                    .background(colors.accentCyan.copy(AppDesign.opacityLow), RoundedCornerShape(AppDesign.radiusSmall))
+                    .padding(horizontal = AppDesign.spacingSmall, vertical = 2.dp)
+            )
+        }
+        androidx.compose.material3.Slider(
+            value = value,
+            onValueChange = onValueChange,
+            valueRange = range,
+            colors = androidx.compose.material3.SliderDefaults.colors(
+                thumbColor = colors.accentCyan,
+                activeTrackColor = colors.accentCyan,
+                inactiveTrackColor = colors.fieldBorder.copy(AppDesign.opacityMedium)
+            ),
+            modifier = Modifier.padding(top = 2.dp)
+        )
+    }
+}
+
+@Composable
+fun ToggleRow(
+    label: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    colors: AppColors
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(AppDesign.textFieldHeight)
+            .clip(RoundedCornerShape(AppDesign.radiusSmall))
+            .clickable { onCheckedChange(!checked) }
+            .padding(horizontal = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        androidx.compose.material3.Checkbox(
+            checked = checked,
+            onCheckedChange = null, // Let the Row handle the click
+            colors = androidx.compose.material3.CheckboxDefaults.colors(
+                checkedColor = colors.accentCyan,
+                uncheckedColor = colors.fieldBorder,
+                checkmarkColor = colors.textOnAccent
+            )
+        )
+        Spacer(Modifier.width(AppDesign.spacingSmall))
+        androidx.compose.material3.Text(
+            text = label,
+            color = colors.textPrimary,
+            fontSize = AppDesign.textBodyLarge,
+            fontWeight = androidx.compose.ui.text.font.FontWeight.Medium
+        )
     }
 }

@@ -1,4 +1,4 @@
-package com.example.myapplication
+package com.example.myapplication.pendulum
 
 import androidx.compose.runtime.*
 import androidx.compose.ui.geometry.Offset
@@ -45,4 +45,4 @@ class PendulumInstance(
 }
 
 enum class DragTarget { NONE, BOB1, BOB2, ANGLE_DOT }
-enum class DisplayMode { SIMULATION, GRAPH }
+enum class DisplayMode { SIMULATION, GRAPH, COMPLEX }

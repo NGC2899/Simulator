@@ -1,4 +1,4 @@
-package com.example.myapplication
+package com.example.myapplication.pendulum
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
@@ -39,6 +39,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.myapplication.app.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.Locale
@@ -178,7 +179,7 @@ fun DoublePendulum() {
                     Text(
                         "Environment Settings",
                         color = colors.textPrimary,
-                        fontSize = AppDesign.textBodyLarge,
+                        fontSize = AppDesign.textHeadline,
                         fontWeight = FontWeight.Bold
                     )
                     Icon(
@@ -263,7 +264,7 @@ fun DoublePendulum() {
                     Text(
                         "Pendulum Manager",
                         color = colors.textPrimary,
-                        fontSize = AppDesign.textBodyLarge,
+                        fontSize = AppDesign.textHeadline,
                         fontWeight = FontWeight.Bold
                     )
                     Icon(
@@ -551,7 +552,7 @@ fun DoublePendulum() {
                                 val center = Offset(size.width / 2f, size.height / 2f)
                                 val touch = offset - center
 
-                                if (displayMode == DisplayMode.SIMULATION) {
+                                if (displayMode == DisplayMode.SIMULATION || displayMode == DisplayMode.COMPLEX) {
                                     for (p in pendulums.asReversed()) {
                                         if ((touch - p.bob1 * scale).getDistance() < AppDesign.sidebarButtonSize.toPx() * 0.8f) {
                                             draggingPendulumId = p.id; draggingBobType =
@@ -587,7 +588,7 @@ fun DoublePendulum() {
                                 val p = pendulums.find { it.id == draggingPendulumId }
                                     ?: return@detectDragGestures
 
-                                if (displayMode == DisplayMode.SIMULATION) {
+                                if (displayMode == DisplayMode.SIMULATION || displayMode == DisplayMode.COMPLEX) {
                                     val touchScaled = touch / scale
                                     if (draggingBobType == DragTarget.BOB1) p.t1 = String.format(
                                         Locale.US,
@@ -623,7 +624,7 @@ fun DoublePendulum() {
                     }
             ) {
                 when (displayMode) {
-                    DisplayMode.SIMULATION -> {
+                    DisplayMode.SIMULATION, DisplayMode.COMPLEX -> {
                         translate(size.width / 2f, size.height / 2f) {
                             pendulums.forEach { p ->
                                 drawChaosTrail(p.trail, p.currentColor, scale)
@@ -643,6 +644,30 @@ fun DoublePendulum() {
                                 )
                                 drawCircle(p.currentColor, AppDesign.radiusSmall.toPx() * 0.75f, p.bob1 * scale)
                                 drawCircle(p.currentColor, AppDesign.radiusSmall.toPx(), p.bob2 * scale)
+
+                                if (displayMode == DisplayMode.COMPLEX) {
+                                    // Draw velocity vectors
+                                    val v1x = p.logic.lengthOne * p.logic.omegaOne * kotlin.math.cos(p.logic.thetaOne)
+                                    val v1y = -p.logic.lengthOne * p.logic.omegaOne * kotlin.math.sin(p.logic.thetaOne)
+                                    val v2x = v1x + p.logic.lengthTwo * p.logic.omegaTwo * kotlin.math.cos(p.logic.thetaTwo)
+                                    val v2y = v1y - p.logic.lengthTwo * p.logic.omegaTwo * kotlin.math.sin(p.logic.thetaTwo)
+
+                                    val vecScale = 25f
+                                    drawLine(
+                                        p.currentColor.copy(alpha = 0.6f),
+                                        p.bob1 * scale,
+                                        p.bob1 * scale + Offset(v1x.toFloat(), v1y.toFloat()) * vecScale,
+                                        2f,
+                                        StrokeCap.Round
+                                    )
+                                    drawLine(
+                                        p.currentColor.copy(alpha = 0.6f),
+                                        p.bob2 * scale,
+                                        p.bob2 * scale + Offset(v2x.toFloat(), v2y.toFloat()) * vecScale,
+                                        2f,
+                                        StrokeCap.Round
+                                    )
+                                }
                             }
                             drawCircle(colors.pivot, AppDesign.spacingExtraSmall.toPx(), Offset.Zero)
                         }
@@ -721,6 +746,12 @@ fun DoublePendulum() {
                     selected = displayMode == DisplayMode.GRAPH,
                     colors = colors
                 ) { displayMode = DisplayMode.GRAPH }
+
+                DisplayModeButton(
+                    icon = Icons.Default.AllInclusive,
+                    selected = displayMode == DisplayMode.COMPLEX,
+                    colors = colors
+                ) { displayMode = DisplayMode.COMPLEX }
 
                 Spacer(Modifier.height(10.dp))
 
@@ -850,14 +881,14 @@ fun DoublePendulum() {
                 Text(
                     "How it works",
                     color = colors.textPrimary,
-                    fontSize = AppDesign.textTitle,
+                    fontSize = AppDesign.textHeadline,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(Modifier.height(AppDesign.spacingSmall))
                 Text(
                     "The Double Pendulum constitutes a compelling physics experiment that demonstrates the elegance of physical principles, illustrating how a system can simultaneously exhibit unpredictability and determinism. By establishing the initial angles (θ1 and θ2) and subsequently releasing the pendulum, one can observe the behavior of the system under controlled conditions.",
                     color = colors.textSecondary,
-                    fontSize = AppDesign.textBodyLarge,
+                    fontSize = AppDesign.textHeadline,
                     lineHeight = 20.sp
                 )
             }
@@ -937,86 +968,6 @@ private fun DisplayModeButton(
 }
 
 @Composable
-fun LabeledSlider(
-    label: String,
-    valueDisplay: String,
-    value: Float,
-    range: ClosedFloatingPointRange<Float>,
-    colors: AppColors,
-    onValueChange: (Float) -> Unit
-) {
-    Column(modifier = Modifier.padding(vertical = AppDesign.spacingSmall)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = label,
-                color = colors.textPrimary,
-                fontSize = AppDesign.textBody,
-                fontWeight = FontWeight.SemiBold
-            )
-            Text(
-                text = valueDisplay,
-                color = colors.accentCyan,
-                fontSize = AppDesign.textBody,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier
-                    .background(colors.accentCyan.copy(AppDesign.opacityLow), RoundedCornerShape(AppDesign.radiusSmall))
-                    .padding(horizontal = AppDesign.spacingSmall, vertical = 2.dp)
-            )
-        }
-        Slider(
-            value = value,
-            onValueChange = onValueChange,
-            valueRange = range,
-            colors = SliderDefaults.colors(
-                thumbColor = colors.accentCyan,
-                activeTrackColor = colors.accentCyan,
-                inactiveTrackColor = colors.fieldBorder.copy(AppDesign.opacityMedium)
-            ),
-            modifier = Modifier.padding(top = 2.dp)
-        )
-    }
-}
-
-@Composable
-fun ToggleRow(
-    label: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-    colors: AppColors
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(AppDesign.textFieldHeight)
-            .clip(RoundedCornerShape(AppDesign.radiusSmall))
-            .clickable { onCheckedChange(!checked) }
-            .padding(horizontal = 4.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Checkbox(
-            checked = checked,
-            onCheckedChange = null, // Let the Row handle the click
-            colors = CheckboxDefaults.colors(
-                checkedColor = colors.accentCyan,
-                uncheckedColor = colors.fieldBorder,
-                checkmarkColor = colors.textOnAccent
-            )
-        )
-        Spacer(Modifier.width(AppDesign.spacingSmall))
-        Text(
-            text = label,
-            color = colors.textPrimary,
-            fontSize = AppDesign.textBodyLarge,
-            fontWeight = FontWeight.Medium
-        )
-    }
-}
-
-@Composable
 fun PendulumSettingsCard(
     p: PendulumInstance,
     colors: AppColors,
@@ -1045,7 +996,7 @@ fun PendulumSettingsCard(
                         "Pendulum  ${p.id}",
                         fontWeight = FontWeight.Bold,
                         color = colors.textPrimary,
-                        fontSize = AppDesign.textBodyLarge
+                        fontSize = AppDesign.textHeadline
                     )
                 }
                 Row {

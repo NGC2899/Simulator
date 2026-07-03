@@ -1,4 +1,4 @@
-package com.example.myapplication
+package com.example.myapplication.fourier
 
 import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
@@ -31,6 +31,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.myapplication.app.*
 import java.util.Locale
 import kotlin.math.PI
 import kotlin.math.cos
@@ -41,7 +42,7 @@ enum class WaveType {
 }
 
 enum class FourierDisplayMode {
-    CIRCULAR, WRAPPING
+    CIRCULAR, WRAPPING, COMPLEX
 }
 
 class SignalInstance(
@@ -127,7 +128,8 @@ fun FourierSeries() {
                     // Angle is 2 * PI * f * time. At f=1, period is 1s if time increases by 1 per second.
                     time += subDt * speed
 
-                    // Calculate current y position for the path
+                    // Calculate current x, y position for the path
+                    var currentX = 0f
                     var currentY = 0f
                     val radiusBase = 100f
 
@@ -141,6 +143,7 @@ fun FourierSeries() {
                             val freq = signal.freq.toFloatOrNull() ?: 0f
                             val amp = signal.amp.toFloatOrNull() ?: 0f
                             val angle = 2 * PI.toFloat() * freq * time
+                            currentX += amp * cos(angle)
                             currentY += amp * sin(angle)
                         }
                     } else {
@@ -150,6 +153,7 @@ fun FourierSeries() {
                                     val (amp, phase) = customCoefficients[i]
                                     val n = i + 1
                                     val angle = 2 * PI.toFloat() * n * time + phase
+                                    currentX += amp * cos(angle)
                                     currentY += amp * sin(angle)
                                 }
                                 continue
@@ -172,11 +176,16 @@ fun FourierSeries() {
                             val phase =
                                 if (waveType == WaveType.TRIANGLE && i % 2 != 0) PI.toFloat() else 0f
                             val angle = 2 * PI.toFloat() * n * time + phase
+                            currentX += radius * cos(angle)
                             currentY += radius * sin(angle)
                         }
                     }
 
-                    newPoints.add(0, Offset(time, currentY))
+                    if (displayMode == FourierDisplayMode.COMPLEX) {
+                        newPoints.add(0, Offset(currentX, currentY))
+                    } else {
+                        newPoints.add(0, Offset(time, currentY))
+                    }
                 }
 
                 path.addAll(0, newPoints)
@@ -192,7 +201,8 @@ fun FourierSeries() {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = AppDesign.spacingLarge),
         verticalArrangement = Arrangement.spacedBy(AppDesign.radiusLarge)
     ) {
         // Settings Card
@@ -659,8 +669,9 @@ fun FourierSeries() {
                 val centerY = size.height * 0.5f
                 val radiusBase = 100f
 
-                if (displayMode == FourierDisplayMode.CIRCULAR) {
-                    translate(centerX, centerY) {
+                if (displayMode == FourierDisplayMode.CIRCULAR || displayMode == FourierDisplayMode.COMPLEX) {
+                    val actualCenterX = if (displayMode == FourierDisplayMode.COMPLEX) size.width * 0.5f else centerX
+                    translate(actualCenterX, centerY) {
                         var x = 0f
                         var y = 0f
 
@@ -721,28 +732,44 @@ fun FourierSeries() {
                         // Draw final point
                         drawCircle(colors.accentViolet, AppDesign.spacingExtraSmall.toPx(), Offset(x, y))
 
-                        // Draw Line to Wave
-                        drawLine(
-                            color = colors.textSecondary.copy(alpha = AppDesign.opacityLow + AppDesign.opacitySubtle),
-                            start = Offset(x, y),
-                            end = Offset(180f, y),
-                            strokeWidth = AppDesign.strokeThin
-                        )
+                        if (displayMode == FourierDisplayMode.CIRCULAR) {
+                            // Draw Line to Wave
+                            drawLine(
+                                color = colors.textSecondary.copy(alpha = AppDesign.opacityLow + AppDesign.opacitySubtle),
+                                start = Offset(x, y),
+                                end = Offset(180f, y),
+                                strokeWidth = AppDesign.strokeThin
+                            )
 
-                        // Draw Wave Path
-                        val wavePath = Path()
-                        if (path.isNotEmpty()) {
-                            wavePath.moveTo(180f, path[0].y)
-                            for (i in 1 until path.size step 2) {
-                                wavePath.lineTo(180f + i * 0.8f, path[i].y)
+                            // Draw Wave Path
+                            val wavePath = Path()
+                            if (path.isNotEmpty()) {
+                                wavePath.moveTo(180f, path[0].y)
+                                for (i in 1 until path.size step 2) {
+                                    wavePath.lineTo(180f + i * 0.8f, path[i].y)
+                                }
                             }
-                        }
 
-                        drawPath(
-                            path = wavePath,
-                            color = colors.accentCyan,
-                            style = Stroke(width = AppDesign.strokeThick, cap = StrokeCap.Round)
-                        )
+                            drawPath(
+                                path = wavePath,
+                                color = colors.accentCyan,
+                                style = Stroke(width = AppDesign.strokeThick, cap = StrokeCap.Round)
+                            )
+                        } else {
+                            // Draw Complex Trace
+                            val tracePath = Path()
+                            if (path.isNotEmpty()) {
+                                tracePath.moveTo(path[0].x, path[0].y)
+                                for (i in 1 until path.size) {
+                                    tracePath.lineTo(path[i].x, path[i].y)
+                                }
+                            }
+                            drawPath(
+                                path = tracePath,
+                                color = colors.accentCyan,
+                                style = Stroke(width = AppDesign.strokeStandard, cap = StrokeCap.Round)
+                            )
+                        }
                     }
                 } else if (displayMode == FourierDisplayMode.WRAPPING) {
                     translate(size.width / 2f, centerY) {
@@ -824,13 +851,28 @@ fun FourierSeries() {
                     icon = Icons.Default.Timeline,
                     selected = displayMode == FourierDisplayMode.CIRCULAR,
                     colors = colors
-                ) { displayMode = FourierDisplayMode.CIRCULAR }
+                ) {
+                    if (displayMode != FourierDisplayMode.CIRCULAR) path.clear()
+                    displayMode = FourierDisplayMode.CIRCULAR
+                }
 
                 DisplayModeButton(
                     icon = Icons.Default.Adjust,
                     selected = displayMode == FourierDisplayMode.WRAPPING,
                     colors = colors
-                ) { displayMode = FourierDisplayMode.WRAPPING }
+                ) {
+                    if (displayMode != FourierDisplayMode.WRAPPING) path.clear()
+                    displayMode = FourierDisplayMode.WRAPPING
+                }
+
+                DisplayModeButton(
+                    icon = Icons.Default.Hub,
+                    selected = displayMode == FourierDisplayMode.COMPLEX,
+                    colors = colors
+                ) {
+                    if (displayMode != FourierDisplayMode.COMPLEX) path.clear()
+                    displayMode = FourierDisplayMode.COMPLEX
+                }
 
                 Spacer(Modifier.height(AppDesign.spacingSmall + AppDesign.spacingExtraSmall / 2f))
 
@@ -946,21 +988,34 @@ fun FourierSeries() {
         }
 
         // Harmonic Components or Center of Mass Graph
-        if (displayMode == FourierDisplayMode.WRAPPING) {
-            CenterOfMassGraph(
-                path = path,
-                colors = colors,
-                currentWindingFreq = windingFrequency
-            )
-        } else {
-            HarmonicComponents(
-                nTerms = nTerms,
-                waveType = waveType,
-                time = time,
-                colors = colors,
-                customCoefficients = customCoefficients,
-                customFunctionSignals = customFunctionSignals
-            )
+        when (displayMode) {
+            FourierDisplayMode.WRAPPING -> {
+                CenterOfMassGraph(
+                    path = path,
+                    colors = colors,
+                    currentWindingFreq = windingFrequency
+                )
+            }
+            FourierDisplayMode.COMPLEX -> {
+                ComplexHarmonicComponents(
+                    nTerms = nTerms,
+                    waveType = waveType,
+                    time = time,
+                    colors = colors,
+                    customCoefficients = customCoefficients,
+                    customFunctionSignals = customFunctionSignals
+                )
+            }
+            else -> {
+                HarmonicComponents(
+                    nTerms = nTerms,
+                    waveType = waveType,
+                    time = time,
+                    colors = colors,
+                    customCoefficients = customCoefficients,
+                    customFunctionSignals = customFunctionSignals
+                )
+            }
         }
 
         // Info Card
@@ -994,15 +1049,20 @@ private fun HarmonicComponents(
     customCoefficients: List<Pair<Float, Float>>,
     customFunctionSignals: List<SignalInstance>
 ) {
-    val displayTerms = if (waveType == WaveType.CUSTOM_FUNCTION) {
+    var isExpanded by remember { mutableStateOf(false) }
+    val maxTerms = if (waveType == WaveType.CUSTOM_FUNCTION) {
         nTerms.coerceAtMost(customFunctionSignals.size)
     } else {
-        nTerms.coerceAtMost(6)
+        nTerms
     }
+    
+    val displayTerms = if (isExpanded) maxTerms else maxTerms.coerceAtMost(6)
 
     GlassCard(colors = colors) {
         Column(
-            modifier = Modifier.padding(AppDesign.radiusLarge),
+            modifier = Modifier
+                .padding(AppDesign.radiusLarge)
+                .animateContentSize(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
@@ -1132,14 +1192,28 @@ private fun HarmonicComponents(
                     }
                 }
 
-                if (displayTerms > 6 && waveType != WaveType.CUSTOM_FUNCTION) {
-                    Text(
-                        "+",
-                        color = colors.textSecondary.copy(0.6f),
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text("...", color = colors.textSecondary, fontSize = 12.sp)
+                if (maxTerms > 6 && waveType != WaveType.SINE) {
+                    Spacer(Modifier.height(AppDesign.spacingSmall))
+                    TextButton(
+                        onClick = { isExpanded = !isExpanded },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                if (isExpanded) "Show Less" else "Show All Components",
+                                color = colors.accentCyan,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp
+                            )
+                            Spacer(Modifier.width(4.dp))
+                            Icon(
+                                if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                null,
+                                tint = colors.accentCyan,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -1263,8 +1337,13 @@ private fun CenterOfMassGraph(
     colors: AppColors,
     currentWindingFreq: Float
 ) {
+    var isExpanded by remember { mutableStateOf(false) }
     GlassCard(colors = colors) {
-        Column(modifier = Modifier.padding(AppDesign.radiusLarge)) {
+        Column(
+            modifier = Modifier
+                .padding(AppDesign.radiusLarge)
+                .animateContentSize()
+        ) {
             Text(
                 "Frequency Domain (Real-time Center of Mass)",
                 color = colors.textPrimary,
@@ -1276,8 +1355,9 @@ private fun CenterOfMassGraph(
             Canvas(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(180.dp)
+                    .height(if (isExpanded) 250.dp else 180.dp)
             ) {
+// ...
                 val width = size.width
                 val height = size.height
                 val centerY = height * 0.7f
@@ -1367,6 +1447,231 @@ private fun CenterOfMassGraph(
                 fontSize = 11.sp,
                 lineHeight = 16.sp
             )
+
+            AnimatedVisibility(visible = isExpanded) {
+                Column(modifier = Modifier.padding(top = 8.dp)) {
+                    HorizontalDivider(color = colors.cardBorder.copy(alpha = 0.2f))
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "Technical Insight:",
+                        color = colors.accentCyan,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        "This graph performs a real-time integration of your signal against a rotating phasor. The magnitude shown is the average 'pull' of the signal in the complex plane. Higher peaks correspond to stronger harmonics.",
+                        color = colors.textSecondary,
+                        fontSize = 11.sp,
+                        lineHeight = 16.sp
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(4.dp))
+            TextButton(
+                onClick = { isExpanded = !isExpanded },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        if (isExpanded) "Show Less" else "Technical Details",
+                        color = colors.accentCyan,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Icon(
+                        if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        null,
+                        tint = colors.accentCyan,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ComplexHarmonicComponents(
+    nTerms: Int,
+    waveType: WaveType,
+    time: Float,
+    colors: AppColors,
+    customCoefficients: List<Pair<Float, Float>>,
+    customFunctionSignals: List<SignalInstance>
+) {
+    var isExpanded by remember { mutableStateOf(false) }
+    val maxTerms = if (waveType == WaveType.CUSTOM_FUNCTION) {
+        nTerms.coerceAtMost(customFunctionSignals.size)
+    } else {
+        nTerms
+    }
+
+    val displayTerms = if (isExpanded) maxTerms else maxTerms.coerceAtMost(6)
+
+    GlassCard(colors = colors) {
+        Column(
+            modifier = Modifier
+                .padding(AppDesign.radiusLarge)
+                .animateContentSize(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                "Phasor Decomposition",
+                color = colors.textPrimary,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            Spacer(Modifier.height(AppDesign.radiusLarge))
+
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                for (i in 0 until displayTerms) {
+                    val n = when (waveType) {
+                        WaveType.SINE -> 1.0f
+                        WaveType.SQUARE -> (i * 2 + 1).toFloat()
+                        WaveType.SAWTOOTH -> (i + 1).toFloat()
+                        WaveType.TRIANGLE -> (i * 2 + 1).toFloat()
+                        WaveType.MY_SIGNAL -> (i + 1).toFloat()
+                        WaveType.CUSTOM_FUNCTION -> customFunctionSignals[i].freq.toFloatOrNull() ?: 0f
+                    }
+
+                    if (waveType == WaveType.SINE && i > 0) continue
+
+                    val radiusBase = 40f
+                    val radius = when (waveType) {
+                        WaveType.SINE -> radiusBase
+                        WaveType.SQUARE -> radiusBase * (4f / (n * PI.toFloat()))
+                        WaveType.SAWTOOTH -> radiusBase * (2f / (n * PI.toFloat()))
+                        WaveType.TRIANGLE -> radiusBase * (8f / (n * n * PI.toFloat() * PI.toFloat()))
+                        WaveType.MY_SIGNAL -> if (i < customCoefficients.size) customCoefficients[i].first * (radiusBase / 100f) else 0f
+                        WaveType.CUSTOM_FUNCTION -> (customFunctionSignals[i].amp.toFloatOrNull() ?: 0f) * (radiusBase / 100f)
+                    }
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(60.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.width(60.dp)) {
+                            Text(
+                                text = "Harmonic ${i + 1}",
+                                color = colors.textSecondary,
+                                fontSize = 10.sp
+                            )
+                            Text(
+                                text = "f = $n",
+                                color = colors.accentCyan,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        Canvas(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
+                        ) {
+                            val center = Offset(size.width / 2, size.height / 2)
+                            val phase = when (waveType) {
+                                WaveType.TRIANGLE -> if (i % 2 != 0) PI.toFloat() else 0f
+                                WaveType.MY_SIGNAL -> if (i < customCoefficients.size) customCoefficients[i].second else 0f
+                                else -> 0f
+                            }
+
+                            // Draw circle
+                            drawCircle(
+                                color = colors.accentCyan.copy(alpha = 0.1f),
+                                radius = radius,
+                                center = center,
+                                style = Stroke(width = 1f)
+                            )
+
+                            // Draw axes
+                            drawLine(
+                                colors.textSecondary.copy(alpha = 0.1f),
+                                Offset(center.x - radius - 10f, center.y),
+                                Offset(center.x + radius + 10f, center.y),
+                                1f
+                            )
+                            drawLine(
+                                colors.textSecondary.copy(alpha = 0.1f),
+                                Offset(center.x, center.y - radius - 10f),
+                                Offset(center.x, center.y + radius + 10f),
+                                1f
+                            )
+
+                            // Draw rotating vector
+                            val angle = 2 * PI.toFloat() * n * time + phase
+                            val end = Offset(
+                                center.x + radius * cos(angle),
+                                center.y + radius * sin(angle)
+                            )
+
+                            drawLine(
+                                color = colors.accentCyan,
+                                start = center,
+                                end = end,
+                                strokeWidth = 2f,
+                                cap = StrokeCap.Round
+                            )
+
+                            drawCircle(
+                                color = colors.accentCyan,
+                                radius = 3f,
+                                center = end
+                            )
+                        }
+
+                        Column(
+                            modifier = Modifier.width(60.dp),
+                            horizontalAlignment = Alignment.End
+                        ) {
+                            Text(
+                                text = "Amplitude",
+                                color = colors.textSecondary,
+                                fontSize = 10.sp
+                            )
+                            Text(
+                                text = String.format(Locale.US, "%.1f", radius),
+                                color = colors.accentViolet,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+
+                if (maxTerms > 6 && waveType != WaveType.SINE) {
+                    Spacer(Modifier.height(AppDesign.spacingSmall))
+                    TextButton(
+                        onClick = { isExpanded = !isExpanded },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                if (isExpanded) "Show Less" else "Show All Harmonics",
+                                color = colors.accentCyan,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp
+                            )
+                            Spacer(Modifier.width(4.dp))
+                            Icon(
+                                if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                null,
+                                tint = colors.accentCyan,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }
