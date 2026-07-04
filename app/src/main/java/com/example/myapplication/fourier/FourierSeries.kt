@@ -81,6 +81,7 @@ fun FourierSeries() {
     // --- Custom Function State ---
     val customFunctionSignals = remember { mutableStateListOf(SignalInstance(0, colors.accentCyan)) }
     var nextSignalId by remember { mutableIntStateOf(1) }
+    var isSignalsExpanded by remember { mutableStateOf(false) }
 
     fun calculateDFT() {
         if (drawingPoints.size < samplesCount) return
@@ -542,7 +543,8 @@ fun FourierSeries() {
                                     Column(
                                         verticalArrangement = Arrangement.spacedBy(AppDesign.spacingSmall)
                                     ) {
-                                        customFunctionSignals.forEachIndexed { _, signal ->
+                                        val displayList = if (isSignalsExpanded) customFunctionSignals else customFunctionSignals.take(5)
+                                        displayList.forEachIndexed { _, signal ->
                                             SignalSettingsCard(
                                                 signal = signal,
                                                 colors = colors,
@@ -558,6 +560,29 @@ fun FourierSeries() {
                                                     }
                                                 }
                                             )
+                                        }
+
+                                        if (customFunctionSignals.size > 5) {
+                                            TextButton(
+                                                onClick = { isSignalsExpanded = !isSignalsExpanded },
+                                                modifier = Modifier.fillMaxWidth()
+                                            ) {
+                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    Text(
+                                                        if (isSignalsExpanded) "Show Less" else "Show All Components (${customFunctionSignals.size})",
+                                                        color = colors.accentCyan,
+                                                        fontWeight = FontWeight.Bold,
+                                                        fontSize = 12.sp
+                                                    )
+                                                    Spacer(Modifier.width(4.dp))
+                                                    Icon(
+                                                        if (isSignalsExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                                        null,
+                                                        tint = colors.accentCyan,
+                                                        modifier = Modifier.size(16.dp)
+                                                    )
+                                                }
+                                            }
                                         }
                                     }
                                 }
@@ -701,8 +726,11 @@ fun FourierSeries() {
 
                             if (radius < 0.5f && i > 0) continue // Skip tiny circles
 
-                            val phase =
-                                if (waveType == WaveType.TRIANGLE && i % 2 != 0) PI.toFloat() else 0f
+                            val phase = when (waveType) {
+                                WaveType.TRIANGLE -> if (i % 2 != 0) PI.toFloat() else 0f
+                                WaveType.MY_SIGNAL -> if (i < customCoefficients.size) customCoefficients[i].second else 0f
+                                else -> 0f
+                            }
                             val angle = 2 * PI.toFloat() * n * time + phase
                             x += radius * cos(angle)
                             y += radius * sin(angle)

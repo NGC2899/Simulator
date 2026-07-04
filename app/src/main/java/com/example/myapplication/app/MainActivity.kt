@@ -4,15 +4,14 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.*
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -20,10 +19,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.myapplication.fourier.FourierSeries
 import com.example.myapplication.pendulum.DoublePendulum
 
@@ -37,15 +34,18 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            AppTheme {
-                MainContainer()
+            var isDarkTheme by remember { mutableStateOf(true) }
+            AppTheme(darkTheme = isDarkTheme) {
+                MainContainer(
+                    onToggleTheme = { isDarkTheme = !isDarkTheme }
+                )
             }
         }
     }
 }
 
 @Composable
-fun MainContainer() {
+fun MainContainer(onToggleTheme: () -> Unit) {
     val colors = LocalAppColors.current
     var currentScreen by remember { mutableStateOf(Screen.Welcome) }
 
@@ -91,17 +91,25 @@ fun MainContainer() {
                                 else -> ""
                             },
                             colors = colors,
-                            onBack = { currentScreen = Screen.Welcome }
+                            onBack = { currentScreen = Screen.Welcome },
+                            onToggleTheme = onToggleTheme
                         )
                     }
 
                     // Screen Content
-                    Box(modifier = Modifier.weight(1f).padding(AppDesign.spacingLarge)) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(AppDesign.spacingLarge)
+                    ) {
                         when (screen) {
                             Screen.Welcome -> WelcomeScreen(
-                                onNavigateToDoublePendulum = { currentScreen = Screen.DoublePendulum },
+                                onNavigateToDoublePendulum = {
+                                    currentScreen = Screen.DoublePendulum
+                                },
                                 onNavigateToFourierSeries = { currentScreen = Screen.FourierSeries }
                             )
+
                             Screen.FourierSeries -> FourierSeries()
                             Screen.DoublePendulum -> DoublePendulum()
                         }
@@ -116,40 +124,72 @@ fun MainContainer() {
 fun TopNavigationBar(
     title: String,
     colors: AppColors,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onToggleTheme: () -> Unit
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .height(AppDesign.navBarHeight)
-            .padding(horizontal = AppDesign.spacingLarge),
-        verticalAlignment = Alignment.CenterVertically
+            .padding(AppDesign.spacingLarge),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        IconButton(
-            onClick = onBack,
+        Box(
             modifier = Modifier
+                .size(AppDesign.buttonHeight)
+                .aspectRatio(1f)
                 .size(AppDesign.sidebarButtonSize)
-                .clip(RoundedCornerShape(AppDesign.radiusSmall))
-                .background(colors.cardSurface.copy(alpha = AppDesign.opacityHigh))
-              .border(
-                1.dp,
-                colors.cardBorder.copy(alpha = 0.6f),
-                RoundedCornerShape(AppDesign.radiusSmall)
-            )
+                .clip(RoundedCornerShape(AppDesign.radiusCard))
+                .background(colors.cardSurface.copy(alpha = 0.45f))
+                .border(
+                    1.dp,
+                    colors.cardBorder.copy(alpha = 0.6f),
+                    RoundedCornerShape(AppDesign.radiusCard)
+                )
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = onBack
+                ),
+            contentAlignment = Alignment.Center
         ) {
             Icon(
                 Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = "Back",
-                tint = colors.accentCyan
+                tint = colors.accentCyan,
             )
         }
-
-        Spacer(modifier = Modifier.width(AppDesign.spacingMedium))
 
         Text(
             text = title,
             fontSize = AppDesign.textHeadline,
             fontWeight = FontWeight.Bold
         )
+
+        Box(
+            modifier = Modifier
+                .size(AppDesign.buttonHeight)
+                .aspectRatio(1f)
+                .clip(RoundedCornerShape(AppDesign.radiusCard))
+                .background(colors.cardSurface.copy(alpha = 0.45f))
+                .border(
+                    1.dp,
+                    colors.cardBorder.copy(alpha = 0.6f),
+                    RoundedCornerShape(AppDesign.radiusCard)
+                )
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = onToggleTheme
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                if (colors.isDark) Icons.Filled.LightMode else Icons.Filled.DarkMode,
+                contentDescription = "Toggle Theme",
+                tint = colors.accentCyan,
+            )
+        }
     }
 }

@@ -56,6 +56,7 @@ fun DoublePendulum() {
 
     val pendulums = remember { mutableStateListOf(PendulumInstance(0, colors.accentCyan)) }
     var nextId by remember { mutableIntStateOf(1) }
+    var isPendulumsExpanded by remember { mutableStateOf(false) }
     var running by remember { mutableStateOf(false) }
     var hasStarted by remember { mutableStateOf(false) }
 
@@ -431,8 +432,8 @@ fun DoublePendulum() {
                             .animateContentSize(animationSpec = tween(250)),
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        // Show only first 5 settings to avoid UI lag if grid is spawned
-                        val displayList = if (pendulums.size > 5) pendulums.take(5) else pendulums
+                        // Truncated list for better performance
+                        val displayList = if (isPendulumsExpanded) pendulums else pendulums.take(5)
                         Column(verticalArrangement = Arrangement.spacedBy(AppDesign.spacingSmall)) {
                             displayList.forEachIndexed { _, p ->
                                 PendulumSettingsCard(
@@ -455,13 +456,28 @@ fun DoublePendulum() {
                                     }
                                 }
                             }
+
                             if (pendulums.size > 5) {
-                                Text(
-                                    "... and ${pendulums.size - 5} more pendulums",
-                                    color = colors.textSecondary,
-                                    fontSize = AppDesign.textSmall,
-                                    modifier = Modifier.padding(start = AppDesign.spacingMedium)
-                                )
+                                TextButton(
+                                    onClick = { isPendulumsExpanded = !isPendulumsExpanded },
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(
+                                            if (isPendulumsExpanded) "Show Less" else "Show All Pendulums (${pendulums.size})",
+                                            color = colors.accentCyan,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 12.sp
+                                        )
+                                        Spacer(Modifier.width(4.dp))
+                                        Icon(
+                                            if (isPendulumsExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                            null,
+                                            tint = colors.accentCyan,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                }
                             }
                         }
                     }

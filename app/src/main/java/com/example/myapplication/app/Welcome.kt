@@ -79,7 +79,7 @@ fun WelcomeScreen(
                     SimulationCard(
                         title = "Fourier Series",
                         colors = colors,
-                        onClick = onNavigateToFourierSeries
+                        onClick = onNavigateToFourierSeries,
                     ) {
                         Icon(
                             imageVector = Icons.Default.BlurCircular,

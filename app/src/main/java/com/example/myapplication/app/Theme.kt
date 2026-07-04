@@ -57,7 +57,7 @@ object AppDesign {
     val canvasHeightMedium = 400.dp
     val canvasHeightLarge = 450.dp
     val sidebarButtonSize = 42.dp
-    val navBarHeight = 80.dp
+    val navBarHeight = 60.dp
     val welcomeHeaderHeight = 100.dp
     val welcomeSectionSpacing = 25.dp
     val welcomeGridSpacing = 60.dp
