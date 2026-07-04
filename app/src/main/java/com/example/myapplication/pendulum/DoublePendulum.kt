@@ -178,14 +178,12 @@ fun DoublePendulum() {
                 ) {
                     Text(
                         "Environment Settings",
-                        color = colors.textPrimary,
                         fontSize = AppDesign.textHeadline,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
                     )
                     Icon(
                         if (isEnvExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
                         null,
-                        tint = colors.textSecondary
                     )
                 }
 
@@ -263,7 +261,6 @@ fun DoublePendulum() {
                 ) {
                     Text(
                         "Pendulum Manager",
-                        color = colors.textPrimary,
                         fontSize = AppDesign.textHeadline,
                         fontWeight = FontWeight.Bold
                     )
@@ -494,11 +491,12 @@ fun DoublePendulum() {
                 shape = RoundedCornerShape(AppDesign.radiusMedium),
                 colors = ButtonDefaults.buttonColors(containerColor = if (running) colors.accentHell else colors.accentCyan)
             ) {
-                Icon(if (running) Icons.Default.Pause else Icons.Default.PlayArrow, null)
+                Icon(if (running) Icons.Default.Pause else Icons.Default.PlayArrow, null, tint = colors.textOnAccent)
                 Spacer(Modifier.width(AppDesign.spacingSmall))
                 Text(
                     if (running) "Pause" else if (hasStarted) "Resume" else "Simulate",
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = colors.textOnAccent,
                 )
             }
 
@@ -527,19 +525,12 @@ fun DoublePendulum() {
             modifier = Modifier
                 .fillMaxWidth()
                 .height(AppDesign.canvasHeightSmall)
-                .clip(RoundedCornerShape(AppDesign.radiusCanvas))
-                .background(
-                    Brush.radialGradient(
-                        listOf(
-                            colors.accentViolet.copy(0.08f),
-                            colors.cardSurface.copy(0.7f)
-                        )
-                    )
-                )
+                .clip(RoundedCornerShape(AppDesign.radiusCard))
+                .background(colors.cardSurface.copy(alpha = 0.45f))
                 .border(
                     1.dp,
-                    colors.cardBorder.copy(0.3f),
-                    RoundedCornerShape(AppDesign.radiusCanvas)
+                    colors.cardBorder.copy(alpha = 0.6f),
+                    RoundedCornerShape(AppDesign.radiusCard)
                 )
         ) {
             Canvas(
@@ -880,7 +871,6 @@ fun DoublePendulum() {
             Column(modifier = Modifier.padding(AppDesign.spacingLarge)) {
                 Text(
                     "How it works",
-                    color = colors.textPrimary,
                     fontSize = AppDesign.textHeadline,
                     fontWeight = FontWeight.Bold
                 )
@@ -888,7 +878,6 @@ fun DoublePendulum() {
                 Text(
                     "The Double Pendulum constitutes a compelling physics experiment that demonstrates the elegance of physical principles, illustrating how a system can simultaneously exhibit unpredictability and determinism. By establishing the initial angles (θ1 and θ2) and subsequently releasing the pendulum, one can observe the behavior of the system under controlled conditions.",
                     color = colors.textSecondary,
-                    fontSize = AppDesign.textHeadline,
                     lineHeight = 20.sp
                 )
             }
@@ -937,37 +926,6 @@ private fun EnergyDashboard(
 }
 
 @Composable
-private fun DisplayModeButton(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    selected: Boolean,
-    colors: AppColors,
-    onClick: () -> Unit
-) {
-    Surface(
-        modifier = Modifier
-            .size(AppDesign.sidebarButtonSize)
-            .clickable { onClick() },
-        shape = RoundedCornerShape(AppDesign.radiusSmall),
-        color = if (selected) colors.accentCyan.copy(AppDesign.opacityLow) else colors.cardSurface.copy(
-            AppDesign.opacityMedium
-        ),
-        border = BorderStroke(
-            1.dp,
-            if (selected) colors.accentCyan else colors.cardBorder.copy(AppDesign.opacityMedium)
-        )
-    ) {
-        Box(contentAlignment = Alignment.Center) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.size(AppDesign.iconMedium),
-                tint = if (selected) colors.accentCyan else colors.textSecondary
-            )
-        }
-    }
-}
-
-@Composable
 fun PendulumSettingsCard(
     p: PendulumInstance,
     colors: AppColors,
@@ -995,8 +953,7 @@ fun PendulumSettingsCard(
                     Text(
                         "Pendulum  ${p.id}",
                         fontWeight = FontWeight.Bold,
-                        color = colors.textPrimary,
-                        fontSize = AppDesign.textHeadline
+                        fontSize = AppDesign.textBodyLarge
                     )
                 }
                 Row {
@@ -1076,7 +1033,7 @@ private fun PendulumField(
 ) {
     OutlinedTextField(
         value = value, onValueChange = onValueChange, label = { Text(label, fontSize = AppDesign.textCaption) },
-        textStyle = TextStyle(color = colors.textPrimary, fontSize = AppDesign.textBody),
+        textStyle = LocalTextStyle.current.copy(fontSize = AppDesign.textBody),
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
         singleLine = true, modifier = Modifier
             .fillMaxWidth()

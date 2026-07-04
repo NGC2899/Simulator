@@ -2,6 +2,12 @@ package com.example.myapplication.app
 
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.ProvideTextStyle
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -13,8 +19,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.border
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.random.Random
@@ -24,9 +32,6 @@ import kotlin.random.Random
 // ─────────────────────────────────────────────
 
 object AppDesign {
-    val blurStandard = 18.dp
-    val blurNone = 0.dp
-
     val radiusSmall = 8.dp
     val radiusButton = 10.dp
     val radiusMedium = 12.dp
@@ -64,7 +69,7 @@ object AppDesign {
     val iconSmallMedium = 18.dp
     val iconMedium = 20.dp
     val iconLarge = 24.dp
-    val iconWelcome = 40.dp
+    val iconWelcome = 80.dp
 
     val textCaption = 9.sp
     val textOverline = 10.sp
@@ -73,7 +78,7 @@ object AppDesign {
     val textBodyLarge = 13.sp
     val textTitle = 14.sp
     val textTitleLarge = 16.sp
-    val textHeadline = 20.sp
+    val textHeadline = 18.sp
     val textHeadlineLarge = 28.sp
     val textDisplay = 28.sp
     val textDisplayLarge = 60.sp
@@ -197,12 +202,19 @@ val LocalAppColors = staticCompositionLocalOf<AppColors> { DarkColors }
 
 @Composable
 fun AppTheme(
-    darkTheme: Boolean = true,
+    darkTheme: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colors = if (darkTheme) DarkColors else LightColors
     CompositionLocalProvider(LocalAppColors provides colors) {
-        content()
+        val style = TextStyle(
+            color = colors.textPrimary,
+            fontSize = AppDesign.textBodyLarge,
+            fontWeight = FontWeight.Normal
+        )
+        ProvideTextStyle(value = style) {
+            content()
+        }
     }
 }
 
@@ -406,5 +418,37 @@ fun ToggleRow(
             fontSize = AppDesign.textBodyLarge,
             fontWeight = androidx.compose.ui.text.font.FontWeight.Medium
         )
+    }
+}
+
+@Composable
+fun DisplayModeButton(
+    icon: ImageVector,
+    selected: Boolean,
+    colors: AppColors,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = modifier
+            .size(AppDesign.sidebarButtonSize)
+            .clickable { onClick() },
+        shape = RoundedCornerShape(AppDesign.radiusSmall),
+        color = if (selected) colors.accentCyan.copy(AppDesign.opacityLow) else colors.cardSurface.copy(
+            AppDesign.opacityMedium
+        ),
+        border = BorderStroke(
+            1.dp,
+            if (selected) colors.accentCyan else colors.cardBorder.copy(AppDesign.opacityMedium)
+        )
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(AppDesign.iconMedium),
+                tint = if (selected) colors.accentCyan else colors.textSecondary
+            )
+        }
     }
 }

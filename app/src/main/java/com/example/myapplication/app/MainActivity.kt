@@ -6,11 +6,13 @@ import androidx.activity.compose.setContent
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -61,38 +63,40 @@ fun MainContainer() {
             blob2Color = colors.accentViolet,
             label = "mainBlobs"
         ) {
-            Column(modifier = Modifier.fillMaxSize()) {
-                // Top Bar
-                AnimatedVisibility(
-                    visible = currentScreen != Screen.Welcome,
-                    enter = fadeIn() + expandVertically(),
-                    exit = fadeOut() + shrinkVertically()
+            // Entire Screen with Slide Transition
+            AnimatedContent(
+                targetState = currentScreen,
+                transitionSpec = {
+                    if (targetState != Screen.Welcome) {
+                        (slideInHorizontally { it } + fadeIn()).togetherWith(
+                            slideOutHorizontally { -it } + fadeOut())
+                    } else {
+                        (slideInHorizontally { -it } + fadeIn()).togetherWith(
+                            slideOutHorizontally { it } + fadeOut())
+                    } using SizeTransform(clip = false)
+                }, label = "screenTransition",
+                modifier = Modifier.fillMaxSize()
+            ) { screen ->
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .statusBarsPadding()
                 ) {
-                    TopNavigationBar(
-                        title = when (currentScreen) {
-                            Screen.FourierSeries -> "Fourier Series"
-                            Screen.DoublePendulum -> "Double Pendulum"
-                            else -> ""
-                        },
-                        colors = colors,
-                        onBack = { currentScreen = Screen.Welcome }
-                    )
-                }
+                    // Top Bar integrated into sliding content
+                    if (screen != Screen.Welcome) {
+                        TopNavigationBar(
+                            title = when (screen) {
+                                Screen.FourierSeries -> "Fourier Series"
+                                Screen.DoublePendulum -> "Double Pendulum"
+                                else -> ""
+                            },
+                            colors = colors,
+                            onBack = { currentScreen = Screen.Welcome }
+                        )
+                    }
 
-                // Screen Content
-                Box(modifier = Modifier.weight(1f)) {
-                    AnimatedContent(
-                        targetState = currentScreen,
-                        transitionSpec = {
-                            if (targetState != Screen.Welcome) {
-                                (slideInHorizontally { it } + fadeIn()).togetherWith(
-                                    slideOutHorizontally { -it } + fadeOut())
-                            } else {
-                                (slideInHorizontally { -it } + fadeIn()).togetherWith(
-                                    slideOutHorizontally { it } + fadeOut())
-                            } using SizeTransform(clip = false)
-                        }, label = "screenTransition"
-                    ) { screen ->
+                    // Screen Content
+                    Box(modifier = Modifier.weight(1f).padding(AppDesign.spacingLarge)) {
                         when (screen) {
                             Screen.Welcome -> WelcomeScreen(
                                 onNavigateToDoublePendulum = { currentScreen = Screen.DoublePendulum },
@@ -117,7 +121,6 @@ fun TopNavigationBar(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .statusBarsPadding()
             .height(AppDesign.navBarHeight)
             .padding(horizontal = AppDesign.spacingLarge),
         verticalAlignment = Alignment.CenterVertically
@@ -127,7 +130,12 @@ fun TopNavigationBar(
             modifier = Modifier
                 .size(AppDesign.sidebarButtonSize)
                 .clip(RoundedCornerShape(AppDesign.radiusSmall))
-                .background(colors.cardSurface.copy(alpha = AppDesign.opacityLow))
+                .background(colors.cardSurface.copy(alpha = AppDesign.opacityHigh))
+              .border(
+                1.dp,
+                colors.cardBorder.copy(alpha = 0.6f),
+                RoundedCornerShape(AppDesign.radiusSmall)
+            )
         ) {
             Icon(
                 Icons.AutoMirrored.Filled.ArrowBack,
@@ -140,7 +148,6 @@ fun TopNavigationBar(
 
         Text(
             text = title,
-            color = colors.textPrimary,
             fontSize = AppDesign.textHeadline,
             fontWeight = FontWeight.Bold
         )

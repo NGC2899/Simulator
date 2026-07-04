@@ -201,13 +201,12 @@ fun FourierSeries() {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = AppDesign.spacingLarge),
-        verticalArrangement = Arrangement.spacedBy(AppDesign.radiusLarge)
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(AppDesign.spacingLarge)
     ) {
         // Settings Card
         GlassCard(colors = colors) {
-            Column(modifier = Modifier.padding(AppDesign.radiusLarge)) {
+            Column(modifier = Modifier.padding(AppDesign.spacingLarge)) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -217,8 +216,7 @@ fun FourierSeries() {
                 ) {
                     Text(
                         "Simulator Settings",
-                        color = colors.textPrimary,
-                        fontSize = AppDesign.textTitleLarge,
+                        fontSize = AppDesign.textHeadline,
                         fontWeight = FontWeight.Bold
                     )
                     Icon(
@@ -549,7 +547,7 @@ fun FourierSeries() {
                                                 signal = signal,
                                                 colors = colors,
                                                 showDel = customFunctionSignals.size > 1,
-                                                onParameterChange = { 
+                                                onParameterChange = {
                                                     hasStarted = false
                                                     path.clear()
                                                 },
@@ -614,11 +612,15 @@ fun FourierSeries() {
                     containerColor = if (running) colors.accentHell else colors.accentCyan
                 )
             ) {
-                Icon(if (running) Icons.Default.Pause else Icons.Default.PlayArrow, null)
+                Icon(if (running) Icons.Default.Pause else Icons.Default.PlayArrow,
+                    null,
+                    tint = colors.textOnAccent
+                )
                 Spacer(Modifier.width(AppDesign.spacingSmall))
                 Text(
                     if (running) "Pause" else if (hasStarted) "Resume" else "Simulate",
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = colors.textOnAccent,
                 )
             }
 
@@ -648,20 +650,13 @@ fun FourierSeries() {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(AppDesign.canvasHeightMedium)
-                .clip(RoundedCornerShape(AppDesign.radiusCanvas))
-                .background(
-                    Brush.radialGradient(
-                        listOf(
-                            colors.accentViolet.copy(alpha = AppDesign.opacitySubtle + AppDesign.opacitySubtle / 2f),
-                            colors.cardSurface.copy(alpha = AppDesign.opacityHigh)
-                        )
-                    )
-                )
+                .height(AppDesign.canvasHeightSmall)
+                .clip(RoundedCornerShape(AppDesign.radiusCard))
+                .background(colors.cardSurface.copy(alpha = 0.45f))
                 .border(
-                    AppDesign.borderThin,
-                    colors.cardBorder.copy(alpha = AppDesign.opacityLow + AppDesign.opacityLow / 2f),
-                    RoundedCornerShape(AppDesign.radiusCanvas)
+                    1.dp,
+                    colors.cardBorder.copy(alpha = 0.6f),
+                    RoundedCornerShape(AppDesign.radiusCard)
                 )
         ) {
             Canvas(modifier = Modifier.fillMaxSize()) {
@@ -1023,8 +1018,7 @@ fun FourierSeries() {
             Column(modifier = Modifier.padding(AppDesign.radiusLarge)) {
                 Text(
                     "How it works",
-                    color = colors.textPrimary,
-                    fontSize = 14.sp,
+                    fontSize = AppDesign.textHeadline,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(Modifier.height(AppDesign.radiusSmall))
@@ -1055,7 +1049,7 @@ private fun HarmonicComponents(
     } else {
         nTerms
     }
-    
+
     val displayTerms = if (isExpanded) maxTerms else maxTerms.coerceAtMost(6)
 
     GlassCard(colors = colors) {
@@ -1067,8 +1061,7 @@ private fun HarmonicComponents(
         ) {
             Text(
                 "Signal Decomposition",
-                color = colors.textPrimary,
-                fontSize = 14.sp,
+                fontSize = AppDesign.textHeadline,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -1519,8 +1512,7 @@ private fun ComplexHarmonicComponents(
         ) {
             Text(
                 "Phasor Decomposition",
-                color = colors.textPrimary,
-                fontSize = 14.sp,
+                fontSize = AppDesign.textHeadline,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -1672,37 +1664,6 @@ private fun ComplexHarmonicComponents(
                     }
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun DisplayModeButton(
-    icon: ImageVector,
-    selected: Boolean,
-    colors: AppColors,
-    onClick: () -> Unit
-) {
-    Surface(
-        modifier = Modifier
-            .size(42.dp)
-            .clickable { onClick() },
-        shape = RoundedCornerShape(AppDesign.radiusSmall),
-        color = if (selected) colors.accentCyan.copy(alpha = 0.2f) else colors.cardSurface.copy(
-            alpha = 0.4f
-        ),
-        border = BorderStroke(
-            1.dp,
-            if (selected) colors.accentCyan else colors.cardBorder.copy(alpha = 0.3f)
-        )
-    ) {
-        Box(contentAlignment = Alignment.Center) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.size(20.dp),
-                tint = if (selected) colors.accentCyan else colors.textSecondary
-            )
         }
     }
 }
