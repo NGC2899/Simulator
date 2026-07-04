@@ -53,9 +53,14 @@ import kotlin.random.Random
 @Composable
 fun DoublePendulum() {
     val colors = LocalAppColors.current
+    val prefs = LocalAppPrefs.current
 
-    val pendulums = remember { mutableStateListOf(PendulumInstance(0, colors.accentCyan)) }
-    var nextId by remember { mutableIntStateOf(1) }
+    val pendulums = remember { 
+        val list = mutableStateListOf<PendulumInstance>()
+        list.addAll(prefs.loadPendulums(colors.accentCyan))
+        list
+    }
+    var nextId by remember { mutableIntStateOf(pendulums.maxOfOrNull { it.id }?.plus(1) ?: 1) }
     var isPendulumsExpanded by remember { mutableStateOf(false) }
     var running by remember { mutableStateOf(false) }
     var hasStarted by remember { mutableStateOf(false) }
@@ -64,7 +69,7 @@ fun DoublePendulum() {
     var frictionAmount by remember { mutableFloatStateOf(0.0002f) }
     var gravityAmount by remember { mutableFloatStateOf(9.8f) }
     var speedMultiplier by remember { mutableFloatStateOf(1f) }
-    var scale by remember { mutableFloatStateOf(100f) }
+    var scale by remember { mutableFloatStateOf(prefs.pendulumScale) }
     var colorByVelocity by remember { mutableStateOf(false) }
     var isEnvExpanded by remember { mutableStateOf(false) }
     var isPendulumManagerExpanded by remember { mutableStateOf(false) }
@@ -76,6 +81,10 @@ fun DoublePendulum() {
     // Persistent "template" angles to prevent resetting to 0/90 when list is cleared
     var templateT1 by remember { mutableStateOf("90.0") }
     var templateT2 by remember { mutableStateOf("90.0") }
+
+    // Save state when it changes
+    LaunchedEffect(scale) { prefs.pendulumScale = scale }
+    LaunchedEffect(pendulums.toList()) { prefs.savePendulums(pendulums.toList()) }
 
     LaunchedEffect(running, hasStarted, pendulums.size) {
         if (!running && (!hasStarted || draggingPendulumId != null)) {
@@ -443,6 +452,7 @@ fun DoublePendulum() {
                                     onParameterChange = {
                                         running = false
                                         hasStarted = false
+                                        prefs.savePendulums(pendulums.toList())
                                     }) {
                                     running = false
                                     hasStarted = false
@@ -623,6 +633,7 @@ fun DoublePendulum() {
                             },
                             onDragEnd = {
                                 draggingPendulumId = null; draggingBobType = DragTarget.NONE
+                                prefs.savePendulums(pendulums.toList())
                             },
                             onDragCancel = {
                                 draggingPendulumId = null; draggingBobType = DragTarget.NONE

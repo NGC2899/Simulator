@@ -20,7 +20,7 @@ class PendulumInstance(
     var bob2 by mutableStateOf(Offset.Zero)
     var kineticEnergy by mutableDoubleStateOf(0.0)
     var currentColor by mutableStateOf(baseColor)
-    var isExpanded by mutableStateOf(true)
+    var isExpanded by mutableStateOf(false)
 
     val trail = mutableStateListOf<Offset>()
     val angleTrail = mutableStateListOf<Offset>()

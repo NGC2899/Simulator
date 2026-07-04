@@ -60,8 +60,9 @@ class SignalInstance(
 @Composable
 fun FourierSeries() {
     val colors = LocalAppColors.current
+    val prefs = LocalAppPrefs.current
 
-    var nTerms by remember { mutableIntStateOf(5) }
+    var nTerms by remember { mutableIntStateOf(prefs.fourierNTerms) }
     var waveType by remember { mutableStateOf(WaveType.SQUARE) }
     var running by remember { mutableStateOf(false) }
     var hasStarted by remember { mutableStateOf(false) }
@@ -74,13 +75,26 @@ fun FourierSeries() {
     val path = remember { mutableStateListOf<Offset>() }
 
     // --- Draw a Wave State ---
-    val drawingPoints = remember { mutableStateListOf<Float>() }
-    var customCoefficients by remember { mutableStateOf<List<Pair<Float, Float>>>(emptyList()) }
     val samplesCount = 200
+    val drawingPoints = remember { 
+        val saved = prefs.drawingPoints
+        val list = mutableStateListOf<Float>()
+        if (saved.isNotEmpty()) {
+            list.addAll(saved)
+        } else {
+            repeat(samplesCount) { list.add(0f) }
+        }
+        list
+    }
+    var customCoefficients by remember { mutableStateOf<List<Pair<Float, Float>>>(emptyList()) }
 
     // --- Custom Function State ---
-    val customFunctionSignals = remember { mutableStateListOf(SignalInstance(0, colors.accentCyan)) }
-    var nextSignalId by remember { mutableIntStateOf(1) }
+    val customFunctionSignals = remember { 
+        val list = mutableStateListOf<SignalInstance>()
+        list.addAll(prefs.loadFourierSignals(colors.accentCyan))
+        list
+    }
+    var nextSignalId by remember { mutableIntStateOf(customFunctionSignals.maxOfOrNull { it.id }?.plus(1) ?: 1) }
     var isSignalsExpanded by remember { mutableStateOf(false) }
 
     fun calculateDFT() {
@@ -105,6 +119,18 @@ fun FourierSeries() {
         }
         customCoefficients = coeffs
     }
+
+    // Initialize DFT if drawing points exist
+    LaunchedEffect(Unit) {
+        if (drawingPoints.any { it != 0f }) {
+            calculateDFT()
+        }
+    }
+
+    // Save state when it changes
+    LaunchedEffect(nTerms) { prefs.fourierNTerms = nTerms }
+    LaunchedEffect(drawingPoints.toList()) { prefs.drawingPoints = drawingPoints.toList() }
+    LaunchedEffect(customFunctionSignals.toList()) { prefs.saveFourierSignals(customFunctionSignals.toList()) }
 
     LaunchedEffect(
         running,
@@ -372,6 +398,9 @@ fun FourierSeries() {
                                                     lastIndex = currentIndex
                                                     lastY = y
                                                     calculateDFT()
+                                                },
+                                                onDragEnd = {
+                                                    prefs.drawingPoints = drawingPoints.toList()
                                                 }
                                             )
                                         }
@@ -552,6 +581,7 @@ fun FourierSeries() {
                                                 onParameterChange = {
                                                     hasStarted = false
                                                     path.clear()
+                                                    prefs.saveFourierSignals(customFunctionSignals.toList())
                                                 },
                                                 onDel = {
                                                     customFunctionSignals.remove(signal)

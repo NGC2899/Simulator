@@ -30,15 +30,23 @@ enum class Screen {
     DoublePendulum,
 }
 
+val LocalAppPrefs = staticCompositionLocalOf<AppPreferences> { error("No AppPreferences provided") }
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val prefs = AppPreferences(this)
         setContent {
-            var isDarkTheme by remember { mutableStateOf(true) }
-            AppTheme(darkTheme = isDarkTheme) {
-                MainContainer(
-                    onToggleTheme = { isDarkTheme = !isDarkTheme }
-                )
+            var isDarkTheme by remember { mutableStateOf(prefs.isDarkTheme) }
+            CompositionLocalProvider(LocalAppPrefs provides prefs) {
+                AppTheme(darkTheme = isDarkTheme) {
+                    MainContainer(
+                        onToggleTheme = {
+                            isDarkTheme = !isDarkTheme
+                            prefs.isDarkTheme = isDarkTheme
+                        }
+                    )
+                }
             }
         }
     }
