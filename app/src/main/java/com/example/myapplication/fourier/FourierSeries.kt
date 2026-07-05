@@ -1,6 +1,7 @@
 package com.example.myapplication.fourier
 
 import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -23,15 +24,18 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.translate
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.Measurable
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.myapplication.R
 import com.example.myapplication.app.*
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.Locale
 import kotlin.math.PI
 import kotlin.math.cos
@@ -97,27 +101,36 @@ fun FourierSeries() {
     var nextSignalId by remember { mutableIntStateOf(customFunctionSignals.maxOfOrNull { it.id }?.plus(1) ?: 1) }
     var isSignalsExpanded by remember { mutableStateOf(false) }
 
+    val coroutineScope = rememberCoroutineScope()
+    var dftJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
+
     fun calculateDFT() {
-        if (drawingPoints.size < samplesCount) return
-        val coeffs = mutableListOf<Pair<Float, Float>>()
+        dftJob?.cancel()
+        dftJob = coroutineScope.launch(kotlinx.coroutines.Dispatchers.Default) {
+            if (drawingPoints.size < samplesCount) return@launch
+            val coeffs = mutableListOf<Pair<Float, Float>>()
 
-        // Calculate Harmonics up to 50
-        for (n in 1..50) {
-            var re = 0f
-            var im = 0f
-            for (i in 0 until samplesCount) {
-                val angle = 2 * PI.toFloat() * n * i / samplesCount
-                re += drawingPoints[i] * cos(angle)
-                im += drawingPoints[i] * sin(angle)
+            // Calculate Harmonics up to 50
+            for (n in 1..50) {
+                var re = 0f
+                var im = 0f
+                val angleFactor = 2 * PI.toFloat() * n / samplesCount
+                for (i in 0 until samplesCount) {
+                    val angle = angleFactor * i
+                    re += drawingPoints[i] * cos(angle)
+                    im += drawingPoints[i] * sin(angle)
+                }
+                re /= (samplesCount / 2f)
+                im /= (samplesCount / 2f)
+
+                val amp = kotlin.math.sqrt(re * re + im * im)
+                val phase = kotlin.math.atan2(re, im)
+                coeffs.add(amp to phase)
             }
-            re /= (samplesCount / 2f)
-            im /= (samplesCount / 2f)
-
-            val amp = kotlin.math.sqrt(re * re + im * im)
-            val phase = kotlin.math.atan2(re, im)
-            coeffs.add(amp to phase)
+            withContext(kotlinx.coroutines.Dispatchers.Main) {
+                customCoefficients = coeffs
+            }
         }
-        customCoefficients = coeffs
     }
 
     // Initialize DFT if drawing points exist
@@ -247,9 +260,10 @@ fun FourierSeries() {
                         fontWeight = FontWeight.Bold
                     )
                     Icon(
-                        if (isSettingsExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                        if (isSettingsExpanded) painterResource(id = R.drawable.chevron_up_outline) else painterResource(id = R.drawable.chevron_down_outline),
                         null,
-                        tint = colors.textSecondary
+                        tint = colors.textSecondary,
+                        modifier = Modifier.size(AppDesign.iconSmall)
                     )
                 }
 
@@ -447,6 +461,7 @@ fun FourierSeries() {
                                             repeat(samplesCount) { drawingPoints.add(0f) }
                                             customCoefficients = emptyList()
                                             path.clear()
+                                            prefs.drawingPoints = emptyList()
                                         },
                                     contentAlignment = Alignment.Center
                                 ) {
@@ -455,7 +470,7 @@ fun FourierSeries() {
                                         modifier = Modifier.padding(horizontal = AppDesign.spacingMedium)
                                     ) {
                                         Icon(
-                                            Icons.Default.DeleteForever,
+                                            painter = painterResource(id = R.drawable.trash_outline),
                                             null,
                                             tint = colors.accentHell,
                                             modifier = Modifier.size(AppDesign.iconSmall)
@@ -513,7 +528,7 @@ fun FourierSeries() {
                                     ) {
                                         Row(verticalAlignment = Alignment.CenterVertically) {
                                             Icon(
-                                                Icons.Default.Add,
+                                                painter = painterResource(id = R.drawable.add_outline),
                                                 null,
                                                 modifier = Modifier.size(AppDesign.iconSmall),
                                                 tint = colors.accentCyan
@@ -551,7 +566,7 @@ fun FourierSeries() {
                                     ) {
                                         Row(verticalAlignment = Alignment.CenterVertically) {
                                             Icon(
-                                                Icons.Default.DeleteForever,
+                                                painter = painterResource(id = R.drawable.trash_outline),
                                                 null,
                                                 tint = colors.accentHell,
                                                 modifier = Modifier.size(AppDesign.iconSmall)
@@ -606,10 +621,10 @@ fun FourierSeries() {
                                                     )
                                                     Spacer(Modifier.width(4.dp))
                                                     Icon(
-                                                        if (isSignalsExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                                        if (isSignalsExpanded) painterResource(id = R.drawable.chevron_up_outline) else painterResource(id = R.drawable.chevron_down_outline),
                                                         null,
                                                         tint = colors.accentCyan,
-                                                        modifier = Modifier.size(16.dp)
+                                                        modifier = Modifier.size( AppDesign.iconTiny)
                                                     )
                                                 }
                                             }
@@ -667,9 +682,10 @@ fun FourierSeries() {
                     containerColor = if (running) colors.accentHell else colors.accentCyan
                 )
             ) {
-                Icon(if (running) Icons.Default.Pause else Icons.Default.PlayArrow,
+                Icon(if (running) painterResource(id = R.drawable.pause_outline) else painterResource(id = R.drawable.caret_forward_outline),
                     null,
-                    tint = colors.textOnAccent
+                    tint = colors.textOnAccent,
+                    modifier = Modifier.size( AppDesign.iconSmall)
                 )
                 Spacer(Modifier.width(AppDesign.spacingSmall))
                 Text(
@@ -754,7 +770,7 @@ fun FourierSeries() {
                                 WaveType.CUSTOM_FUNCTION -> if (i < customFunctionSignals.size) customFunctionSignals[i].amp.toFloatOrNull() ?: 0f else 0f
                             }
 
-                            if (radius < 0.5f && i > 0) continue // Skip tiny circles
+                            if (kotlin.math.abs(radius) < 0.5f && i > 0) continue // Skip tiny circles
 
                             val phase = when (waveType) {
                                 WaveType.TRIANGLE -> if (i % 2 != 0) PI.toFloat() else 0f
@@ -768,7 +784,7 @@ fun FourierSeries() {
                             // Draw Circle
                             drawCircle(
                                 color = colors.accentCyan.copy(alpha = AppDesign.opacityLow * 2f),
-                                radius = radius,
+                                radius = kotlin.math.abs(radius),
                                 center = Offset(prevX, prevY),
                                 style = Stroke(width = AppDesign.strokeThin)
                             )
@@ -945,7 +961,7 @@ fun FourierSeries() {
                         )
                 ) {
                     Icon(
-                        Icons.Default.DeleteSweep,
+                        painter = painterResource(id = R.drawable.trash_bin_outline),
                         null,
                         tint = colors.accentHell,
                         modifier = Modifier.size(AppDesign.iconMedium)
@@ -984,7 +1000,7 @@ fun FourierSeries() {
                         modifier = Modifier.fillMaxHeight()
                     ) {
                         Icon(
-                            Icons.Default.Add,
+                            painter = painterResource(id = R.drawable.add_outline),
                             null,
                             tint = colors.accentCyan,
                             modifier = Modifier.size(AppDesign.iconSmallMedium)
@@ -1022,7 +1038,7 @@ fun FourierSeries() {
                         )
 
                         Icon(
-                            Icons.Default.Remove,
+                            painter = painterResource(id = R.drawable.remove),
                             null,
                             tint = colors.accentCyan,
                             modifier = Modifier.size(AppDesign.iconSmallMedium)
@@ -1114,7 +1130,7 @@ private fun HarmonicComponents(
         Column(
             modifier = Modifier
                 .padding(AppDesign.radiusLarge)
-                .animateContentSize(),
+                .animateContentSize(animationSpec = tween(AppDesign.animDurationStandard)),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
@@ -1133,6 +1149,7 @@ private fun HarmonicComponents(
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Bold
             )
+            Spacer(Modifier.height(AppDesign.radiusSmall))
             Icon(
                 Icons.Default.KeyboardDoubleArrowDown,
                 null,
@@ -1258,10 +1275,10 @@ private fun HarmonicComponents(
                             )
                             Spacer(Modifier.width(4.dp))
                             Icon(
-                                if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                if (isExpanded) painterResource(id = R.drawable.chevron_down_outline) else painterResource(id = R.drawable.chevron_up_outline),
                                 null,
                                 tint = colors.accentCyan,
-                                modifier = Modifier.size(16.dp)
+                                modifier = Modifier.size(AppDesign.iconTiny)
                             )
                         }
                     }
@@ -1325,14 +1342,14 @@ fun SignalSettingsCard(
             }
             AnimatedVisibility(
                 visible = signal.isExpanded,
-                enter = expandVertically(animationSpec = androidx.compose.animation.core.tween(50)) + fadeIn(
-                    animationSpec = androidx.compose.animation.core.tween(
-                        50
+                enter = expandVertically(animationSpec = tween(AppDesign.animDurationStandard)) + fadeIn(
+                    animationSpec = tween(
+                        AppDesign.animDurationStandard
                     )
                 ),
-                exit = shrinkVertically(animationSpec = androidx.compose.animation.core.tween(50)) + fadeOut(
-                    animationSpec = androidx.compose.animation.core.tween(
-                        50
+                exit = shrinkVertically(animationSpec = tween(AppDesign.animDurationStandard)) + fadeOut(
+                    animationSpec = tween(
+                        AppDesign.animDurationStandard
                     )
                 )
             ) {
@@ -1393,7 +1410,7 @@ private fun CenterOfMassGraph(
         Column(
             modifier = Modifier
                 .padding(AppDesign.radiusLarge)
-                .animateContentSize()
+                .animateContentSize(animationSpec = tween(AppDesign.animDurationStandard))
         ) {
             Text(
                 "Frequency Domain (Real-time Center of Mass)",
@@ -1499,7 +1516,15 @@ private fun CenterOfMassGraph(
                 lineHeight = 16.sp
             )
 
-            AnimatedVisibility(visible = isExpanded) {
+            AnimatedVisibility(
+                visible = isExpanded,
+                enter = expandVertically(animationSpec = tween(AppDesign.animDurationStandard)) + fadeIn(
+                    animationSpec = tween(AppDesign.animDurationStandard)
+                ),
+                exit = shrinkVertically(animationSpec = tween(AppDesign.animDurationStandard)) + fadeOut(
+                    animationSpec = tween(AppDesign.animDurationStandard)
+                )
+            ) {
                 Column(modifier = Modifier.padding(top = 8.dp)) {
                     HorizontalDivider(color = colors.cardBorder.copy(alpha = 0.2f))
                     Spacer(Modifier.height(8.dp))
@@ -1532,10 +1557,10 @@ private fun CenterOfMassGraph(
                     )
                     Spacer(Modifier.width(4.dp))
                     Icon(
-                        if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        if (isExpanded) painterResource(id = R.drawable.chevron_down_outline) else painterResource(id = R.drawable.chevron_up_outline),
                         null,
                         tint = colors.accentCyan,
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(AppDesign.iconTiny)
                     )
                 }
             }
@@ -1565,7 +1590,7 @@ private fun ComplexHarmonicComponents(
         Column(
             modifier = Modifier
                 .padding(AppDesign.radiusLarge)
-                .animateContentSize(),
+                .animateContentSize(animationSpec = tween(AppDesign.animDurationStandard)),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
@@ -1713,10 +1738,10 @@ private fun ComplexHarmonicComponents(
                             )
                             Spacer(Modifier.width(4.dp))
                             Icon(
-                                if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                if (isExpanded) painterResource(id = R.drawable.chevron_down_outline) else painterResource(id = R.drawable.chevron_up_outline),
                                 null,
                                 tint = colors.accentCyan,
-                                modifier = Modifier.size(16.dp)
+                                modifier = Modifier.size(AppDesign.iconTiny)
                             )
                         }
                     }

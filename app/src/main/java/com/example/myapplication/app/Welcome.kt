@@ -10,10 +10,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.BlurCircular
-import androidx.compose.material.icons.filled.Timeline
-import androidx.compose.material.icons.filled.Waves
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -21,13 +17,14 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
+import com.example.myapplication.R
 
 @Composable
 fun WelcomeScreen(
@@ -82,7 +79,7 @@ fun WelcomeScreen(
                         onClick = onNavigateToFourierSeries,
                     ) {
                         Icon(
-                            imageVector = Icons.Default.BlurCircular,
+                            painterResource(id = R.drawable.fourierseries_menu),
                             contentDescription = null,
                             tint = colors.textPrimary,
                             modifier = Modifier.size(AppDesign.iconWelcome)
@@ -100,7 +97,7 @@ fun WelcomeScreen(
                         onClick = onNavigateToDoublePendulum
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Timeline,
+                            painterResource(id = R.drawable.pendulum_menu),
                             contentDescription = null,
                             tint = colors.textPrimary,
                             modifier = Modifier.size(AppDesign.iconWelcome)

@@ -30,14 +30,18 @@ class AppPreferences(context: Context) {
 
     fun loadFourierSignals(accentColor: Color): List<SignalInstance> {
         val data = prefs.getString("fourier_signals", null) ?: return listOf(SignalInstance(0, accentColor))
-        return data.split(";").filter { it.isNotEmpty() }.map {
-            val parts = it.split("|")
-            SignalInstance(
-                id = parts[0].toInt(),
-                color = Color(parts[1].toInt()),
-                initialFreq = parts[2],
-                initialAmp = parts[3]
-            )
+        return try {
+            data.split(";").filter { it.isNotEmpty() }.map {
+                val parts = it.split("|")
+                SignalInstance(
+                    id = parts.getOrNull(0)?.toIntOrNull() ?: 0,
+                    color = Color(parts.getOrNull(1)?.toIntOrNull() ?: accentColor.toArgb()),
+                    initialFreq = parts.getOrNull(2) ?: "1.0",
+                    initialAmp = parts.getOrNull(3) ?: "50.0"
+                )
+            }
+        } catch (e: Exception) {
+            listOf(SignalInstance(0, accentColor))
         }
     }
 
@@ -47,25 +51,29 @@ class AppPreferences(context: Context) {
         set(value) = prefs.edit().putFloat("pendulum_scale", value).apply()
 
     fun savePendulums(pendulums: List<PendulumInstance>) {
-        val serialized = pendulums.joinToString(";") { 
-            "${it.id}|${it.baseColor.toArgb()}|${it.t1}|${it.t2}|${it.l1}|${it.l2}" 
+        val serialized = pendulums.joinToString(";") {
+            "${it.id}|${it.baseColor.toArgb()}|${it.t1}|${it.t2}|${it.l1}|${it.l2}"
         }
         prefs.edit().putString("pendulums", serialized).apply()
     }
 
     fun loadPendulums(accentColor: Color): List<PendulumInstance> {
         val data = prefs.getString("pendulums", null) ?: return listOf(PendulumInstance(0, accentColor))
-        return data.split(";").filter { it.isNotEmpty() }.map {
-            val parts = it.split("|")
-            PendulumInstance(
-                id = parts[0].toInt(),
-                baseColor = Color(parts[1].toInt()),
-                t1Initial = parts[2],
-                t2Initial = parts[3]
-            ).apply {
-                l1 = parts[4]
-                l2 = parts[5]
+        return try {
+            data.split(";").filter { it.isNotEmpty() }.map {
+                val parts = it.split("|")
+                PendulumInstance(
+                    id = parts.getOrNull(0)?.toIntOrNull() ?: 0,
+                    baseColor = Color(parts.getOrNull(1)?.toIntOrNull() ?: accentColor.toArgb()),
+                    t1Initial = parts.getOrNull(2) ?: "90.0",
+                    t2Initial = parts.getOrNull(3) ?: "90.0"
+                ).apply {
+                    l1 = parts.getOrNull(4) ?: "1.0"
+                    l2 = parts.getOrNull(5) ?: "1.0"
+                }
             }
+        } catch (e: Exception) {
+            listOf(PendulumInstance(0, accentColor))
         }
     }
 }

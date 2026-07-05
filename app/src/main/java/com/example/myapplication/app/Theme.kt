@@ -65,6 +65,7 @@ object AppDesign {
     val navPillPaddingVertical = 10.dp
     val navPillPaddingHorizontal = 12.dp
 
+    val iconTiny = 10.dp
     val iconSmall = 16.dp
     val iconSmallMedium = 18.dp
     val iconMedium = 20.dp
@@ -78,7 +79,7 @@ object AppDesign {
     val textBodyLarge = 13.sp
     val textTitle = 14.sp
     val textTitleLarge = 16.sp
-    val textHeadline = 18.sp
+    val textHeadline = 15.sp
     val textHeadlineLarge = 28.sp
     val textDisplay = 28.sp
     val textDisplayLarge = 60.sp
@@ -101,6 +102,11 @@ object AppDesign {
     val opacityFull = 1f
     val opacityTrace = 0.8f
     val opacityGrid = 0.05f
+
+    val animDurationNone = 0
+    val animDurationFast = 150
+    val animDurationStandard = 300
+    val animDurationSlow = 500
 }
 
 // ─────────────────────────────────────────────

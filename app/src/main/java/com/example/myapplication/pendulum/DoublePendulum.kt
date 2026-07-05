@@ -34,11 +34,13 @@ import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.Measurable
 import androidx.compose.ui.layout.layout
-import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.myapplication.R
 import com.example.myapplication.app.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -55,7 +57,7 @@ fun DoublePendulum() {
     val colors = LocalAppColors.current
     val prefs = LocalAppPrefs.current
 
-    val pendulums = remember { 
+    val pendulums = remember {
         val list = mutableStateListOf<PendulumInstance>()
         list.addAll(prefs.loadPendulums(colors.accentCyan))
         list
@@ -192,8 +194,12 @@ fun DoublePendulum() {
                         fontWeight = FontWeight.Bold,
                     )
                     Icon(
-                        if (isEnvExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                        if (isEnvExpanded) painterResource(id = R.drawable.chevron_up_outline) else painterResource(
+                            id = R.drawable.chevron_down_outline
+                        ),
                         null,
+                        tint = colors.textSecondary,
+                        modifier = Modifier.size(AppDesign.iconSmall)
                     )
                 }
 
@@ -275,9 +281,12 @@ fun DoublePendulum() {
                         fontWeight = FontWeight.Bold
                     )
                     Icon(
-                        if (isPendulumManagerExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                        if (isPendulumManagerExpanded) painterResource(id = R.drawable.chevron_up_outline) else painterResource(
+                            id = R.drawable.chevron_down_outline
+                        ),
                         null,
-                        tint = colors.textSecondary
+                        tint = colors.textSecondary,
+                        modifier = Modifier.size(AppDesign.iconSmall)
                     )
                 }
 
@@ -315,7 +324,7 @@ fun DoublePendulum() {
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
-                                Icons.Default.Add,
+                                painter = painterResource(id = R.drawable.add_outline),
                                 null,
                                 modifier = Modifier.size(AppDesign.iconSmall),
                                 tint = colors.accentCyan
@@ -343,42 +352,45 @@ fun DoublePendulum() {
                                 RoundedCornerShape(AppDesign.radiusButton)
                             )
                             .clickable(enabled = !running) {
-                                repeat(5) {
-                                    val last = pendulums.lastOrNull()
-                                    val baseT1 = last?.t1 ?: templateT1
-                                    val baseT2 = last?.t2 ?: templateT2
-                                    val nextT1 = String.format(
-                                        Locale.US,
-                                        "%.1f",
-                                        (baseT1.toDoubleOrNull() ?: 90.0) + 0.2
-                                    )
-                                    val randomColor =
-                                        Color.hsv(Random.nextFloat() * 360f, 0.7f, 0.9f)
-                                    pendulums.add(
-                                        PendulumInstance(
-                                            nextId++,
-                                            randomColor,
-                                            nextT1,
-                                            baseT2
+                                if (pendulums.size < 30) {
+                                    repeat(5) {
+                                        if (pendulums.size >= 30) return@repeat
+                                        val last = pendulums.lastOrNull()
+                                        val baseT1 = last?.t1 ?: templateT1
+                                        val baseT2 = last?.t2 ?: templateT2
+                                        val nextT1 = String.format(
+                                            Locale.US,
+                                            "%.1f",
+                                            (baseT1.toDoubleOrNull() ?: 90.0) + 0.2
                                         )
-                                    )
+                                        val randomColor =
+                                            Color.hsv(Random.nextFloat() * 360f, 0.7f, 0.9f)
+                                        pendulums.add(
+                                            PendulumInstance(
+                                                nextId++,
+                                                randomColor,
+                                                nextT1,
+                                                baseT2
+                                            )
+                                        )
+                                    }
+                                    hasStarted = false
                                 }
-                                hasStarted = false
                             },
                         contentAlignment = Alignment.Center
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
-                                Icons.Default.Cloud,
+                                painter = painterResource(id = R.drawable.cloud),
                                 null,
                                 modifier = Modifier.size(AppDesign.iconSmall),
-                                tint = Color.White
+                                tint = colors.accentViolet
                             )
                             Spacer(Modifier.width(4.dp))
                             Text(
                                 "Chaos",
                                 fontSize = AppDesign.textSmall,
-                                color = colors.textPrimary,
+                                color = colors.accentViolet,
                                 fontWeight = FontWeight.Bold
                             )
                         }
@@ -406,7 +418,7 @@ fun DoublePendulum() {
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
-                                Icons.Default.DeleteForever,
+                                painter = painterResource(id = R.drawable.trash_outline),
                                 null,
                                 tint = colors.accentHell,
                                 modifier = Modifier.size(AppDesign.iconSmall)
@@ -424,23 +436,31 @@ fun DoublePendulum() {
 
                 AnimatedVisibility(
                     visible = isPendulumManagerExpanded,
-                    enter = expandVertically(animationSpec = tween(300)) + fadeIn(
+                    enter = expandVertically(animationSpec = tween(AppDesign.animDurationStandard)) + fadeIn(
                         animationSpec = tween(
-                            300
+                            AppDesign.animDurationStandard
                         )
                     ),
-                    exit = shrinkVertically(animationSpec = tween(300)) + fadeOut(
+                    exit = shrinkVertically(animationSpec = tween(AppDesign.animDurationStandard)) + fadeOut(
                         animationSpec = tween(
-                            300
+                            AppDesign.animDurationStandard
                         )
                     )
                 ) {
                     Column(
                         modifier = Modifier
                             .padding(top = AppDesign.spacingSmall)
-                            .animateContentSize(animationSpec = tween(250)),
+                            .animateContentSize(animationSpec = tween(AppDesign.animDurationStandard)),
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
+                        if (pendulums.isEmpty()) Text(
+                            "Add a Pendulum",
+                            color = colors.accentCyan,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = AppDesign.spacingLarge),
+                        ) else Text("")
                         // Truncated list for better performance
                         val displayList = if (isPendulumsExpanded) pendulums else pendulums.take(5)
                         Column(verticalArrangement = Arrangement.spacedBy(AppDesign.spacingSmall)) {
@@ -515,9 +535,20 @@ fun DoublePendulum() {
                     .weight(1f)
                     .height(AppDesign.buttonHeight),
                 shape = RoundedCornerShape(AppDesign.radiusMedium),
-                colors = ButtonDefaults.buttonColors(containerColor = if (running) colors.accentHell else colors.accentCyan)
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (running) colors.accentHell else colors.accentCyan,
+                    disabledContainerColor = colors.cardSurface.copy(alpha = 0.8f),
+                    disabledContentColor = colors.textSecondary.copy(alpha = 0.5f)
+                )
             ) {
-                Icon(if (running) Icons.Default.Pause else Icons.Default.PlayArrow, null, tint = colors.textOnAccent)
+                Icon(
+                    if (running) painterResource(id = R.drawable.caret_forward_outline) else painterResource(
+                        id = R.drawable.pause_outline
+                    ),
+                    null,
+                    tint = colors.textOnAccent,
+                    modifier = Modifier.size(AppDesign.iconSmall)
+                )
                 Spacer(Modifier.width(AppDesign.spacingSmall))
                 Text(
                     if (running) "Pause" else if (hasStarted) "Resume" else "Simulate",
@@ -660,34 +691,60 @@ fun DoublePendulum() {
                                     2.5f,
                                     StrokeCap.Round
                                 )
-                                drawCircle(p.currentColor, AppDesign.radiusSmall.toPx() * 0.75f, p.bob1 * scale)
-                                drawCircle(p.currentColor, AppDesign.radiusSmall.toPx(), p.bob2 * scale)
+                                drawCircle(
+                                    p.currentColor,
+                                    AppDesign.radiusSmall.toPx() * 0.75f,
+                                    p.bob1 * scale
+                                )
+                                drawCircle(
+                                    p.currentColor,
+                                    AppDesign.radiusSmall.toPx(),
+                                    p.bob2 * scale
+                                )
 
                                 if (displayMode == DisplayMode.COMPLEX) {
                                     // Draw velocity vectors
-                                    val v1x = p.logic.lengthOne * p.logic.omegaOne * kotlin.math.cos(p.logic.thetaOne)
-                                    val v1y = -p.logic.lengthOne * p.logic.omegaOne * kotlin.math.sin(p.logic.thetaOne)
-                                    val v2x = v1x + p.logic.lengthTwo * p.logic.omegaTwo * kotlin.math.cos(p.logic.thetaTwo)
-                                    val v2y = v1y - p.logic.lengthTwo * p.logic.omegaTwo * kotlin.math.sin(p.logic.thetaTwo)
+                                    val v1x =
+                                        p.logic.lengthOne * p.logic.omegaOne * kotlin.math.cos(p.logic.thetaOne)
+                                    val v1y =
+                                        -p.logic.lengthOne * p.logic.omegaOne * kotlin.math.sin(p.logic.thetaOne)
+                                    val v2x =
+                                        v1x + p.logic.lengthTwo * p.logic.omegaTwo * kotlin.math.cos(
+                                            p.logic.thetaTwo
+                                        )
+                                    val v2y =
+                                        v1y - p.logic.lengthTwo * p.logic.omegaTwo * kotlin.math.sin(
+                                            p.logic.thetaTwo
+                                        )
 
                                     val vecScale = 25f
                                     drawLine(
                                         p.currentColor.copy(alpha = 0.6f),
                                         p.bob1 * scale,
-                                        p.bob1 * scale + Offset(v1x.toFloat(), v1y.toFloat()) * vecScale,
+                                        p.bob1 * scale + Offset(
+                                            v1x.toFloat(),
+                                            v1y.toFloat()
+                                        ) * vecScale,
                                         2f,
                                         StrokeCap.Round
                                     )
                                     drawLine(
                                         p.currentColor.copy(alpha = 0.6f),
                                         p.bob2 * scale,
-                                        p.bob2 * scale + Offset(v2x.toFloat(), v2y.toFloat()) * vecScale,
+                                        p.bob2 * scale + Offset(
+                                            v2x.toFloat(),
+                                            v2y.toFloat()
+                                        ) * vecScale,
                                         2f,
                                         StrokeCap.Round
                                     )
                                 }
                             }
-                            drawCircle(colors.pivot, AppDesign.spacingExtraSmall.toPx(), Offset.Zero)
+                            drawCircle(
+                                colors.pivot,
+                                AppDesign.spacingExtraSmall.toPx(),
+                                Offset.Zero
+                            )
                         }
                     }
 
@@ -751,7 +808,7 @@ fun DoublePendulum() {
                 modifier = Modifier
                     .align(Alignment.CenterStart)
                     .padding(start = AppDesign.spacingMedium),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                verticalArrangement = Arrangement.spacedBy(AppDesign.spacingMedium)
             ) {
                 DisplayModeButton(
                     icon = Icons.Default.Timeline,
@@ -789,7 +846,7 @@ fun DoublePendulum() {
                         )
                 ) {
                     Icon(
-                        Icons.Default.DeleteSweep,
+                        painter = painterResource(id = R.drawable.trash_bin_outline),
                         null,
                         tint = colors.accentHell,
                         modifier = Modifier.size(AppDesign.iconMedium)
@@ -828,7 +885,7 @@ fun DoublePendulum() {
                         modifier = Modifier.fillMaxHeight()
                     ) {
                         Icon(
-                            Icons.Default.Add,
+                            painter = painterResource(id = R.drawable.add_outline),
                             null,
                             tint = colors.accentCyan,
                             modifier = Modifier.size(AppDesign.iconSmallMedium)
@@ -1005,14 +1062,14 @@ fun PendulumSettingsCard(
             }
             AnimatedVisibility(
                 visible = p.isExpanded,
-                enter = expandVertically(animationSpec = tween(50)) + fadeIn(
+                enter = expandVertically(animationSpec = tween(AppDesign.animDurationStandard)) + fadeIn(
                     animationSpec = tween(
-                        50
+                        AppDesign.animDurationStandard
                     )
                 ),
-                exit = shrinkVertically(animationSpec = tween(50)) + fadeOut(
+                exit = shrinkVertically(animationSpec = tween(AppDesign.animDurationStandard)) + fadeOut(
                     animationSpec = tween(
-                        50
+                        AppDesign.animDurationStandard
                     )
                 )
             ) {
@@ -1059,10 +1116,13 @@ private fun PendulumField(
     onValueChange: (String) -> Unit
 ) {
     OutlinedTextField(
-        value = value, onValueChange = onValueChange, label = { Text(label, fontSize = AppDesign.textCaption) },
+        value = value,
+        onValueChange = onValueChange,
+        label = { Text(label, fontSize = AppDesign.textCaption) },
         textStyle = LocalTextStyle.current.copy(fontSize = AppDesign.textBody),
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-        singleLine = true, modifier = Modifier
+        singleLine = true,
+        modifier = Modifier
             .fillMaxWidth()
             .padding(bottom = AppDesign.spacingSmall),
         shape = RoundedCornerShape(AppDesign.radiusSmall),

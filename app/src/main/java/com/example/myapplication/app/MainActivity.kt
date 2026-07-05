@@ -2,6 +2,7 @@ package com.example.myapplication.app
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
@@ -11,7 +12,6 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -19,10 +19,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.myapplication.fourier.FourierSeries
 import com.example.myapplication.pendulum.DoublePendulum
+import com.example.myapplication.R
 
 enum class Screen {
     Welcome,
@@ -56,6 +58,10 @@ class MainActivity : ComponentActivity() {
 fun MainContainer(onToggleTheme: () -> Unit) {
     val colors = LocalAppColors.current
     var currentScreen by remember { mutableStateOf(Screen.Welcome) }
+
+    BackHandler(enabled = currentScreen != Screen.Welcome) {
+        currentScreen = Screen.Welcome
+    }
 
     Box(
         modifier = Modifier
@@ -147,7 +153,6 @@ fun TopNavigationBar(
             modifier = Modifier
                 .size(AppDesign.buttonHeight)
                 .aspectRatio(1f)
-                .size(AppDesign.sidebarButtonSize)
                 .clip(RoundedCornerShape(AppDesign.radiusCard))
                 .background(colors.cardSurface.copy(alpha = 0.45f))
                 .border(
@@ -163,9 +168,10 @@ fun TopNavigationBar(
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Back",
+                painter = painterResource(id = R.drawable.grid_outline),
+                contentDescription = "Menu",
                 tint = colors.accentCyan,
+                modifier = Modifier.size(AppDesign.iconMedium)
             )
         }
 
@@ -194,9 +200,10 @@ fun TopNavigationBar(
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                if (colors.isDark) Icons.Filled.LightMode else Icons.Filled.DarkMode,
+                if (colors.isDark) painterResource(id = R.drawable.moon_outline) else painterResource(id = R.drawable.sunny_outline),
                 contentDescription = "Toggle Theme",
                 tint = colors.accentCyan,
+                modifier = Modifier.size(AppDesign.iconMedium)
             )
         }
     }
