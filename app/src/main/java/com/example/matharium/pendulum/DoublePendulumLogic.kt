@@ -1,4 +1,4 @@
-package com.example.myapplication.pendulum
+package com.example.matharium.pendulum
 
 import kotlin.math.*
 

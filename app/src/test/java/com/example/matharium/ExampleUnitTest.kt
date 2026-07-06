@@ -1,4 +1,4 @@
-package com.example.myapplication
+package com.example.matharium
 
 import org.junit.Test
 

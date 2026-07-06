@@ -1,4 +1,4 @@
-package com.example.myapplication.app
+package com.example.matharium.app
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
@@ -6,7 +6,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -17,6 +16,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -24,7 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
-import com.example.myapplication.R
+import com.example.matharium.R
 
 @Composable
 fun WelcomeScreen(
@@ -48,7 +48,7 @@ fun WelcomeScreen(
         Spacer(modifier = Modifier.height(60.dp))
 
         Text(
-            text = "Āvang",
+            text = "Matharium",
             fontSize = AppDesign.textDisplayLarge,
             fontWeight = FontWeight.Normal,
             letterSpacing = 1.sp
@@ -79,10 +79,13 @@ fun WelcomeScreen(
                         onClick = onNavigateToFourierSeries,
                     ) {
                         Icon(
-                            painterResource(id = R.drawable.fourierseries_menu),
+                            painterResource(id = R.drawable.fourier_waves),
                             contentDescription = null,
-                            tint = colors.textPrimary,
-                            modifier = Modifier.size(AppDesign.iconWelcome)
+                            tint = colors.textPrimary.copy(alpha = 0.8f),
+                            modifier = Modifier
+                                .align(Alignment.CenterEnd)
+                                .fillMaxHeight()
+                                .width(220.dp)
                         )
                     }
                 }
@@ -100,7 +103,10 @@ fun WelcomeScreen(
                             painterResource(id = R.drawable.pendulum_menu),
                             contentDescription = null,
                             tint = colors.textPrimary,
-                            modifier = Modifier.size(AppDesign.iconWelcome)
+                            modifier = Modifier
+                                .align(Alignment.CenterEnd)
+                                .padding(end = 40.dp)
+                                .size(60.dp)
                         )
                     }
                 }
@@ -161,7 +167,7 @@ fun SimulationCard(
     colors: AppColors,
     enabled: Boolean = true,
     onClick: () -> Unit = {},
-    icon: @Composable (() -> Unit)? = null
+    icon: @Composable (BoxScope.() -> Unit)? = null
 ) {
     Box(
         modifier = Modifier
@@ -173,31 +179,24 @@ fun SimulationCard(
                 colors.cardBorder.copy(alpha = 0.6f),
                 RoundedCornerShape(AppDesign.radiusCard)
             )
-            .clickable(enabled = enabled) { onClick() },
-        contentAlignment = Alignment.Center
+            .clickable(enabled = enabled) { onClick() }
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-            modifier = Modifier.fillMaxWidth().padding(AppDesign.spacingLarge)
-        ) {
-            Text(
-                text = title,
-                color = if (enabled) androidx.compose.ui.graphics.Color.Unspecified else colors.textSecondary.copy(
-                    alpha = 0.7f
-                ),
-                fontSize = AppDesign.textBodyLarge,
-                textAlign = TextAlign.Start,
-                fontWeight = if (enabled) FontWeight.Bold else FontWeight.Normal
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            if (icon != null) {
-                Box(modifier = Modifier.size(60.dp), contentAlignment = Alignment.Center) {
-                    icon()
-                }
-
-            }
+        if (icon != null) {
+            icon()
         }
+
+        Text(
+            text = title,
+            color = if (enabled) Color.Unspecified else colors.textSecondary.copy(
+                alpha = 0.7f
+            ),
+            fontSize = AppDesign.textBodyLarge,
+            textAlign = TextAlign.Start,
+            fontWeight = if (enabled) FontWeight.Bold else FontWeight.Normal,
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .padding(start = 40.dp)
+        )
     }
 }
 

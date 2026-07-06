@@ -1,11 +1,11 @@
-package com.example.myapplication.app
+package com.example.matharium.app
 
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
-import com.example.myapplication.fourier.SignalInstance
-import com.example.myapplication.pendulum.PendulumInstance
+import com.example.matharium.fourier.SignalInstance
+import com.example.matharium.pendulum.PendulumInstance
 
 class AppPreferences(context: Context) {
     private val prefs: SharedPreferences = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)

@@ -1,4 +1,4 @@
-package com.example.myapplication.fourier
+package com.example.matharium.fourier
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
@@ -32,17 +32,32 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.myapplication.R
-import com.example.myapplication.app.*
+import com.example.matharium.app.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Locale
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
+import kotlin.math.sqrt
+import kotlin.math.atan2
+import android.media.AudioAttributes
+import android.media.AudioTrack
+import com.example.matharium.R
+import android.media.AudioFormat
+import android.media.AudioRecord
+import android.media.MediaRecorder
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
+import android.Manifest
+import android.content.pm.PackageManager
 
 enum class WaveType {
-    MY_SIGNAL, CUSTOM_FUNCTION, SQUARE, TRIANGLE, SINE, SAWTOOTH
+    MY_SIGNAL, CUSTOM_FUNCTION, SQUARE, TRIANGLE, SINE, SAWTOOTH, VOICE
 }
 
 enum class FourierDisplayMode {
@@ -92,8 +107,155 @@ fun FourierSeries() {
     }
     var customCoefficients by remember { mutableStateOf<List<Pair<Float, Float>>>(emptyList()) }
 
+    // --- Voice Input State ---
+    val context = LocalContext.current
+    var voiceCoefficients by remember { mutableStateOf<List<Pair<Float, Float>>>(emptyList()) }
+    var permissionGranted by remember { 
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.RECORD_AUDIO
+            ) == PackageManager.PERMISSION_GRANTED
+        )
+    }
+
+    var isRecording by remember { mutableStateOf(false) }
+    var isPlayingVoice by remember { mutableStateOf(false) }
+
+    val launcher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        permissionGranted = isGranted
+        if (!isGranted) {
+            waveType = WaveType.SQUARE
+        }
+    }
+
+    LaunchedEffect(waveType, permissionGranted) {
+        if (waveType == WaveType.VOICE && !permissionGranted) {
+            launcher.launch(Manifest.permission.RECORD_AUDIO)
+        }
+    }
+
+    LaunchedEffect(isRecording) {
+        if (!isRecording) return@LaunchedEffect
+
+        withContext(Dispatchers.Default) {
+            val sampleRate = 44100
+            val bufferSize = AudioRecord.getMinBufferSize(
+                sampleRate,
+                AudioFormat.CHANNEL_IN_MONO,
+                AudioFormat.ENCODING_PCM_16BIT
+            )
+            
+            val audioRecord = AudioRecord(
+                MediaRecorder.AudioSource.MIC,
+                sampleRate,
+                AudioFormat.CHANNEL_IN_MONO,
+                AudioFormat.ENCODING_PCM_16BIT,
+                bufferSize.coerceAtLeast(2048)
+            )
+
+            val buffer = ShortArray(1024)
+            audioRecord.startRecording()
+
+            try {
+                // Record a single buffer
+                val read = audioRecord.read(buffer, 0, buffer.size)
+                if (read > 0) {
+                    val coeffs = mutableListOf<Pair<Float, Float>>()
+                    val N = read.toFloat()
+                    // Capture first 50 bins
+                    for (n in 1..50) {
+                        var re = 0f
+                        var im = 0f
+                        for (i in 0 until read) {
+                            val valNormalized = buffer[i] / 32768f
+                            val angle = 2 * PI.toFloat() * n * i / N
+                            re += valNormalized * cos(angle)
+                            im += valNormalized * sin(angle)
+                        }
+                        re /= (N / 2f)
+                        im /= (N / 2f)
+                        val amp = sqrt(re * re + im * im) * 150f
+                        val phase = atan2(re, im)
+                        coeffs.add(amp to phase)
+                    }
+                    withContext(Dispatchers.Main) {
+                        voiceCoefficients = coeffs
+                        isRecording = false
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                try {
+                    audioRecord.stop()
+                    audioRecord.release()
+                } catch (e: Exception) {}
+            }
+        }
+    }
+
+    LaunchedEffect(isPlayingVoice) {
+        if (!isPlayingVoice || voiceCoefficients.isEmpty()) {
+            isPlayingVoice = false
+            return@LaunchedEffect
+        }
+
+        withContext(Dispatchers.Default) {
+            val sampleRate = 44100
+            val durationSeconds = 2.0
+            val numSamples = (sampleRate * durationSeconds).toInt()
+            val audioData = ShortArray(numSamples)
+
+            // Synthesize the sound based on N terms
+            val activeTerms = nTerms.coerceAtMost(voiceCoefficients.size)
+            
+            for (i in 0 until numSamples) {
+                val t = i.toFloat() / sampleRate
+                var sampleValue = 0f
+                for (nIdx in 0 until activeTerms) {
+                    val (amp, phase) = voiceCoefficients[nIdx]
+                    val freq = (nIdx + 1) * 100f // Scaling frequency for audible range
+                    val angle = 2 * PI.toFloat() * freq * t + phase
+                    sampleValue += (amp / 150f) * sin(angle)
+                }
+                audioData[i] = (sampleValue.coerceIn(-1f, 1f) * 32767).toInt().toShort()
+            }
+
+            val audioTrack = AudioTrack.Builder()
+                .setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_MEDIA)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                        .build()
+                )
+                .setAudioFormat(
+                    AudioFormat.Builder()
+                        .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
+                        .setSampleRate(sampleRate)
+                        .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
+                        .build()
+                )
+                .setBufferSizeInBytes(audioData.size * 2)
+                .setTransferMode(AudioTrack.MODE_STATIC)
+                .build()
+
+            audioTrack.write(audioData, 0, audioData.size)
+            audioTrack.play()
+            
+            delay((durationSeconds * 1000).toLong())
+            
+            withContext(Dispatchers.Main) {
+                isPlayingVoice = false
+            }
+            audioTrack.release()
+        }
+    }
+
     // --- Custom Function State ---
-    val customFunctionSignals = remember { 
+    val customFunctionSignals = remember {
         val list = mutableStateListOf<SignalInstance>()
         list.addAll(prefs.loadFourierSignals(colors.accentCyan))
         list
@@ -151,6 +313,7 @@ fun FourierSeries() {
         nTerms,
         waveType,
         customCoefficients,
+        voiceCoefficients,
         customFunctionSignals.size
     ) {
         if (!running) return@LaunchedEffect
@@ -164,16 +327,12 @@ fun FourierSeries() {
                 val newPoints = mutableListOf<Offset>()
 
                 repeat(substeps) {
-                    // Adjust speed to make f=1 equal 1 rotation per second
-                    // Angle is 2 * PI * f * time. At f=1, period is 1s if time increases by 1 per second.
                     time += subDt * speed
 
-                    // Calculate current x, y position for the path
                     var currentX = 0f
                     var currentY = 0f
                     val radiusBase = 100f
 
-                    // WaveType.SINE should only have one term regardless of nTerms
                     val activeTerms = if (waveType == WaveType.SINE) 1 else nTerms
 
                     if (waveType == WaveType.CUSTOM_FUNCTION) {
@@ -191,6 +350,17 @@ fun FourierSeries() {
                             if (waveType == WaveType.MY_SIGNAL) {
                                 if (i < customCoefficients.size) {
                                     val (amp, phase) = customCoefficients[i]
+                                    val n = i + 1
+                                    val angle = 2 * PI.toFloat() * n * time + phase
+                                    currentX += amp * cos(angle)
+                                    currentY += amp * sin(angle)
+                                }
+                                continue
+                            }
+                            
+                            if (waveType == WaveType.VOICE) {
+                                if (i < voiceCoefficients.size) {
+                                    val (amp, phase) = voiceCoefficients[i]
                                     val n = i + 1
                                     val angle = 2 * PI.toFloat() * n * time + phase
                                     currentX += amp * cos(angle)
@@ -293,6 +463,7 @@ fun FourierSeries() {
                                         val labelText = when (type) {
                                             WaveType.MY_SIGNAL -> "Draw a Wave"
                                             WaveType.CUSTOM_FUNCTION -> "Custom Function"
+                                            WaveType.VOICE -> "Voice Input"
                                             else -> type.name.lowercase().replaceFirstChar {
                                                 if (it.isLowerCase()) it.titlecase(Locale.US) else it.toString()
                                             }
@@ -634,6 +805,95 @@ fun FourierSeries() {
                             }
                         }
 
+                        AnimatedVisibility(visible = waveType == WaveType.VOICE) {
+                            Column(modifier = Modifier.padding(top = AppDesign.radiusLarge)) {
+                                Text(
+                                    "Capture a voice sample",
+                                    color = colors.accentCyan,
+                                    fontSize = AppDesign.textBody,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Spacer(Modifier.height(AppDesign.radiusSmall))
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(AppDesign.spacingSmall)
+                                ) {
+                                    // Record Button
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(AppDesign.buttonHeightSmall)
+                                            .clip(RoundedCornerShape(AppDesign.radiusButton))
+                                            .background(if (isRecording) colors.accentHell.copy(0.2f) else colors.cardSurface.copy(AppDesign.opacityLow))
+                                            .border(
+                                                BorderStroke(
+                                                    2.dp,
+                                                    if (isRecording) colors.accentHell else colors.accentCyan
+                                                ),
+                                                RoundedCornerShape(AppDesign.radiusButton)
+                                            )
+                                            .clickable {
+                                                isRecording = true
+                                                path.clear()
+                                                time = 0f
+                                            },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(
+                                                painter = painterResource(id = R.drawable.mic_outline),
+                                                null,
+                                                modifier = Modifier.size(AppDesign.iconSmall),
+                                                tint = if (isRecording) colors.accentHell else colors.accentCyan
+                                            )
+                                            Spacer(Modifier.width(4.dp))
+                                            Text(
+                                                if (isRecording) "Recording..." else "Record",
+                                                fontSize = AppDesign.textSmall,
+                                                color = colors.textPrimary,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+                                    }
+
+                                    // Play Button
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(AppDesign.buttonHeightSmall)
+                                            .clip(RoundedCornerShape(AppDesign.radiusButton))
+                                            .background(if (isPlayingVoice) colors.accentCyan.copy(0.2f) else colors.cardSurface.copy(AppDesign.opacityLow))
+                                            .border(
+                                                2.dp,
+                                                if (isPlayingVoice) colors.accentCyan else colors.cardBorder,
+                                                RoundedCornerShape(AppDesign.radiusButton)
+                                            )
+                                            .clickable(enabled = voiceCoefficients.isNotEmpty() && !isPlayingVoice) {
+                                                isPlayingVoice = true
+                                            },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(
+                                                painter = painterResource(id = R.drawable.caret_forward_outline),
+                                                null,
+                                                tint = if (voiceCoefficients.isNotEmpty()) colors.accentCyan else colors.textSecondary,
+                                                modifier = Modifier.size(AppDesign.iconSmall)
+                                            )
+                                            Spacer(Modifier.width(4.dp))
+                                            Text(
+                                                if (isPlayingVoice) "Playing..." else "Play",
+                                                fontSize = AppDesign.textSmall,
+                                                color = if (voiceCoefficients.isNotEmpty()) colors.textPrimary else colors.textSecondary,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
                         Spacer(Modifier.height(AppDesign.radiusLarge))
 
                         LabeledSlider(
@@ -758,6 +1018,7 @@ fun FourierSeries() {
                                 WaveType.SAWTOOTH -> (i + 1).toFloat()
                                 WaveType.TRIANGLE -> (i * 2 + 1).toFloat()
                                 WaveType.MY_SIGNAL -> (i + 1).toFloat()
+                                WaveType.VOICE -> (i + 1).toFloat()
                                 WaveType.CUSTOM_FUNCTION -> if (i < customFunctionSignals.size) customFunctionSignals[i].freq.toFloatOrNull() ?: 0f else 0f
                             }
 
@@ -767,6 +1028,7 @@ fun FourierSeries() {
                                 WaveType.SAWTOOTH -> radiusBase * (2f / (n * PI.toFloat()))
                                 WaveType.TRIANGLE -> radiusBase * (8f / (n * n * PI.toFloat() * PI.toFloat()))
                                 WaveType.MY_SIGNAL -> if (i < customCoefficients.size) customCoefficients[i].first else 0f
+                                WaveType.VOICE -> if (i < voiceCoefficients.size) voiceCoefficients[i].first else 0f
                                 WaveType.CUSTOM_FUNCTION -> if (i < customFunctionSignals.size) customFunctionSignals[i].amp.toFloatOrNull() ?: 0f else 0f
                             }
 
@@ -775,6 +1037,7 @@ fun FourierSeries() {
                             val phase = when (waveType) {
                                 WaveType.TRIANGLE -> if (i % 2 != 0) PI.toFloat() else 0f
                                 WaveType.MY_SIGNAL -> if (i < customCoefficients.size) customCoefficients[i].second else 0f
+                                WaveType.VOICE -> if (i < voiceCoefficients.size) voiceCoefficients[i].second else 0f
                                 else -> 0f
                             }
                             val angle = 2 * PI.toFloat() * n * time + phase
@@ -1072,6 +1335,7 @@ fun FourierSeries() {
                     time = time,
                     colors = colors,
                     customCoefficients = customCoefficients,
+                    voiceCoefficients = voiceCoefficients,
                     customFunctionSignals = customFunctionSignals
                 )
             }
@@ -1082,6 +1346,7 @@ fun FourierSeries() {
                     time = time,
                     colors = colors,
                     customCoefficients = customCoefficients,
+                    voiceCoefficients = voiceCoefficients,
                     customFunctionSignals = customFunctionSignals
                 )
             }
@@ -1115,6 +1380,7 @@ private fun HarmonicComponents(
     time: Float,
     colors: AppColors,
     customCoefficients: List<Pair<Float, Float>>,
+    voiceCoefficients: List<Pair<Float, Float>>,
     customFunctionSignals: List<SignalInstance>
 ) {
     var isExpanded by remember { mutableStateOf(false) }
@@ -1170,6 +1436,7 @@ private fun HarmonicComponents(
                         WaveType.SAWTOOTH -> (i + 1).toFloat()
                         WaveType.TRIANGLE -> (i * 2 + 1).toFloat()
                         WaveType.MY_SIGNAL -> (i + 1).toFloat()
+                        WaveType.VOICE -> (i + 1).toFloat()
                         WaveType.CUSTOM_FUNCTION -> customFunctionSignals[i].freq.toFloatOrNull() ?: 0f
                     }
 
@@ -1182,6 +1449,7 @@ private fun HarmonicComponents(
                         WaveType.SAWTOOTH -> radiusBase * (2f / (n * PI.toFloat()))
                         WaveType.TRIANGLE -> radiusBase * (8f / (n * n * PI.toFloat() * PI.toFloat()))
                         WaveType.MY_SIGNAL -> if (i < customCoefficients.size) customCoefficients[i].first * (radiusBase / 100f) else 0f
+                        WaveType.VOICE -> if (i < voiceCoefficients.size) voiceCoefficients[i].first * (radiusBase / 100f) else 0f
                         WaveType.CUSTOM_FUNCTION -> (customFunctionSignals[i].amp.toFloatOrNull() ?: 0f) * (radiusBase / 100f)
                     }
 
@@ -1221,6 +1489,7 @@ private fun HarmonicComponents(
                             val phase = when (waveType) {
                                 WaveType.TRIANGLE -> if (i % 2 != 0) PI.toFloat() else 0f
                                 WaveType.MY_SIGNAL -> if (i < customCoefficients.size) customCoefficients[i].second else 0f
+                                WaveType.VOICE -> if (i < voiceCoefficients.size) voiceCoefficients[i].second else 0f
                                 else -> 0f
                             }
 
@@ -1575,6 +1844,7 @@ private fun ComplexHarmonicComponents(
     time: Float,
     colors: AppColors,
     customCoefficients: List<Pair<Float, Float>>,
+    voiceCoefficients: List<Pair<Float, Float>>,
     customFunctionSignals: List<SignalInstance>
 ) {
     var isExpanded by remember { mutableStateOf(false) }
@@ -1613,6 +1883,7 @@ private fun ComplexHarmonicComponents(
                         WaveType.SAWTOOTH -> (i + 1).toFloat()
                         WaveType.TRIANGLE -> (i * 2 + 1).toFloat()
                         WaveType.MY_SIGNAL -> (i + 1).toFloat()
+                        WaveType.VOICE -> (i + 1).toFloat()
                         WaveType.CUSTOM_FUNCTION -> customFunctionSignals[i].freq.toFloatOrNull() ?: 0f
                     }
 
@@ -1625,6 +1896,7 @@ private fun ComplexHarmonicComponents(
                         WaveType.SAWTOOTH -> radiusBase * (2f / (n * PI.toFloat()))
                         WaveType.TRIANGLE -> radiusBase * (8f / (n * n * PI.toFloat() * PI.toFloat()))
                         WaveType.MY_SIGNAL -> if (i < customCoefficients.size) customCoefficients[i].first * (radiusBase / 100f) else 0f
+                        WaveType.VOICE -> if (i < voiceCoefficients.size) voiceCoefficients[i].first * (radiusBase / 100f) else 0f
                         WaveType.CUSTOM_FUNCTION -> (customFunctionSignals[i].amp.toFloatOrNull() ?: 0f) * (radiusBase / 100f)
                     }
 
@@ -1657,6 +1929,7 @@ private fun ComplexHarmonicComponents(
                             val phase = when (waveType) {
                                 WaveType.TRIANGLE -> if (i % 2 != 0) PI.toFloat() else 0f
                                 WaveType.MY_SIGNAL -> if (i < customCoefficients.size) customCoefficients[i].second else 0f
+                                WaveType.VOICE -> if (i < voiceCoefficients.size) voiceCoefficients[i].second else 0f
                                 else -> 0f
                             }
 

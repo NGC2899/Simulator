@@ -1,4 +1,4 @@
-package com.example.myapplication.pendulum
+package com.example.matharium.pendulum
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
@@ -40,8 +40,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.myapplication.R
-import com.example.myapplication.app.*
+import com.example.matharium.app.*
+import com.example.matharium.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.Locale
@@ -88,15 +88,10 @@ fun DoublePendulum() {
     LaunchedEffect(scale) { prefs.pendulumScale = scale }
     LaunchedEffect(pendulums.toList()) { prefs.savePendulums(pendulums.toList()) }
 
-    LaunchedEffect(running, hasStarted, pendulums.size) {
-        if (!running && (!hasStarted || draggingPendulumId != null)) {
+    // Synchronize visual state when not running
+    LaunchedEffect(running, draggingPendulumId) {
+        if (!running) {
             pendulums.forEach { it.updatePositions() }
-        }
-    }
-
-    pendulums.forEach { p ->
-        LaunchedEffect(p.t1, p.t2, p.l1, p.l2, running, hasStarted, draggingPendulumId) {
-            if (!running && (!hasStarted || draggingPendulumId == p.id)) p.updatePositions()
         }
     }
 
@@ -124,7 +119,9 @@ fun DoublePendulum() {
 
             // Perform physics steps on a background thread to keep UI responsive
             withContext(Dispatchers.Default) {
-                while (accumulator >= fixedDeltaTime) {
+                var steps = 0
+                // Cap physics steps per frame (max 20 steps / 80ms sim time) to prevent UI lockup
+                while (accumulator >= fixedDeltaTime && steps < 20) {
                     framePendulums.forEachIndexed { i, p ->
                         p.logic.setGravity(gravityAmount.toDouble())
                         p.logic.setFriction(frictionAmount.toDouble())
@@ -141,7 +138,10 @@ fun DoublePendulum() {
                         )
                     }
                     accumulator -= fixedDeltaTime
+                    steps++
                 }
+                // If we lagged too much, just drop the accumulated time
+                if (steps >= 20) accumulator = 0.0
             }
 
             // Sync physics results to UI state (read cached coords, do NOT call update() again)
@@ -210,7 +210,7 @@ fun DoublePendulum() {
                             label = "Time Scale",
                             valueDisplay = String.format(Locale.US, "%.1fx", speedMultiplier),
                             value = speedMultiplier,
-                            range = 0.1f..15f,
+                            range = 0.1f..5f,
                             colors = colors
                         ) { speedMultiplier = it }
 
@@ -312,13 +312,15 @@ fun DoublePendulum() {
                                 ),
                                 RoundedCornerShape(AppDesign.radiusButton)
                             )
-                            .clickable(enabled = !running) {
+                            .clickable {
                                 val last = pendulums.lastOrNull()
                                 val nextT1 = last?.t1 ?: templateT1
                                 val nextT2 = last?.t2 ?: templateT2
                                 val color = Color.hsv(Random.nextFloat() * 360f, 0.7f, 0.9f)
-                                pendulums.add(PendulumInstance(nextId++, color, nextT1, nextT2))
-                                hasStarted = false
+                                val newPendulum = PendulumInstance(nextId++, color, nextT1, nextT2)
+                                newPendulum.updatePositions() // Fix: Initialize positions immediately
+                                pendulums.add(newPendulum)
+                                if (!running) hasStarted = false
                             },
                         contentAlignment = Alignment.Center
                     ) {
@@ -351,7 +353,7 @@ fun DoublePendulum() {
                                 colors.accentViolet.copy(AppDesign.opacityMedium),
                                 RoundedCornerShape(AppDesign.radiusButton)
                             )
-                            .clickable(enabled = !running) {
+                            .clickable {
                                 if (pendulums.size < 30) {
                                     repeat(5) {
                                         if (pendulums.size >= 30) return@repeat
@@ -365,16 +367,16 @@ fun DoublePendulum() {
                                         )
                                         val randomColor =
                                             Color.hsv(Random.nextFloat() * 360f, 0.7f, 0.9f)
-                                        pendulums.add(
-                                            PendulumInstance(
-                                                nextId++,
-                                                randomColor,
-                                                nextT1,
-                                                baseT2
-                                            )
+                                        val newPendulum = PendulumInstance(
+                                            nextId++,
+                                            randomColor,
+                                            nextT1,
+                                            baseT2
                                         )
+                                        newPendulum.updatePositions() // Fix: Initialize positions immediately
+                                        pendulums.add(newPendulum)
                                     }
-                                    hasStarted = false
+                                    if (!running) hasStarted = false
                                 }
                             },
                         contentAlignment = Alignment.Center
@@ -412,7 +414,7 @@ fun DoublePendulum() {
                                 running = false
                                 hasStarted = false
                                 pendulums.clear()
-                                nextId = 0
+                                nextId = 1
                             },
                         contentAlignment = Alignment.Center
                     ) {
@@ -472,6 +474,7 @@ fun DoublePendulum() {
                                     onParameterChange = {
                                         running = false
                                         hasStarted = false
+                                        p.updatePositions()
                                         prefs.savePendulums(pendulums.toList())
                                     }) {
                                     running = false
@@ -482,7 +485,7 @@ fun DoublePendulum() {
                                     }
                                     pendulums.remove(p)
                                     if (pendulums.isEmpty()) {
-                                        nextId = 0
+                                        nextId = 1
                                     }
                                 }
                             }
@@ -537,13 +540,13 @@ fun DoublePendulum() {
                 shape = RoundedCornerShape(AppDesign.radiusMedium),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = if (running) colors.accentHell else colors.accentCyan,
-                    disabledContainerColor = colors.cardSurface.copy(alpha = 0.8f),
-                    disabledContentColor = colors.textSecondary.copy(alpha = 0.5f)
+                    disabledContainerColor = colors.accentCyan.copy(alpha = 0.3f),
+                    disabledContentColor = colors.textOnAccent.copy(alpha = 0.5f)
                 )
             ) {
                 Icon(
-                    if (running) painterResource(id = R.drawable.caret_forward_outline) else painterResource(
-                        id = R.drawable.pause_outline
+                    if (running) painterResource(id = R.drawable.pause_outline) else painterResource(
+                        id = R.drawable.caret_forward_outline
                     ),
                     null,
                     tint = colors.textOnAccent,
@@ -638,21 +641,24 @@ fun DoublePendulum() {
 
                                 if (displayMode == DisplayMode.SIMULATION || displayMode == DisplayMode.COMPLEX) {
                                     val touchScaled = touch / scale
-                                    if (draggingBobType == DragTarget.BOB1) p.t1 = String.format(
-                                        Locale.US,
-                                        "%.1f",
-                                        atan2(
-                                            touchScaled.x.toDouble(),
-                                            touchScaled.y.toDouble()
-                                        ) * 180.0 / PI
-                                    )
-                                    else {
-                                        val rel = touchScaled - p.bob1; p.t2 = String.format(
+                                    if (draggingBobType == DragTarget.BOB1) {
+                                        p.t1 = String.format(
+                                            Locale.US,
+                                            "%.1f",
+                                            atan2(
+                                                touchScaled.x.toDouble(),
+                                                touchScaled.y.toDouble()
+                                            ) * 180.0 / PI
+                                        )
+                                    } else {
+                                        val rel = touchScaled - p.bob1
+                                        p.t2 = String.format(
                                             Locale.US,
                                             "%.1f",
                                             atan2(rel.x.toDouble(), rel.y.toDouble()) * 180.0 / PI
                                         )
                                     }
+                                    p.updatePositions()
                                 } else if (displayMode == DisplayMode.GRAPH) {
                                     val graphScale = scale * 0.004f
                                     val touchScaled = touch / graphScale
@@ -660,6 +666,7 @@ fun DoublePendulum() {
                                         String.format(Locale.US, "%.1f", touchScaled.x.toDouble())
                                     p.t2 =
                                         String.format(Locale.US, "%.1f", touchScaled.y.toDouble())
+                                    p.updatePositions()
                                 }
                             },
                             onDragEnd = {
@@ -1115,6 +1122,7 @@ private fun PendulumField(
     colors: AppColors,
     onValueChange: (String) -> Unit
 ) {
+    val isError = value.toDoubleOrNull() == null
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
@@ -1122,6 +1130,7 @@ private fun PendulumField(
         textStyle = LocalTextStyle.current.copy(fontSize = AppDesign.textBody),
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
         singleLine = true,
+        isError = isError,
         modifier = Modifier
             .fillMaxWidth()
             .padding(bottom = AppDesign.spacingSmall),
@@ -1129,7 +1138,9 @@ private fun PendulumField(
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = colors.fieldFocused,
             focusedLabelColor = colors.accentCyan,
-            unfocusedBorderColor = colors.fieldBorder
+            unfocusedBorderColor = colors.fieldBorder,
+            errorBorderColor = colors.accentHell,
+            errorLabelColor = colors.accentHell
         )
     )
 }
