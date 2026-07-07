@@ -1,8 +1,5 @@
 package com.example.matharium.fourier
 
-import android.media.AudioAttributes
-import android.media.AudioFormat
-import android.media.AudioTrack
 import android.util.Log
 import kotlin.math.*
 
@@ -30,62 +27,96 @@ object FourierLogic {
         return coeffs
     }
 
-    fun synthesizeAudio(
-        voiceCoefficients: List<Pair<Float, Float>>,
-        nTerms: Int,
-        sampleRate: Int,
-        durationSeconds: Double
-    ): ShortArray {
-        val numSamples = (sampleRate * durationSeconds).toInt()
-        val audioData = ShortArray(numSamples)
-        val activeTerms = nTerms.coerceAtMost(voiceCoefficients.size)
-
-        for (i in 0 until numSamples) {
-            val t = i.toFloat() / sampleRate
-            var sampleValue = 0f
-            for (nIdx in 0 until activeTerms) {
-                val (amp, phase) = voiceCoefficients[nIdx]
-                val freq = (nIdx + 1) * 100f
-                val angle = 2 * PI.toFloat() * freq * t + phase
-                sampleValue += (amp / 150f) * sin(angle)
+    /**
+     * Performs a Forward Fourier Transform on a single segment.
+     */
+    fun fft(samples: FloatArray): Array<Complex> {
+        val n = samples.size
+        val result = Array(n) { i -> Complex(samples[i].toDouble(), 0.0) }
+        
+        // Bit-reversal permutation
+        var j = 0
+        for (i in 0 until n) {
+            if (i < j) {
+                val temp = result[i]
+                result[i] = result[j]
+                result[j] = temp
             }
-            audioData[i] = (sampleValue.coerceIn(-1f, 1f) * 32767).toInt().toShort()
+            var m = n shr 1
+            while (m >= 1 && j >= m) {
+                j -= m
+                m = m shr 1
+            }
+            j += m
         }
-        return audioData
+
+        // Iterative FFT
+        var len = 2
+        while (len <= n) {
+            val ang = 2 * PI / len
+            val wlen = Complex(cos(ang), -sin(ang))
+            for (i in 0 until n step len) {
+                var w = Complex(1.0, 0.0)
+                for (k in 0 until len / 2) {
+                    val u = result[i + k]
+                    val v = result[i + k + len / 2] * w
+                    result[i + k] = u + v
+                    result[i + k + len / 2] = u - v
+                    w *= wlen
+                }
+            }
+            len = len shl 1
+        }
+        return result
     }
 
-    fun processVoiceDFT(audioBuffer: ShortArray, samplesRead: Int): List<Pair<Float, Float>> {
-        var maxAmp = 0f
-        for (i in 0 until samplesRead) {
-            val a = abs(audioBuffer[i].toFloat())
-            if (a > maxAmp) maxAmp = a
-        }
-        val normFactor = if (maxAmp > 0) 32767f / maxAmp else 1f
-
-        val coeffs = mutableListOf<Pair<Float, Float>>()
-        val dftSize = 8192.coerceAtMost(samplesRead)
-        val startOffset = ((samplesRead - dftSize) / 2).coerceAtLeast(0)
+    /**
+     * Performs an Inverse Fourier Transform on a single segment.
+     */
+    fun ifft(coeffs: Array<Complex>): FloatArray {
+        val n = coeffs.size
+        val reversed = Array(n) { i -> coeffs[i].conj() }
         
-        val maxCoeffs = 5000
-        for (n in 1..maxCoeffs) {
-            var re = 0f
-            var im = 0f
-            for (i in 0 until dftSize) {
-                val sampleIdx = startOffset + i
-                val window = 0.5f * (1f - cos(2 * PI.toFloat() * i / (dftSize - 1)))
-                val valNormalized = (audioBuffer[sampleIdx] * normFactor) / 32768f
-                val sample = valNormalized * window
-                
-                val angle = 2 * PI.toFloat() * n * i / dftSize
-                re += sample * cos(angle)
-                im += sample * sin(angle)
+        // Bit-reversal
+        var j = 0
+        for (i in 0 until n) {
+            if (i < j) {
+                val temp = reversed[i]
+                reversed[i] = reversed[j]
+                reversed[j] = temp
             }
-            re /= (dftSize / 2f)
-            im /= (dftSize / 2f)
-            val amp = sqrt(re * re + im * im) * 150f
-            val phase = atan2(re, im)
-            coeffs.add(amp to phase)
+            var m = n shr 1
+            while (m >= 1 && j >= m) {
+                j -= m
+                m = m shr 1
+            }
+            j += m
         }
-        return coeffs
+
+        var len = 2
+        while (len <= n) {
+            val ang = 2 * PI / len
+            val wlen = Complex(cos(ang), sin(ang)) // Conjugate angle for IFFT
+            for (i in 0 until n step len) {
+                var w = Complex(1.0, 0.0)
+                for (k in 0 until len / 2) {
+                    val u = reversed[i + k]
+                    val v = reversed[i + k + len / 2] * w
+                    reversed[i + k] = u + v
+                    reversed[i + k + len / 2] = u - v
+                    w *= wlen
+                }
+            }
+            len = len shl 1
+        }
+        
+        return FloatArray(n) { (reversed[it].re / n).toFloat() }
+    }
+
+    data class Complex(val re: Double, val im: Double) {
+        operator fun plus(other: Complex) = Complex(re + other.re, im + other.im)
+        operator fun minus(other: Complex) = Complex(re - other.re, im - other.im)
+        operator fun times(other: Complex) = Complex(re * other.re - im * other.im, re * other.im + im * other.re)
+        fun conj() = Complex(re, -im)
     }
 }

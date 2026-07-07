@@ -21,6 +21,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.matharium.fourier.FourierSeries
+import com.example.matharium.fourier.VoiceProcessing
 import com.example.matharium.pendulum.DoublePendulum
 import com.example.matharium.R
 
@@ -28,6 +29,7 @@ enum class Screen {
     Welcome,
     FourierSeries,
     DoublePendulum,
+    VoiceProcessing,
 }
 
 val LocalAppPrefs = staticCompositionLocalOf<AppPreferences> { error("No AppPreferences provided") }
@@ -100,6 +102,7 @@ fun MainContainer(onToggleTheme: () -> Unit) {
                             title = when (screen) {
                                 Screen.FourierSeries -> "Fourier Series"
                                 Screen.DoublePendulum -> "Double Pendulum"
+                                Screen.VoiceProcessing -> "Voice Processing"
                                 else -> ""
                             },
                             colors = colors,
@@ -119,11 +122,13 @@ fun MainContainer(onToggleTheme: () -> Unit) {
                                 onNavigateToDoublePendulum = {
                                     currentScreen = Screen.DoublePendulum
                                 },
-                                onNavigateToFourierSeries = { currentScreen = Screen.FourierSeries }
+                                onNavigateToFourierSeries = { currentScreen = Screen.FourierSeries },
+                                onNavigateToVoiceProcessing = { currentScreen = Screen.VoiceProcessing }
                             )
 
                             Screen.FourierSeries -> FourierSeries()
                             Screen.DoublePendulum -> DoublePendulum()
+                            Screen.VoiceProcessing -> VoiceProcessing()
                         }
                     }
                 }

@@ -1,15 +1,5 @@
 package com.example.matharium.fourier
 
-import android.Manifest
-import android.content.pm.PackageManager
-import android.media.AudioAttributes
-import android.media.AudioFormat
-import android.media.AudioRecord
-import android.media.AudioTrack
-import android.media.MediaRecorder
-import android.util.Log
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
@@ -36,16 +26,12 @@ import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.Measurable
 import androidx.compose.ui.layout.layout
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat
 import com.example.matharium.R
 import com.example.matharium.app.*
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Locale
@@ -64,7 +50,7 @@ fun FourierSeries() {
 
     // Clamp nTerms when switching wave types
     LaunchedEffect(waveType) {
-        val maxForCurrent = if (waveType == WaveType.VOICE) 5000 else 50
+        val maxForCurrent = 50
         if (nTerms > maxForCurrent) {
             nTerms = maxForCurrent
         }
@@ -92,160 +78,6 @@ fun FourierSeries() {
         list
     }
     var customCoefficients by remember { mutableStateOf<List<Pair<Float, Float>>>(emptyList()) }
-
-    // --- Voice Input State ---
-    val context = LocalContext.current
-    var voiceCoefficients by remember { mutableStateOf<List<Pair<Float, Float>>>(emptyList()) }
-    var permissionGranted by remember { 
-        mutableStateOf(
-            ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.RECORD_AUDIO
-            ) == PackageManager.PERMISSION_GRANTED
-        )
-    }
-
-    var isRecording by remember { mutableStateOf(false) }
-    var isPlayingVoice by remember { mutableStateOf(false) }
-
-    val launcher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        permissionGranted = isGranted
-        if (!isGranted) {
-            waveType = WaveType.SQUARE
-        }
-    }
-
-    LaunchedEffect(waveType, permissionGranted) {
-        if (waveType == WaveType.VOICE && !permissionGranted) {
-            launcher.launch(Manifest.permission.RECORD_AUDIO)
-        }
-    }
-
-    LaunchedEffect(isRecording) {
-        if (!isRecording) return@LaunchedEffect
-
-        withContext(Dispatchers.Default) {
-            Log.d("FourierVoice", "Starting recording...")
-            val sampleRate = 44100
-            val minBufferSize = AudioRecord.getMinBufferSize(
-                sampleRate,
-                AudioFormat.CHANNEL_IN_MONO,
-                AudioFormat.ENCODING_PCM_16BIT
-            )
-            
-            val audioRecord = AudioRecord(
-                MediaRecorder.AudioSource.VOICE_RECOGNITION,
-                sampleRate,
-                AudioFormat.CHANNEL_IN_MONO,
-                AudioFormat.ENCODING_PCM_16BIT,
-                minBufferSize.coerceAtLeast(8192)
-            )
-
-            if (audioRecord.state != AudioRecord.STATE_INITIALIZED) {
-                Log.e("FourierVoice", "AudioRecord failed to initialize")
-                withContext(Dispatchers.Main) { isRecording = false }
-                return@withContext
-            }
-
-            val recordDurationMs = 5000
-            val totalSamples = (sampleRate * (recordDurationMs / 1000f)).toInt()
-            val audioBuffer = ShortArray(totalSamples)
-            
-            try {
-                Log.d("FourierVoice", "Attempting to start recording...")
-                audioRecord.startRecording()
-                
-                var samplesRead = 0
-                if (audioRecord.recordingState == AudioRecord.RECORDSTATE_RECORDING) {
-                    Log.d("FourierVoice", "Recording started, capturing $totalSamples samples")
-                    
-                    var consecutiveZeroReads = 0
-                    while (samplesRead < totalSamples && isRecording) {
-                        val read = audioRecord.read(audioBuffer, samplesRead, totalSamples - samplesRead)
-                        if (read > 0) {
-                            samplesRead += read
-                            consecutiveZeroReads = 0
-                        } else if (read < 0) {
-                            Log.e("FourierVoice", "Error reading audio: $read")
-                            break
-                        } else {
-                            consecutiveZeroReads++
-                            if (consecutiveZeroReads > 10) {
-                                Log.w("FourierVoice", "Too many zero reads, breaking loop")
-                                break
-                            }
-                            delay(10)
-                        }
-                    }
-
-                    Log.d("FourierVoice", "Captured $samplesRead samples. Calculating DFT...")
-                    val coeffs = FourierLogic.processVoiceDFT(audioBuffer, samplesRead)
-                    Log.d("FourierVoice", "DFT complete, updated coefficients")
-                    withContext(Dispatchers.Main) {
-                        voiceCoefficients = coeffs
-                        isRecording = false
-                    }
-                } else {
-                    Log.e("FourierVoice", "AudioRecord failed to start recording (state: ${audioRecord.recordingState})")
-                    withContext(Dispatchers.Main) { isRecording = false }
-                }
-            } catch (e: Exception) {
-                Log.e("FourierVoice", "Recording exception", e)
-                withContext(Dispatchers.Main) { isRecording = false }
-            } finally {
-                try {
-                    audioRecord.stop()
-                    audioRecord.release()
-                    Log.d("FourierVoice", "AudioRecord released")
-                } catch (e: Exception) {
-                    Log.e("FourierVoice", "Error releasing AudioRecord", e)
-                }
-            }
-        }
-    }
-
-    LaunchedEffect(isPlayingVoice) {
-        if (!isPlayingVoice || voiceCoefficients.isEmpty()) {
-            isPlayingVoice = false
-            return@LaunchedEffect
-        }
-
-        withContext(Dispatchers.Default) {
-            val sampleRate = 44100
-            val durationSeconds = 5.0
-            val audioData = FourierLogic.synthesizeAudio(voiceCoefficients, nTerms, sampleRate, durationSeconds)
-
-            val audioTrack = AudioTrack.Builder()
-                .setAudioAttributes(
-                    AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_MEDIA)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                        .build()
-                )
-                .setAudioFormat(
-                    AudioFormat.Builder()
-                        .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
-                        .setSampleRate(sampleRate)
-                        .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
-                        .build()
-                )
-                .setBufferSizeInBytes(audioData.size * 2)
-                .setTransferMode(AudioTrack.MODE_STATIC)
-                .build()
-
-            audioTrack.write(audioData, 0, audioData.size)
-            audioTrack.play()
-            
-            delay((durationSeconds * 1000).toLong())
-            
-            withContext(Dispatchers.Main) {
-                isPlayingVoice = false
-            }
-            audioTrack.release()
-        }
-    }
 
     // --- Custom Function State ---
     val customFunctionSignals = remember {
@@ -288,7 +120,6 @@ fun FourierSeries() {
         nTerms,
         waveType,
         customCoefficients,
-        voiceCoefficients,
         customFunctionSignals.size
     ) {
         if (!running) return@LaunchedEffect
@@ -309,8 +140,8 @@ fun FourierSeries() {
                     val radiusBase = 100f
 
                     val activeTerms = if (waveType == WaveType.SINE) 1 else nTerms
-                    // Cap terms for animation to maintain 60fps, while audio uses full nTerms
-                    val animationTerms = if (waveType == WaveType.VOICE) activeTerms.coerceAtMost(500) else activeTerms
+                    // Cap terms for animation to maintain 60fps
+                    val animationTerms = activeTerms
 
                     if (waveType == WaveType.CUSTOM_FUNCTION) {
                         val limit = animationTerms.coerceAtMost(customFunctionSignals.size)
@@ -335,17 +166,6 @@ fun FourierSeries() {
                                 continue
                             }
                             
-                            if (waveType == WaveType.VOICE) {
-                                if (i < voiceCoefficients.size) {
-                                    val (amp, phase) = voiceCoefficients[i]
-                                    val n = i + 1
-                                    val angle = 2 * PI.toFloat() * n * time + phase
-                                    currentX += amp * cos(angle)
-                                    currentY += amp * sin(angle)
-                                }
-                                continue
-                            }
-
                             val n = when (waveType) {
                                 WaveType.SINE -> 1
                                 WaveType.SQUARE -> i * 2 + 1
@@ -440,7 +260,6 @@ fun FourierSeries() {
                                         val labelText = when (type) {
                                             WaveType.MY_SIGNAL -> "Draw a Wave"
                                             WaveType.CUSTOM_FUNCTION -> "Custom Function"
-                                            WaveType.VOICE -> "Voice Input"
                                             else -> type.name.lowercase().replaceFirstChar {
                                                 if (it.isLowerCase()) it.titlecase(Locale.US) else it.toString()
                                             }
@@ -454,15 +273,15 @@ fun FourierSeries() {
                                     border = FilterChipDefaults.filterChipBorder(
                                         enabled = true,
                                         selected = selected,
-                                        borderColor = if ((type == WaveType.MY_SIGNAL || type == WaveType.CUSTOM_FUNCTION || type == WaveType.VOICE) && selected) Color.Transparent else colors.cardBorder.copy(
+                                        borderColor = if ((type == WaveType.MY_SIGNAL || type == WaveType.CUSTOM_FUNCTION) && selected) Color.Transparent else colors.cardBorder.copy(
                                             alpha = AppDesign.opacityMedium
                                         ),
-                                        selectedBorderColor = if ((type == WaveType.MY_SIGNAL || type == WaveType.CUSTOM_FUNCTION || type == WaveType.VOICE) && selected) Color.Transparent else colors.accentCyan,
+                                        selectedBorderColor = if ((type == WaveType.MY_SIGNAL || type == WaveType.CUSTOM_FUNCTION) && selected) Color.Transparent else colors.accentCyan,
                                         borderWidth = AppDesign.borderThin,
-                                        selectedBorderWidth = if ((type == WaveType.MY_SIGNAL || type == WaveType.CUSTOM_FUNCTION || type == WaveType.VOICE) && selected) AppDesign.borderStandard else AppDesign.borderThin
+                                        selectedBorderWidth = if ((type == WaveType.MY_SIGNAL || type == WaveType.CUSTOM_FUNCTION) && selected) AppDesign.borderStandard else AppDesign.borderThin
                                     ),
                                     modifier =
-                                        if ((type == WaveType.MY_SIGNAL || type == WaveType.CUSTOM_FUNCTION || type == WaveType.VOICE) && selected) {
+                                        if ((type == WaveType.MY_SIGNAL || type == WaveType.CUSTOM_FUNCTION) && selected) {
                                             Modifier
                                                 .border(
                                                     AppDesign.borderStandard,
@@ -782,95 +601,6 @@ fun FourierSeries() {
                             }
                         }
 
-                        AnimatedVisibility(visible = waveType == WaveType.VOICE) {
-                            Column(modifier = Modifier.padding(top = AppDesign.radiusLarge)) {
-                                Text(
-                                    "Capture a voice sample",
-                                    color = colors.accentCyan,
-                                    fontSize = AppDesign.textBody,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Spacer(Modifier.height(AppDesign.radiusSmall))
-
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(AppDesign.spacingSmall)
-                                ) {
-                                    // Record Button
-                                    Box(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .height(AppDesign.buttonHeightSmall)
-                                            .clip(RoundedCornerShape(AppDesign.radiusButton))
-                                            .background(if (isRecording) colors.accentHell.copy(0.2f) else colors.cardSurface.copy(AppDesign.opacityLow))
-                                            .border(
-                                                BorderStroke(
-                                                    2.dp,
-                                                    if (isRecording) colors.accentHell else colors.accentCyan
-                                                ),
-                                                RoundedCornerShape(AppDesign.radiusButton)
-                                            )
-                                            .clickable {
-                                                isRecording = true
-                                                path.clear()
-                                                time = 0f
-                                            },
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Icon(
-                                                painter = painterResource(id = R.drawable.mic_outline),
-                                                null,
-                                                modifier = Modifier.size(AppDesign.iconSmall),
-                                                tint = if (isRecording) colors.accentHell else colors.accentCyan
-                                            )
-                                            Spacer(Modifier.width(4.dp))
-                                            Text(
-                                                if (isRecording) "Recording..." else "Record",
-                                                fontSize = AppDesign.textSmall,
-                                                color = colors.textPrimary,
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                        }
-                                    }
-
-                                    // Play Button
-                                    Box(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .height(AppDesign.buttonHeightSmall)
-                                            .clip(RoundedCornerShape(AppDesign.radiusButton))
-                                            .background(if (isPlayingVoice) colors.accentCyan.copy(0.2f) else colors.cardSurface.copy(AppDesign.opacityLow))
-                                            .border(
-                                                2.dp,
-                                                if (isPlayingVoice) colors.accentCyan else colors.cardBorder,
-                                                RoundedCornerShape(AppDesign.radiusButton)
-                                            )
-                                            .clickable(enabled = voiceCoefficients.isNotEmpty() && !isPlayingVoice) {
-                                                isPlayingVoice = true
-                                            },
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Icon(
-                                                painter = painterResource(id = R.drawable.caret_forward_outline),
-                                                null,
-                                                tint = if (voiceCoefficients.isNotEmpty()) colors.accentCyan else colors.textSecondary,
-                                                modifier = Modifier.size(AppDesign.iconSmall)
-                                            )
-                                            Spacer(Modifier.width(4.dp))
-                                            Text(
-                                                if (isPlayingVoice) "Playing..." else "Play",
-                                                fontSize = AppDesign.textSmall,
-                                                color = if (voiceCoefficients.isNotEmpty()) colors.textPrimary else colors.textSecondary,
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
                         Spacer(Modifier.height(AppDesign.radiusLarge))
 
                         LabeledSlider(
@@ -995,7 +725,6 @@ fun FourierSeries() {
                                 WaveType.SAWTOOTH -> (i + 1).toFloat()
                                 WaveType.TRIANGLE -> (i * 2 + 1).toFloat()
                                 WaveType.MY_SIGNAL -> (i + 1).toFloat()
-                                WaveType.VOICE -> (i + 1).toFloat()
                                 WaveType.CUSTOM_FUNCTION -> if (i < customFunctionSignals.size) customFunctionSignals[i].freq.toFloatOrNull() ?: 0f else 0f
                             }
 
@@ -1005,8 +734,8 @@ fun FourierSeries() {
                                 WaveType.SAWTOOTH -> radiusBase * (2f / (n * PI.toFloat()))
                                 WaveType.TRIANGLE -> radiusBase * (8f / (n * n * PI.toFloat() * PI.toFloat()))
                                 WaveType.MY_SIGNAL -> if (i < customCoefficients.size) customCoefficients[i].first else 0f
-                                WaveType.VOICE -> if (i < voiceCoefficients.size) voiceCoefficients[i].first else 0f
                                 WaveType.CUSTOM_FUNCTION -> if (i < customFunctionSignals.size) customFunctionSignals[i].amp.toFloatOrNull() ?: 0f else 0f
+                                else -> 0f
                             }
 
                             if (kotlin.math.abs(radius) < 0.5f && i > 0) continue // Skip tiny circles
@@ -1014,7 +743,6 @@ fun FourierSeries() {
                             val phase = when (waveType) {
                                 WaveType.TRIANGLE -> if (i % 2 != 0) PI.toFloat() else 0f
                                 WaveType.MY_SIGNAL -> if (i < customCoefficients.size) customCoefficients[i].second else 0f
-                                WaveType.VOICE -> if (i < voiceCoefficients.size) voiceCoefficients[i].second else 0f
                                 else -> 0f
                             }
                             val angle = 2 * PI.toFloat() * n * time + phase
@@ -1249,7 +977,7 @@ fun FourierSeries() {
                         Slider(
                             value = nTerms.toFloat(),
                             onValueChange = { nTerms = it.toInt() },
-                            valueRange = 1f..(if (waveType == WaveType.VOICE) 5000f else 50f),
+                            valueRange = 1f..50f,
                             modifier = Modifier
                                 .weight(1f)
                                 .layout { measurable: Measurable, constraints ->
@@ -1312,7 +1040,6 @@ fun FourierSeries() {
                     time = time,
                     colors = colors,
                     customCoefficients = customCoefficients,
-                    voiceCoefficients = voiceCoefficients,
                     customFunctionSignals = customFunctionSignals
                 )
             }
@@ -1323,7 +1050,6 @@ fun FourierSeries() {
                     time = time,
                     colors = colors,
                     customCoefficients = customCoefficients,
-                    voiceCoefficients = voiceCoefficients,
                     customFunctionSignals = customFunctionSignals
                 )
             }

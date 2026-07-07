@@ -29,7 +29,8 @@ import com.example.matharium.R
 @Composable
 fun WelcomeScreen(
     onNavigateToDoublePendulum: () -> Unit,
-    onNavigateToFourierSeries: () -> Unit
+    onNavigateToFourierSeries: () -> Unit,
+    onNavigateToVoiceProcessing: () -> Unit
 ) {
     val colors = LocalAppColors.current
 
@@ -91,9 +92,30 @@ fun WelcomeScreen(
                 }
             }
 
-            // Double Pendulum Card
+            // Voice Processing Card
             item {
                 EntranceAnimation(visible = showContent, index = 1) {
+                    SimulationCard(
+                        title = "Voice Processing",
+                        colors = colors,
+                        onClick = onNavigateToVoiceProcessing
+                    ) {
+                        Icon(
+                            painterResource(id = R.drawable.mic_outline),
+                            contentDescription = null,
+                            tint = colors.textPrimary,
+                            modifier = Modifier
+                                .align(Alignment.CenterEnd)
+                                .padding(end = 40.dp)
+                                .size(60.dp)
+                        )
+                    }
+                }
+            }
+
+            // Double Pendulum Card
+            item {
+                EntranceAnimation(visible = showContent, index = 2) {
                     SimulationCard(
                         title = "Double Pendulum",
                         colors = colors,
@@ -114,7 +136,7 @@ fun WelcomeScreen(
 
             // Coming Soon Card
             item {
-                EntranceAnimation(visible = showContent, index = 2) {
+                EntranceAnimation(visible = showContent, index = 3) {
                     SimulationCard(
                         title = "Coming Soon",
                         colors = colors,
@@ -124,8 +146,8 @@ fun WelcomeScreen(
             }
 
             // Empty Placeholder Cards
-            items(3) { index ->
-                EntranceAnimation(visible = showContent, index = index + 3) {
+            items(2) { index ->
+                EntranceAnimation(visible = showContent, index = index + 4) {
                     EmptyCard(colors = colors)
                 }
             }

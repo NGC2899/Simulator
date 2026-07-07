@@ -37,7 +37,6 @@ fun HarmonicComponents(
     time: Float,
     colors: AppColors,
     customCoefficients: List<Pair<Float, Float>>,
-    voiceCoefficients: List<Pair<Float, Float>>,
     customFunctionSignals: List<SignalInstance>
 ) {
     var isExpanded by remember { mutableStateOf(false) }
@@ -93,7 +92,6 @@ fun HarmonicComponents(
                         WaveType.SAWTOOTH -> (i + 1).toFloat()
                         WaveType.TRIANGLE -> (i * 2 + 1).toFloat()
                         WaveType.MY_SIGNAL -> (i + 1).toFloat()
-                        WaveType.VOICE -> (i + 1).toFloat()
                         WaveType.CUSTOM_FUNCTION -> customFunctionSignals[i].freq.toFloatOrNull() ?: 0f
                     }
 
@@ -106,7 +104,6 @@ fun HarmonicComponents(
                         WaveType.SAWTOOTH -> radiusBase * (2f / (n * PI.toFloat()))
                         WaveType.TRIANGLE -> radiusBase * (8f / (n * n * PI.toFloat() * PI.toFloat()))
                         WaveType.MY_SIGNAL -> if (i < customCoefficients.size) customCoefficients[i].first * (radiusBase / 100f) else 0f
-                        WaveType.VOICE -> if (i < voiceCoefficients.size) voiceCoefficients[i].first * (radiusBase / 100f) else 0f
                         WaveType.CUSTOM_FUNCTION -> (customFunctionSignals[i].amp.toFloatOrNull() ?: 0f) * (radiusBase / 100f)
                     }
 
@@ -146,7 +143,6 @@ fun HarmonicComponents(
                             val phase = when (waveType) {
                                 WaveType.TRIANGLE -> if (i % 2 != 0) PI.toFloat() else 0f
                                 WaveType.MY_SIGNAL -> if (i < customCoefficients.size) customCoefficients[i].second else 0f
-                                WaveType.VOICE -> if (i < voiceCoefficients.size) voiceCoefficients[i].second else 0f
                                 else -> 0f
                             }
 
@@ -500,7 +496,6 @@ fun ComplexHarmonicComponents(
     time: Float,
     colors: AppColors,
     customCoefficients: List<Pair<Float, Float>>,
-    voiceCoefficients: List<Pair<Float, Float>>,
     customFunctionSignals: List<SignalInstance>
 ) {
     var isExpanded by remember { mutableStateOf(false) }
@@ -539,7 +534,6 @@ fun ComplexHarmonicComponents(
                         WaveType.SAWTOOTH -> (i + 1).toFloat()
                         WaveType.TRIANGLE -> (i * 2 + 1).toFloat()
                         WaveType.MY_SIGNAL -> (i + 1).toFloat()
-                        WaveType.VOICE -> (i + 1).toFloat()
                         WaveType.CUSTOM_FUNCTION -> customFunctionSignals[i].freq.toFloatOrNull() ?: 0f
                     }
 
@@ -552,7 +546,6 @@ fun ComplexHarmonicComponents(
                         WaveType.SAWTOOTH -> radiusBase * (2f / (n * PI.toFloat()))
                         WaveType.TRIANGLE -> radiusBase * (8f / (n * n * PI.toFloat() * PI.toFloat()))
                         WaveType.MY_SIGNAL -> if (i < customCoefficients.size) customCoefficients[i].first * (radiusBase / 100f) else 0f
-                        WaveType.VOICE -> if (i < voiceCoefficients.size) voiceCoefficients[i].first * (radiusBase / 100f) else 0f
                         WaveType.CUSTOM_FUNCTION -> (customFunctionSignals[i].amp.toFloatOrNull() ?: 0f) * (radiusBase / 100f)
                     }
 
@@ -585,7 +578,6 @@ fun ComplexHarmonicComponents(
                             val phase = when (waveType) {
                                 WaveType.TRIANGLE -> if (i % 2 != 0) PI.toFloat() else 0f
                                 WaveType.MY_SIGNAL -> if (i < customCoefficients.size) customCoefficients[i].second else 0f
-                                WaveType.VOICE -> if (i < voiceCoefficients.size) voiceCoefficients[i].second else 0f
                                 else -> 0f
                             }
 

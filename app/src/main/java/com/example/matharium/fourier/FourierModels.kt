@@ -4,7 +4,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.graphics.Color
 
 enum class WaveType {
-    MY_SIGNAL, VOICE, CUSTOM_FUNCTION, TRIANGLE, SINE, SAWTOOTH, SQUARE
+    MY_SIGNAL, CUSTOM_FUNCTION, TRIANGLE, SINE, SAWTOOTH, SQUARE
 }
 
 enum class FourierDisplayMode {
