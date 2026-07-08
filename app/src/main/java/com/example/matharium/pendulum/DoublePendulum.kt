@@ -51,10 +51,6 @@ fun DoublePendulum() {
 
     var displayMode by remember { mutableStateOf(DisplayMode.SIMULATION) }
 
-    // Persistent "template" angles to prevent resetting to 0/90 when list is cleared
-    var templateT1 by remember { mutableStateOf("90.0") }
-    var templateT2 by remember { mutableStateOf("90.0") }
-
     // Save state when it changes
     LaunchedEffect(scale) { prefs.pendulumScale = scale }
     LaunchedEffect(pendulums.toList()) { prefs.savePendulums(pendulums.toList()) }
@@ -175,10 +171,6 @@ fun DoublePendulum() {
             onHasStartedChange = { hasStarted = it },
             nextId = nextId,
             onNextIdChange = { nextId = it },
-            templateT1 = templateT1,
-            onTemplateT1Change = { templateT1 = it },
-            templateT2 = templateT2,
-            onTemplateT2Change = { templateT2 = it },
             prefs = prefs
         )
 

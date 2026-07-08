@@ -39,10 +39,6 @@ fun DoublePendulumManager(
     onHasStartedChange: (Boolean) -> Unit,
     nextId: Int,
     onNextIdChange: (Int) -> Unit,
-    templateT1: String,
-    onTemplateT1Change: (String) -> Unit,
-    templateT2: String,
-    onTemplateT2Change: (String) -> Unit,
     prefs: AppPreferences
 ) {
     var isPendulumManagerExpanded by remember { mutableStateOf(false) }
@@ -80,20 +76,6 @@ fun DoublePendulumManager(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(AppDesign.spacingSmall)
             ) {
-                Column(Modifier.weight(1f)) {
-                    PendulumField("New θ1 (°)", templateT1, colors) { onTemplateT1Change(it) }
-                }
-                Column(Modifier.weight(1f)) {
-                    PendulumField("New θ2 (°)", templateT2, colors) { onTemplateT2Change(it) }
-                }
-            }
-
-            Spacer(Modifier.height(AppDesign.spacingExtraSmall))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(AppDesign.spacingSmall)
-            ) {
                 // Gradient Border Add Button
                 Box(
                     modifier = Modifier
@@ -111,8 +93,8 @@ fun DoublePendulumManager(
                             RoundedCornerShape(AppDesign.radiusButton)
                         )
                         .clickable {
-                            val nextT1 = templateT1
-                            val nextT2 = templateT2
+                            val nextT1 = "90.0"
+                            val nextT2 = "90.0"
                             val color = Color.hsv(Random.nextFloat() * 360f, DoublePendulumConstants.COLOR_SATURATION, DoublePendulumConstants.COLOR_VALUE)
                             val newPendulum = PendulumInstance(nextId, color, nextT1, nextT2)
                             onNextIdChange(nextId + 1)
@@ -156,12 +138,10 @@ fun DoublePendulumManager(
                                 var currentNextId = nextId
                                 repeat(DoublePendulumConstants.CHAOS_BATCH_COUNT) {
                                     if (pendulums.size >= DoublePendulumConstants.MAX_PENDULUMS) return@repeat
-                                    val baseT1 = templateT1
-                                    val baseT2 = templateT2
                                     val nextT1Str = String.format(
                                         Locale.US,
                                         "%.1f",
-                                        (baseT1.toDoubleOrNull() ?: 90.0) + (pendulums.size * DoublePendulumConstants.CHAOS_ANGLE_INCREMENT)
+                                        90.0 + (pendulums.size * DoublePendulumConstants.CHAOS_ANGLE_INCREMENT)
                                     )
                                     val randomColor =
                                         Color.hsv(Random.nextFloat() * 360f, DoublePendulumConstants.COLOR_SATURATION, DoublePendulumConstants.COLOR_VALUE)
@@ -169,7 +149,7 @@ fun DoublePendulumManager(
                                         currentNextId++,
                                         randomColor,
                                         nextT1Str,
-                                        baseT2
+                                        "90.0"
                                     )
                                     newPendulum.updatePositions()
                                     pendulums.add(newPendulum)

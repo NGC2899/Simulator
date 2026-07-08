@@ -32,36 +32,44 @@ fun EnergyDashboard(
     pendulums: List<PendulumInstance>,
     colors: AppColors
 ) {
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally
+    GlassCard(
+        colors = colors,
+        modifier = modifier.width(220.dp)
     ) {
-        Text(
-            "Kinetic Energy",
-            color = colors.textSecondary,
-            fontSize = AppDesign.textOverline,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = AppDesign.spacingExtraSmall)
-        )
-        pendulums.take(DoublePendulumConstants.INITIAL_DISPLAY_COUNT / 2 + 1).forEach { p ->
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    Modifier
-                        .size(AppDesign.radiusSmall)
-                        .clip(CircleShape)
-                        .background(p.currentColor)
-                )
-                Spacer(Modifier.width(DoublePendulumConstants.SPACER_TINY))
-                LinearProgressIndicator(
-                    progress = { (p.kineticEnergy.toFloat() * DoublePendulumConstants.ENERGY_PROGRESS_MULTIPLIER).coerceIn(0f, 1f) },
-                    modifier = Modifier
-                        .width(DoublePendulumConstants.ENERGY_PROGRESS_WIDTH)
-                        .height(AppDesign.spacingExtraSmall),
-                    color = p.currentColor,
-                    trackColor = Color.White.copy(alpha = AppDesign.opacityLow)
-                )
+        Column(
+            modifier = Modifier.padding(AppDesign.spacingMedium),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                "Energy Distribution",
+                color = colors.textPrimary,
+                fontSize = AppDesign.textHeadline,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = AppDesign.spacingSmall)
+            )
+            pendulums.forEach { p ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(vertical = 4.dp)
+                ) {
+                    Box(
+                        Modifier
+                            .size(AppDesign.radiusSmall)
+                            .clip(CircleShape)
+                            .background(p.currentColor)
+                    )
+                    Spacer(Modifier.width(AppDesign.spacingSmall))
+                    LinearProgressIndicator(
+                        progress = { (p.kineticEnergy.toFloat() * DoublePendulumConstants.ENERGY_PROGRESS_MULTIPLIER).coerceIn(0f, 1f) },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(4.dp)
+                            .clip(CircleShape),
+                        color = p.currentColor,
+                        trackColor = colors.textSecondary.copy(alpha = AppDesign.opacityLow)
+                    )
+                }
             }
-            Spacer(Modifier.height(AppDesign.spacingExtraSmall))
         }
     }
 }

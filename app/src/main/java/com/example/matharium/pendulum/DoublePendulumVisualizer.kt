@@ -148,7 +148,9 @@ fun DoublePendulumVisualizer(
                 DisplayMode.SIMULATION, DisplayMode.COMPLEX -> {
                     translate(size.width / 2f, size.height / 2f) {
                         pendulums.forEach { p ->
-                            drawChaosTrail(p.trail, p.currentColor, scale)
+                            if (displayMode != DisplayMode.COMPLEX) {
+                                drawChaosTrail(p.trail, p.currentColor, scale)
+                            }
                             drawLine(
                                 p.currentColor,
                                 Offset.Zero,
@@ -412,12 +414,14 @@ fun DoublePendulumVisualizer(
         }
 
         // Energy Dashboard Overlay
-        EnergyDashboard(
-            modifier = Modifier
-                .padding(bottom = AppDesign.spacingLarge)
-                .align(Alignment.BottomCenter),
-            pendulums = pendulums,
-            colors = colors
-        )
+        if (displayMode == DisplayMode.COMPLEX) {
+            EnergyDashboard(
+                modifier = Modifier
+                    .padding(bottom = AppDesign.spacingLarge)
+                    .align(Alignment.BottomCenter),
+                pendulums = pendulums,
+                colors = colors
+            )
+        }
     }
 }
