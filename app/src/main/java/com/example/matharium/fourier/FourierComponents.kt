@@ -37,13 +37,14 @@ fun HarmonicComponents(
     time: Float,
     colors: AppColors,
     customCoefficients: List<Pair<Float, Float>>,
+    customCoefficients2D: List<FourierLogic.ComplexCoeff> = emptyList(),
     customFunctionSignals: List<SignalInstance>
 ) {
     var isExpanded by remember { mutableStateOf(false) }
-    val maxTerms = if (waveType == WaveType.CUSTOM_FUNCTION) {
-        nTerms.coerceAtMost(customFunctionSignals.size)
-    } else {
-        nTerms
+    val maxTerms = when (waveType) {
+        WaveType.CUSTOM_FUNCTION -> nTerms.coerceAtMost(customFunctionSignals.size)
+        WaveType.MY_SIGNAL_2D, WaveType.SVG -> nTerms.coerceAtMost(customCoefficients2D.size)
+        else -> nTerms
     }
 
     val displayTerms = if (isExpanded) maxTerms.coerceAtMost(100) else maxTerms.coerceAtMost(6)
@@ -92,6 +93,7 @@ fun HarmonicComponents(
                         WaveType.SAWTOOTH -> (i + 1).toFloat()
                         WaveType.TRIANGLE -> (i * 2 + 1).toFloat()
                         WaveType.MY_SIGNAL -> (i + 1).toFloat()
+                        WaveType.MY_SIGNAL_2D, WaveType.SVG -> if (i < customCoefficients2D.size) customCoefficients2D[i].freq.toFloat() else 0f
                         WaveType.CUSTOM_FUNCTION -> customFunctionSignals[i].freq.toFloatOrNull() ?: 0f
                     }
 
@@ -104,6 +106,7 @@ fun HarmonicComponents(
                         WaveType.SAWTOOTH -> radiusBase * (2f / (n * PI.toFloat()))
                         WaveType.TRIANGLE -> radiusBase * (8f / (n * n * PI.toFloat() * PI.toFloat()))
                         WaveType.MY_SIGNAL -> if (i < customCoefficients.size) customCoefficients[i].first * (radiusBase / 100f) else 0f
+                        WaveType.MY_SIGNAL_2D, WaveType.SVG -> if (i < customCoefficients2D.size) customCoefficients2D[i].amp * (radiusBase / 100f) else 0f
                         WaveType.CUSTOM_FUNCTION -> (customFunctionSignals[i].amp.toFloatOrNull() ?: 0f) * (radiusBase / 100f)
                     }
 
@@ -143,6 +146,7 @@ fun HarmonicComponents(
                             val phase = when (waveType) {
                                 WaveType.TRIANGLE -> if (i % 2 != 0) PI.toFloat() else 0f
                                 WaveType.MY_SIGNAL -> if (i < customCoefficients.size) customCoefficients[i].second else 0f
+                                WaveType.MY_SIGNAL_2D, WaveType.SVG -> if (i < customCoefficients2D.size) customCoefficients2D[i].phase else 0f
                                 else -> 0f
                             }
 
@@ -197,7 +201,7 @@ fun HarmonicComponents(
                             )
                             Spacer(Modifier.width(4.dp))
                             Icon(
-                                if (isExpanded) painterResource(id = R.drawable.chevron_down_outline) else painterResource(id = R.drawable.chevron_up_outline),
+                                if (isExpanded) painterResource(id = R.drawable.chevron_up_outline) else painterResource(id = R.drawable.chevron_down_outline),
                                 null,
                                 tint = colors.accentCyan,
                                 modifier = Modifier.size(AppDesign.iconTiny)
@@ -478,7 +482,7 @@ fun CenterOfMassGraph(
                     )
                     Spacer(Modifier.width(4.dp))
                     Icon(
-                        if (isExpanded) painterResource(id = R.drawable.chevron_down_outline) else painterResource(id = R.drawable.chevron_up_outline),
+                        if (isExpanded) painterResource(id = R.drawable.chevron_up_outline) else painterResource(id = R.drawable.chevron_down_outline),
                         null,
                         tint = colors.accentCyan,
                         modifier = Modifier.size(AppDesign.iconTiny)
@@ -496,13 +500,14 @@ fun ComplexHarmonicComponents(
     time: Float,
     colors: AppColors,
     customCoefficients: List<Pair<Float, Float>>,
+    customCoefficients2D: List<FourierLogic.ComplexCoeff> = emptyList(),
     customFunctionSignals: List<SignalInstance>
 ) {
     var isExpanded by remember { mutableStateOf(false) }
-    val maxTerms = if (waveType == WaveType.CUSTOM_FUNCTION) {
-        nTerms.coerceAtMost(customFunctionSignals.size)
-    } else {
-        nTerms
+    val maxTerms = when (waveType) {
+        WaveType.CUSTOM_FUNCTION -> nTerms.coerceAtMost(customFunctionSignals.size)
+        WaveType.MY_SIGNAL_2D, WaveType.SVG -> nTerms.coerceAtMost(customCoefficients2D.size)
+        else -> nTerms
     }
 
     val displayTerms = if (isExpanded) maxTerms.coerceAtMost(100) else maxTerms.coerceAtMost(6)
@@ -534,6 +539,7 @@ fun ComplexHarmonicComponents(
                         WaveType.SAWTOOTH -> (i + 1).toFloat()
                         WaveType.TRIANGLE -> (i * 2 + 1).toFloat()
                         WaveType.MY_SIGNAL -> (i + 1).toFloat()
+                        WaveType.MY_SIGNAL_2D, WaveType.SVG -> if (i < customCoefficients2D.size) customCoefficients2D[i].freq.toFloat() else 0f
                         WaveType.CUSTOM_FUNCTION -> customFunctionSignals[i].freq.toFloatOrNull() ?: 0f
                     }
 
@@ -546,6 +552,7 @@ fun ComplexHarmonicComponents(
                         WaveType.SAWTOOTH -> radiusBase * (2f / (n * PI.toFloat()))
                         WaveType.TRIANGLE -> radiusBase * (8f / (n * n * PI.toFloat() * PI.toFloat()))
                         WaveType.MY_SIGNAL -> if (i < customCoefficients.size) customCoefficients[i].first * (radiusBase / 100f) else 0f
+                        WaveType.MY_SIGNAL_2D, WaveType.SVG -> if (i < customCoefficients2D.size) customCoefficients2D[i].amp * (radiusBase / 100f) else 0f
                         WaveType.CUSTOM_FUNCTION -> (customFunctionSignals[i].amp.toFloatOrNull() ?: 0f) * (radiusBase / 100f)
                     }
 
@@ -578,6 +585,7 @@ fun ComplexHarmonicComponents(
                             val phase = when (waveType) {
                                 WaveType.TRIANGLE -> if (i % 2 != 0) PI.toFloat() else 0f
                                 WaveType.MY_SIGNAL -> if (i < customCoefficients.size) customCoefficients[i].second else 0f
+                                WaveType.MY_SIGNAL_2D, WaveType.SVG -> if (i < customCoefficients2D.size) customCoefficients2D[i].phase else 0f
                                 else -> 0f
                             }
 
@@ -659,7 +667,7 @@ fun ComplexHarmonicComponents(
                             )
                             Spacer(Modifier.width(4.dp))
                             Icon(
-                                if (isExpanded) painterResource(id = R.drawable.chevron_down_outline) else painterResource(id = R.drawable.chevron_up_outline),
+                                if (isExpanded) painterResource(id = R.drawable.chevron_up_outline) else painterResource(id = R.drawable.chevron_down_outline),
                                 null,
                                 tint = colors.accentCyan,
                                 modifier = Modifier.size(AppDesign.iconTiny)

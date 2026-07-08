@@ -16,6 +16,10 @@ class PendulumInstance(
     var l1 by mutableStateOf("1.0")
     var l2 by mutableStateOf("1.0")
 
+    // Snapshot of angles when simulation starts to allow 'Reset' to return here
+    private var startT1 = t1Initial
+    private var startT2 = t2Initial
+
     var bob1 by mutableStateOf(Offset.Zero)
     var bob2 by mutableStateOf(Offset.Zero)
     var kineticEnergy by mutableDoubleStateOf(0.0)
@@ -39,7 +43,17 @@ class PendulumInstance(
     }
 
     fun initialize(gravity: Float) {
+        startT1 = t1
+        startT2 = t2
         logic.setGravity(gravity.toDouble())
+        updatePositions()
+    }
+
+    fun reset() {
+        t1 = startT1
+        t2 = startT2
+        trail.clear()
+        angleTrail.clear()
         updatePositions()
     }
 }

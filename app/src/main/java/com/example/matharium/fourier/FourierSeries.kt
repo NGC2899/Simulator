@@ -1,43 +1,20 @@
 package com.example.matharium.fourier
 
-import androidx.compose.animation.*
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.horizontalScroll
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.*
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.translate
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.Measurable
-import androidx.compose.ui.layout.layout
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.matharium.R
 import com.example.matharium.app.*
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.util.Locale
-import kotlin.math.PI
-import kotlin.math.cos
-import kotlin.math.sin
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,7 +35,6 @@ fun FourierSeries() {
     var running by remember { mutableStateOf(false) }
     var hasStarted by remember { mutableStateOf(false) }
     var speed by remember { mutableFloatStateOf(1.0f) }
-    var isSettingsExpanded by remember { mutableStateOf(true) }
     var displayMode by remember { mutableStateOf(FourierDisplayMode.CIRCULAR) }
     var windingFrequency by remember { mutableFloatStateOf(1.0f) }
 
@@ -79,6 +55,15 @@ fun FourierSeries() {
     }
     var customCoefficients by remember { mutableStateOf<List<Pair<Float, Float>>>(emptyList()) }
 
+    // --- Draw 2D State ---
+    val drawingPoints2D = remember {
+        val saved = prefs.drawingPoints2D
+        val list = mutableStateListOf<Offset>()
+        list.addAll(saved)
+        list
+    }
+    var customCoefficients2D by remember { mutableStateOf<List<FourierLogic.ComplexCoeff>>(emptyList()) }
+
     // --- Custom Function State ---
     val customFunctionSignals = remember {
         val list = mutableStateListOf<SignalInstance>()
@@ -90,14 +75,56 @@ fun FourierSeries() {
 
     val coroutineScope = rememberCoroutineScope()
     var dftJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     fun calculateDFT() {
         dftJob?.cancel()
-        dftJob = coroutineScope.launch(kotlinx.coroutines.Dispatchers.Default) {
+        dftJob = coroutineScope.launch(Dispatchers.Default) {
             if (drawingPoints.size < samplesCount) return@launch
             val coeffs = FourierLogic.performDFT(drawingPoints.toList(), samplesCount)
-            withContext(kotlinx.coroutines.Dispatchers.Main) {
+            withContext(Dispatchers.Main) {
                 customCoefficients = coeffs
+            }
+        }
+    }
+
+    fun calculateDFT2D() {
+        dftJob?.cancel()
+        dftJob = coroutineScope.launch(Dispatchers.Default) {
+            if (drawingPoints2D.isEmpty()) return@launch
+            val coeffs = FourierLogic.performComplexDFT(drawingPoints2D.toList())
+            withContext(Dispatchers.Main) {
+                customCoefficients2D = coeffs
+            }
+        }
+    }
+
+    val svgPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: android.net.Uri? ->
+        uri?.let {
+            coroutineScope.launch(Dispatchers.IO) {
+                try {
+                    val inputStream = context.contentResolver.openInputStream(it)
+                    val content = inputStream?.bufferedReader()?.use { reader -> reader.readText() }
+                    if (content != null) {
+                        val points = FourierLogic.extractPointsFromSVG(content)
+                        withContext(Dispatchers.Main) {
+                            drawingPoints2D.clear()
+                            drawingPoints2D.addAll(points)
+                            calculateDFT2D()
+                            path.clear()
+                            time = 0f
+                            running = true
+                        }
+                    }
+                } catch (e: Exception) {
+                    android.util.Log.e("FourierSeries", "Error loading SVG", e)
+                    withContext(Dispatchers.Main) {
+                        waveType = WaveType.SQUARE
+                        android.widget.Toast.makeText(context, "Invalid SVG: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
+                    }
+                }
             }
         }
     }
@@ -106,6 +133,9 @@ fun FourierSeries() {
     LaunchedEffect(Unit) {
         if (drawingPoints.any { it != 0f }) {
             calculateDFT()
+        }
+        if (drawingPoints2D.isNotEmpty()) {
+            calculateDFT2D()
         }
     }
 
@@ -139,9 +169,7 @@ fun FourierSeries() {
                     var currentY = 0f
                     val radiusBase = 100f
 
-                    val activeTerms = if (waveType == WaveType.SINE) 1 else nTerms
-                    // Cap terms for animation to maintain 60fps
-                    val animationTerms = activeTerms
+                    val animationTerms = nTerms
 
                     if (waveType == WaveType.CUSTOM_FUNCTION) {
                         val limit = animationTerms.coerceAtMost(customFunctionSignals.size)
@@ -149,9 +177,9 @@ fun FourierSeries() {
                             val signal = customFunctionSignals[i]
                             val freq = signal.freq.toFloatOrNull() ?: 0f
                             val amp = signal.amp.toFloatOrNull() ?: 0f
-                            val angle = 2 * PI.toFloat() * freq * time
-                            currentX += amp * cos(angle)
-                            currentY += amp * sin(angle)
+                            val angle = 2 * kotlin.math.PI.toFloat() * freq * time
+                            currentX += amp * kotlin.math.cos(angle)
+                            currentY += amp * kotlin.math.sin(angle)
                         }
                     } else {
                         for (i in 0 until animationTerms) {
@@ -159,32 +187,42 @@ fun FourierSeries() {
                                 if (i < customCoefficients.size) {
                                     val (amp, phase) = customCoefficients[i]
                                     val n = i + 1
-                                    val angle = 2 * PI.toFloat() * n * time + phase
-                                    currentX += amp * cos(angle)
-                                    currentY += amp * sin(angle)
+                                    val angle = 2 * kotlin.math.PI.toFloat() * n * time + phase
+                                    currentX += amp * kotlin.math.cos(angle)
+                                    currentY += amp * kotlin.math.sin(angle)
                                 }
                                 continue
                             }
-                            
+
+                            if (waveType == WaveType.MY_SIGNAL_2D || waveType == WaveType.SVG) {
+                                if (i < customCoefficients2D.size) {
+                                    val coeff = customCoefficients2D[i]
+                                    val angle = 2 * kotlin.math.PI.toFloat() * coeff.freq * time + coeff.phase
+                                    currentX += coeff.amp * kotlin.math.cos(angle)
+                                    currentY += coeff.amp * kotlin.math.sin(angle)
+                                }
+                                continue
+                            }
+
                             val n = when (waveType) {
-                                WaveType.SINE -> 1
-                                WaveType.SQUARE -> i * 2 + 1
-                                WaveType.SAWTOOTH -> i + 1
-                                WaveType.TRIANGLE -> i * 2 + 1
-                                else -> 1
+                                WaveType.SINE -> 1f
+                                WaveType.SQUARE -> (i * 2 + 1).toFloat()
+                                WaveType.SAWTOOTH -> (i + 1).toFloat()
+                                WaveType.TRIANGLE -> (i * 2 + 1).toFloat()
+                                else -> 1f
                             }
                             val radius = when (waveType) {
                                 WaveType.SINE -> radiusBase
-                                WaveType.SQUARE -> radiusBase * (4f / (n * PI.toFloat()))
-                                WaveType.SAWTOOTH -> radiusBase * (2f / (n * PI.toFloat()))
-                                WaveType.TRIANGLE -> radiusBase * (8f / (n * n * PI.toFloat() * PI.toFloat()))
+                                WaveType.SQUARE -> radiusBase * (4f / (n * kotlin.math.PI.toFloat()))
+                                WaveType.SAWTOOTH -> radiusBase * (2f / (n * kotlin.math.PI.toFloat()))
+                                WaveType.TRIANGLE -> radiusBase * (8f / (n * n * kotlin.math.PI.toFloat() * kotlin.math.PI.toFloat()))
                                 else -> 0f
                             }
                             val phase =
-                                if (waveType == WaveType.TRIANGLE && i % 2 != 0) PI.toFloat() else 0f
-                            val angle = 2 * PI.toFloat() * n * time + phase
-                            currentX += radius * cos(angle)
-                            currentY += radius * sin(angle)
+                                if (waveType == WaveType.TRIANGLE && i % 2 != 0) kotlin.math.PI.toFloat() else 0f
+                            val angle = 2 * kotlin.math.PI.toFloat() * n * time + phase
+                            currentX += radius * kotlin.math.cos(angle)
+                            currentY += radius * kotlin.math.sin(angle)
                         }
                     }
 
@@ -211,820 +249,63 @@ fun FourierSeries() {
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(AppDesign.spacingLarge)
     ) {
-        // Settings Card
-        GlassCard(colors = colors) {
-            Column(modifier = Modifier.padding(AppDesign.spacingLarge)) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { isSettingsExpanded = !isSettingsExpanded },
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        "Simulator Settings",
-                        fontSize = AppDesign.textHeadline,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Icon(
-                        if (isSettingsExpanded) painterResource(id = R.drawable.chevron_up_outline) else painterResource(id = R.drawable.chevron_down_outline),
-                        null,
-                        tint = colors.textSecondary,
-                        modifier = Modifier.size(AppDesign.iconSmall)
-                    )
-                }
+        FourierSettingsCard(
+            waveType = waveType,
+            onWaveTypeChange = { waveType = it },
+            onRunningChange = { running = it },
+            speed = speed,
+            onSpeedChange = { speed = it },
+            windingFrequency = windingFrequency,
+            onWindingFrequencyChange = { windingFrequency = it },
+            displayMode = displayMode,
+            drawingPoints = drawingPoints,
+            drawingPoints2D = drawingPoints2D,
+            customFunctionSignals = customFunctionSignals,
+            onCalculateDFT = { calculateDFT() },
+            onCalculateDFT2D = { calculateDFT2D() },
+            onClearPath = { path.clear() },
+            onResetTime = { time = 0f },
+            onResetHasStarted = { hasStarted = false },
+            svgPickerLauncher = svgPickerLauncher,
+            nextSignalId = nextSignalId,
+            onNextSignalIdChange = { nextSignalId = it },
+            isSignalsExpanded = isSignalsExpanded,
+            onSignalsExpandedChange = { isSignalsExpanded = it },
+            colors = colors,
+            prefs = prefs,
+            samplesCount = samplesCount
+        )
 
-                AnimatedVisibility(visible = isSettingsExpanded) {
-                    Column(modifier = Modifier.padding(top = AppDesign.radiusLarge)) {
-                        Text("Wave Type", color = colors.textSecondary, fontSize = AppDesign.textBody)
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(AppDesign.radiusSmall),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            WaveType.entries.forEach { type ->
-                                val selected = waveType == type
-                                FilterChip(
-                                    selected = selected,
-                                    onClick = {
-                                        waveType = type
-                                        path.clear()
-                                        if (type == WaveType.MY_SIGNAL && drawingPoints.isEmpty()) {
-                                            // Initialize empty drawing points
-                                            repeat(samplesCount) { drawingPoints.add(0f) }
-                                        }
-                                    },
-                                    label = {
-                                        val labelText = when (type) {
-                                            WaveType.MY_SIGNAL -> "Draw a Wave"
-                                            WaveType.CUSTOM_FUNCTION -> "Custom Function"
-                                            else -> type.name.lowercase().replaceFirstChar {
-                                                if (it.isLowerCase()) it.titlecase(Locale.US) else it.toString()
-                                            }
-                                        }
-                                        Text(labelText)
-                                    },
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedLabelColor = colors.accentCyan,
-                                        selectedContainerColor = colors.accentCyan.copy(0.0f)
-                                    ),
-                                    border = FilterChipDefaults.filterChipBorder(
-                                        enabled = true,
-                                        selected = selected,
-                                        borderColor = if ((type == WaveType.MY_SIGNAL || type == WaveType.CUSTOM_FUNCTION) && selected) Color.Transparent else colors.cardBorder.copy(
-                                            alpha = AppDesign.opacityMedium
-                                        ),
-                                        selectedBorderColor = if ((type == WaveType.MY_SIGNAL || type == WaveType.CUSTOM_FUNCTION) && selected) Color.Transparent else colors.accentCyan,
-                                        borderWidth = AppDesign.borderThin,
-                                        selectedBorderWidth = if ((type == WaveType.MY_SIGNAL || type == WaveType.CUSTOM_FUNCTION) && selected) AppDesign.borderStandard else AppDesign.borderThin
-                                    ),
-                                    modifier =
-                                        if ((type == WaveType.MY_SIGNAL || type == WaveType.CUSTOM_FUNCTION) && selected) {
-                                            Modifier
-                                                .border(
-                                                    AppDesign.borderStandard,
-                                                    Brush.linearGradient(
-                                                        listOf(
-                                                            colors.accentCyan,
-                                                            colors.accentViolet
-                                                        )
-                                                    ),
-                                                    RoundedCornerShape(AppDesign.radiusSmall)
-                                                )
-                                                .height(AppDesign.chipHeight)
-                                        } else Modifier
-                                )
-                            }
-                        }
+        FourierActionControls(
+            running = running,
+            onRunningChange = { running = it },
+            hasStarted = hasStarted,
+            onHasStartedChange = { hasStarted = it },
+            onReset = {
+                running = false
+                hasStarted = false
+                time = 0f
+                path.clear()
+            },
+            colors = colors
+        )
 
-                        AnimatedVisibility(visible = waveType == WaveType.MY_SIGNAL) {
-                            Column(modifier = Modifier.padding(top = AppDesign.radiusLarge)) {
-                                Text(
-                                    "Draw your wave below",
-                                    color = colors.accentCyan,
-                                    fontSize = AppDesign.textBody,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Spacer(Modifier.height(AppDesign.radiusSmall))
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(AppDesign.drawingAreaHeight)
-                                        .background(
-                                            colors.cardSurface.copy(alpha = 0.2f),
-                                            RoundedCornerShape(AppDesign.radiusSmall)
-                                        )
-                                        .border(
-                                            BorderStroke(
-                                                AppDesign.borderThin,
-                                                Brush.linearGradient(
-                                                    listOf(
-                                                        colors.accentCyan,
-                                                        colors.accentViolet
-                                                    )
-                                                )
-                                            ),
-                                            RoundedCornerShape(AppDesign.radiusSmall)
-                                        )
-                                        .pointerInput(Unit) {
-                                            var lastIndex = -1
-                                            var lastY = 0f
+        FourierVisualizerBox(
+            displayMode = displayMode,
+            onDisplayModeChange = { displayMode = it },
+            waveType = waveType,
+            nTerms = nTerms,
+            onNTermsChange = { nTerms = it },
+            time = time,
+            path = path,
+            onClearPath = { path.clear() },
+            windingFrequency = windingFrequency,
+            customCoefficients = customCoefficients,
+            customCoefficients2D = customCoefficients2D,
+            customFunctionSignals = customFunctionSignals,
+            colors = colors
+        )
 
-                                            detectDragGestures(
-                                                onDragStart = { offset ->
-                                                    running = false
-                                                    path.clear()
-                                                    time = 0f
-
-                                                    lastIndex =
-                                                        ((offset.x / size.width.toFloat()) * samplesCount).toInt()
-                                                            .coerceIn(0, samplesCount - 1)
-                                                    lastY = (offset.y - size.height / 2f).coerceIn(
-                                                        -size.height / 2f,
-                                                        size.height / 2f
-                                                    )
-                                                    drawingPoints[lastIndex] = lastY
-                                                },
-                                                onDrag = { change, _ ->
-                                                    val x = change.position.x
-                                                    val y =
-                                                        (change.position.y - size.height / 2f).coerceIn(
-                                                            -size.height / 2f,
-                                                            size.height / 2f
-                                                        )
-                                                    val currentIndex =
-                                                        ((x / size.width.toFloat()) * samplesCount).toInt()
-                                                            .coerceIn(0, samplesCount - 1)
-
-                                                    if (lastIndex != -1) {
-                                                        val start = minOf(lastIndex, currentIndex)
-                                                        val end = maxOf(lastIndex, currentIndex)
-                                                        val limit = size.height / 2f
-
-                                                        for (i in start..end) {
-                                                            val t =
-                                                                if (end == start) 1f else (i - lastIndex).toFloat() / (currentIndex - lastIndex)
-                                                            val interpolatedY =
-                                                                lastY + (y - lastY) * t
-                                                            drawingPoints[i] =
-                                                                interpolatedY.coerceIn(
-                                                                    -limit,
-                                                                    limit
-                                                                )
-                                                        }
-                                                    }
-
-                                                    lastIndex = currentIndex
-                                                    lastY = y
-                                                    calculateDFT()
-                                                },
-                                                onDragEnd = {
-                                                    prefs.drawingPoints = drawingPoints.toList()
-                                                }
-                                            )
-                                        }
-                                ) {
-                                    Canvas(modifier = Modifier.fillMaxSize()) {
-                                        val w = size.width
-                                        val h = size.height
-                                        drawLine(
-                                            colors.textSecondary.copy(alpha = 0.2f),
-                                            Offset(0f, h / 2),
-                                            Offset(w, h / 2),
-                                            AppDesign.strokeThin
-                                        )
-
-                                        if (drawingPoints.size == samplesCount) {
-                                            val p = Path()
-                                            for (i in 0 until samplesCount) {
-                                                val px = i.toFloat() / samplesCount * w
-                                                val py = h / 2 + drawingPoints[i]
-                                                if (i == 0) p.moveTo(px, py) else p.lineTo(px, py)
-                                            }
-                                            drawPath(
-                                                p,
-                                                colors.accentCyan,
-                                                style = Stroke(AppDesign.borderStandard.toPx())
-                                            )
-                                        }
-                                    }
-                                }
-
-                                Box(
-                                    modifier = Modifier
-                                        .padding(top = AppDesign.spacingMedium)
-                                        .height(AppDesign.buttonHeightSmall)
-                                        .clip(RoundedCornerShape(AppDesign.radiusButton))
-                                        .background(colors.accentHell.copy(alpha = AppDesign.opacityLow))
-                                        .border(
-                                            AppDesign.borderStandard,
-                                            colors.accentHell.copy(alpha = AppDesign.opacityMedium),
-                                            RoundedCornerShape(AppDesign.radiusButton)
-                                        )
-                                        .clickable {
-                                            drawingPoints.clear()
-                                            repeat(samplesCount) { drawingPoints.add(0f) }
-                                            customCoefficients = emptyList()
-                                            path.clear()
-                                            prefs.drawingPoints = emptyList()
-                                        },
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.padding(horizontal = AppDesign.spacingMedium)
-                                    ) {
-                                        Icon(
-                                            painter = painterResource(id = R.drawable.trash_outline),
-                                            null,
-                                            tint = colors.accentHell,
-                                            modifier = Modifier.size(AppDesign.iconSmall)
-                                        )
-                                        Spacer(Modifier.width(AppDesign.spacingSmall))
-                                        Text(
-                                            "Clear Drawing",
-                                            fontSize = AppDesign.textSmall,
-                                            color = colors.accentHell,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
-                                }
-                            }
-                        }
-
-                        AnimatedVisibility(visible = waveType == WaveType.CUSTOM_FUNCTION) {
-                            Column(modifier = Modifier.padding(top = AppDesign.radiusLarge)) {
-                                Text(
-                                    "Define your signal components",
-                                    color = colors.accentCyan,
-                                    fontSize = AppDesign.textBody,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Spacer(Modifier.height(AppDesign.radiusSmall))
-
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(AppDesign.spacingSmall)
-                                ) {
-                                    // Gradient Border Add Button
-                                    Box(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .height(AppDesign.buttonHeightSmall)
-                                            .clip(RoundedCornerShape(AppDesign.radiusButton))
-                                            .background(colors.cardSurface.copy(AppDesign.opacityLow))
-                                            .border(
-                                                BorderStroke(
-                                                    2.dp,
-                                                    Brush.linearGradient(
-                                                        listOf(colors.accentCyan, colors.accentViolet)
-                                                    )
-                                                ),
-                                                RoundedCornerShape(AppDesign.radiusButton)
-                                            )
-                                            .clickable {
-                                                val last = customFunctionSignals.lastOrNull()
-                                                val nextFreq = last?.freq ?: "1.0"
-                                                val nextAmp = last?.amp ?: "50.0"
-                                                val color = Color.hsv(kotlin.random.Random.nextFloat() * 360f, 0.7f, 0.9f)
-                                                customFunctionSignals.add(SignalInstance(nextSignalId++, color, nextFreq, nextAmp))
-                                            },
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Icon(
-                                                painter = painterResource(id = R.drawable.add_outline),
-                                                null,
-                                                modifier = Modifier.size(AppDesign.iconSmall),
-                                                tint = colors.accentCyan
-                                            )
-                                            Spacer(Modifier.width(4.dp))
-                                            Text(
-                                                "Add",
-                                                fontSize = AppDesign.textSmall,
-                                                color = colors.textPrimary,
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                        }
-                                    }
-
-                                    // Clear All Button
-                                    Box(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .height(AppDesign.buttonHeightSmall)
-                                            .clip(RoundedCornerShape(AppDesign.radiusButton))
-                                            .background(colors.accentHell.copy(AppDesign.opacityLow))
-                                            .border(
-                                                2.dp,
-                                                colors.accentHell.copy(AppDesign.opacityMedium),
-                                                RoundedCornerShape(AppDesign.radiusButton)
-                                            )
-                                            .clickable {
-                                                customFunctionSignals.clear()
-                                                nextSignalId = 0
-                                                running = false
-                                                hasStarted = false
-                                                path.clear()
-                                            },
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Icon(
-                                                painter = painterResource(id = R.drawable.trash_outline),
-                                                null,
-                                                tint = colors.accentHell,
-                                                modifier = Modifier.size(AppDesign.iconSmall)
-                                            )
-                                            Spacer(Modifier.width(4.dp))
-                                            Text(
-                                                "Clear",
-                                                fontSize = AppDesign.textSmall,
-                                                color = colors.accentHell,
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                        }
-                                    }
-                                }
-
-                                if (customFunctionSignals.isNotEmpty()) {
-                                    Spacer(Modifier.height(AppDesign.spacingMedium))
-                                    Column(
-                                        verticalArrangement = Arrangement.spacedBy(AppDesign.spacingSmall)
-                                    ) {
-                                        val displayList = if (isSignalsExpanded) customFunctionSignals else customFunctionSignals.take(5)
-                                        displayList.forEachIndexed { _, signal ->
-                                            SignalSettingsCard(
-                                                signal = signal,
-                                                colors = colors,
-                                                showDel = customFunctionSignals.size > 1,
-                                                onParameterChange = {
-                                                    hasStarted = false
-                                                    path.clear()
-                                                    prefs.saveFourierSignals(customFunctionSignals.toList())
-                                                },
-                                                onDel = {
-                                                    customFunctionSignals.remove(signal)
-                                                    if (customFunctionSignals.isEmpty()) {
-                                                        nextSignalId = 0
-                                                    }
-                                                }
-                                            )
-                                        }
-
-                                        if (customFunctionSignals.size > 5) {
-                                            TextButton(
-                                                onClick = { isSignalsExpanded = !isSignalsExpanded },
-                                                modifier = Modifier.fillMaxWidth()
-                                            ) {
-                                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                                    Text(
-                                                        if (isSignalsExpanded) "Show Less" else "Show All Components (${customFunctionSignals.size})",
-                                                        color = colors.accentCyan,
-                                                        fontWeight = FontWeight.Bold,
-                                                        fontSize = 12.sp
-                                                    )
-                                                    Spacer(Modifier.width(4.dp))
-                                                    Icon(
-                                                        if (isSignalsExpanded) painterResource(id = R.drawable.chevron_up_outline) else painterResource(id = R.drawable.chevron_down_outline),
-                                                        null,
-                                                        tint = colors.accentCyan,
-                                                        modifier = Modifier.size( AppDesign.iconTiny)
-                                                    )
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        Spacer(Modifier.height(AppDesign.radiusLarge))
-
-                        LabeledSlider(
-                            label = "Animation Speed",
-                            valueDisplay = String.format(Locale.US, "%.1fx", speed),
-                            value = speed,
-                            range = 0.1f..3f,
-                            colors = colors
-                        ) { speed = it }
-
-                        AnimatedVisibility(visible = displayMode == FourierDisplayMode.WRAPPING) {
-                            LabeledSlider(
-                                label = "Winding Frequency",
-                                valueDisplay = String.format(
-                                    Locale.US,
-                                    "%.2f Hz",
-                                    windingFrequency
-                                ),
-                                value = windingFrequency,
-                                range = 0.1f..5f,
-                                colors = colors
-                            ) { windingFrequency = it }
-                        }
-                    }
-                }
-            }
-        }
-
-        // Action Buttons
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .animateContentSize(),
-            horizontalArrangement = Arrangement.spacedBy(AppDesign.spacingSmall)
-        ) {
-            Button(
-                onClick = {
-                    if (!hasStarted) hasStarted = true
-                    running = !running
-                },
-                modifier = Modifier
-                    .weight(1f)
-                    .height(AppDesign.buttonHeight),
-                shape = RoundedCornerShape(AppDesign.radiusMedium),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (running) colors.accentHell else colors.accentCyan
-                )
-            ) {
-                Icon(if (running) painterResource(id = R.drawable.pause_outline) else painterResource(id = R.drawable.caret_forward_outline),
-                    null,
-                    tint = colors.textOnAccent,
-                    modifier = Modifier.size( AppDesign.iconSmall)
-                )
-                Spacer(Modifier.width(AppDesign.spacingSmall))
-                Text(
-                    if (running) "Pause" else if (hasStarted) "Resume" else "Simulate",
-                    fontWeight = FontWeight.Bold,
-                    color = colors.textOnAccent,
-                )
-            }
-
-            AnimatedVisibility(
-                visible = hasStarted,
-                enter = fadeIn() + expandHorizontally(),
-                exit = fadeOut() + shrinkHorizontally()
-            ) {
-                Button(
-                    onClick = {
-                        running = false
-                        hasStarted = false
-                        time = 0f
-                        path.clear()
-                    },
-                    modifier = Modifier.height(AppDesign.buttonHeight),
-                    shape = RoundedCornerShape(AppDesign.radiusMedium),
-                    colors = ButtonDefaults.buttonColors(containerColor = colors.cardSurface),
-                    border = BorderStroke(AppDesign.borderStandard, colors.accentCyan)
-                ) {
-                    Text("Reset", color = colors.accentCyan)
-                }
-            }
-        }
-
-        // Visualization Canvas
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(AppDesign.canvasHeightSmall)
-                .clip(RoundedCornerShape(AppDesign.radiusCard))
-                .background(colors.cardSurface.copy(alpha = 0.45f))
-                .border(
-                    1.dp,
-                    colors.cardBorder.copy(alpha = 0.6f),
-                    RoundedCornerShape(AppDesign.radiusCard)
-                )
-        ) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                val centerX = size.width * 0.3f
-                val centerY = size.height * 0.5f
-                val radiusBase = 100f
-
-                if (displayMode == FourierDisplayMode.CIRCULAR || displayMode == FourierDisplayMode.COMPLEX) {
-                    val actualCenterX = if (displayMode == FourierDisplayMode.COMPLEX) size.width * 0.5f else centerX
-                    translate(actualCenterX, centerY) {
-                        var x = 0f
-                        var y = 0f
-
-                        // Limit terms shown in circular mode for performance on low-end devices
-                        val termsToDraw = if (waveType == WaveType.CUSTOM_FUNCTION) {
-                            nTerms.coerceAtMost(customFunctionSignals.size)
-                        } else {
-                            nTerms.coerceAtMost(25)
-                        }
-
-                        for (i in 0 until termsToDraw) {
-                            val prevX = x
-                            val prevY = y
-
-                            val n = when (waveType) {
-                                WaveType.SINE -> 1f
-                                WaveType.SQUARE -> (i * 2 + 1).toFloat()
-                                WaveType.SAWTOOTH -> (i + 1).toFloat()
-                                WaveType.TRIANGLE -> (i * 2 + 1).toFloat()
-                                WaveType.MY_SIGNAL -> (i + 1).toFloat()
-                                WaveType.CUSTOM_FUNCTION -> if (i < customFunctionSignals.size) customFunctionSignals[i].freq.toFloatOrNull() ?: 0f else 0f
-                            }
-
-                            val radius = when (waveType) {
-                                WaveType.SINE -> if (i == 0) radiusBase else 0f
-                                WaveType.SQUARE -> radiusBase * (4f / (n * PI.toFloat()))
-                                WaveType.SAWTOOTH -> radiusBase * (2f / (n * PI.toFloat()))
-                                WaveType.TRIANGLE -> radiusBase * (8f / (n * n * PI.toFloat() * PI.toFloat()))
-                                WaveType.MY_SIGNAL -> if (i < customCoefficients.size) customCoefficients[i].first else 0f
-                                WaveType.CUSTOM_FUNCTION -> if (i < customFunctionSignals.size) customFunctionSignals[i].amp.toFloatOrNull() ?: 0f else 0f
-                                else -> 0f
-                            }
-
-                            if (kotlin.math.abs(radius) < 0.5f && i > 0) continue // Skip tiny circles
-
-                            val phase = when (waveType) {
-                                WaveType.TRIANGLE -> if (i % 2 != 0) PI.toFloat() else 0f
-                                WaveType.MY_SIGNAL -> if (i < customCoefficients.size) customCoefficients[i].second else 0f
-                                else -> 0f
-                            }
-                            val angle = 2 * PI.toFloat() * n * time + phase
-                            x += radius * cos(angle)
-                            y += radius * sin(angle)
-
-                            // Draw Circle
-                            drawCircle(
-                                color = colors.accentCyan.copy(alpha = AppDesign.opacityLow * 2f),
-                                radius = kotlin.math.abs(radius),
-                                center = Offset(prevX, prevY),
-                                style = Stroke(width = AppDesign.strokeThin)
-                            )
-
-                            // Draw Radius Line
-                            drawLine(
-                                color = colors.accentCyan.copy(alpha = AppDesign.opacityMedium),
-                                start = Offset(prevX, prevY),
-                                end = Offset(x, y),
-                                strokeWidth = 1.5f
-                            )
-                        }
-
-                        // Draw final point
-                        drawCircle(colors.accentViolet, AppDesign.spacingExtraSmall.toPx(), Offset(x, y))
-
-                        if (displayMode == FourierDisplayMode.CIRCULAR) {
-                            // Draw Line to Wave
-                            drawLine(
-                                color = colors.textSecondary.copy(alpha = AppDesign.opacityLow + AppDesign.opacitySubtle),
-                                start = Offset(x, y),
-                                end = Offset(180f, y),
-                                strokeWidth = AppDesign.strokeThin
-                            )
-
-                            // Draw Wave Path
-                            val wavePath = Path()
-                            if (path.isNotEmpty()) {
-                                wavePath.moveTo(180f, path[0].y)
-                                for (i in 1 until path.size step 2) {
-                                    wavePath.lineTo(180f + i * 0.8f, path[i].y)
-                                }
-                            }
-
-                            drawPath(
-                                path = wavePath,
-                                color = colors.accentCyan,
-                                style = Stroke(width = AppDesign.strokeThick, cap = StrokeCap.Round)
-                            )
-                        } else {
-                            // Draw Complex Trace
-                            val tracePath = Path()
-                            if (path.isNotEmpty()) {
-                                tracePath.moveTo(path[0].x, path[0].y)
-                                for (i in 1 until path.size) {
-                                    tracePath.lineTo(path[i].x, path[i].y)
-                                }
-                            }
-                            drawPath(
-                                path = tracePath,
-                                color = colors.accentCyan,
-                                style = Stroke(width = AppDesign.strokeStandard, cap = StrokeCap.Round)
-                            )
-                        }
-                    }
-                } else if (displayMode == FourierDisplayMode.WRAPPING) {
-                    translate(size.width / 2f, centerY) {
-                        // Draw Grid lines - simplified
-                        val gridColor = colors.accentCyan.copy(alpha = AppDesign.opacityGrid)
-                        val step = 60f
-                        for (i in -4..4) {
-                            drawLine(gridColor, Offset(i * step, -200f), Offset(i * step, 200f), AppDesign.strokeThin)
-                            drawLine(gridColor, Offset(-240f, i * step), Offset(240f, i * step), AppDesign.strokeThin)
-                        }
-
-                        // Draw Axes
-                        drawLine(
-                            colors.textSecondary.copy(alpha = AppDesign.opacityLow + AppDesign.opacitySubtle),
-                            Offset(-240f, 0f),
-                            Offset(240f, 0f),
-                            AppDesign.strokeThin
-                        )
-                        drawLine(
-                            colors.textSecondary.copy(alpha = AppDesign.opacityLow + AppDesign.opacitySubtle),
-                            Offset(0f, -200f),
-                            Offset(0f, 200f),
-                            AppDesign.strokeThin
-                        )
-
-                        val wrappedPath = Path()
-                        var sumX = 0f
-                        var sumY = 0f
-                        val baseRadius = 80f
-
-                        if (path.isNotEmpty()) {
-                            for (i in path.indices step 4) { // Increased step optimization
-                                val point = path[i]
-                                val t = point.x
-                                val amplitude = point.y + baseRadius
-                                val angle = -2 * PI.toFloat() * windingFrequency * t
-
-                                val wx = amplitude * cos(angle)
-                                val wy = amplitude * sin(angle)
-
-                                if (i == 0) wrappedPath.moveTo(wx, wy)
-                                else wrappedPath.lineTo(wx, wy)
-
-                                sumX += wx
-                                sumY += wy
-                            }
-
-                            drawPath(
-                                path = wrappedPath,
-                                color = colors.accentCyan.copy(alpha = AppDesign.opacityTrace),
-                                style = Stroke(width = AppDesign.strokeStandard, cap = StrokeCap.Round)
-                            )
-
-                            // Center of Mass (Red Dot)
-                            val count = (path.size + 1) / 2
-                            val avgX = sumX / count
-                            val avgY = sumY / count
-                            drawCircle(colors.accentHell, AppDesign.spacingExtraSmall.toPx() + 1f, Offset(avgX, avgY))
-
-                            drawLine(
-                                colors.textSecondary.copy(alpha = AppDesign.opacityMedium),
-                                Offset.Zero,
-                                Offset(avgX, avgY),
-                                AppDesign.strokeThin
-                            )
-                        }
-                    }
-                }
-            }
-
-            // ── Sidebar Navigation ──
-            Column(
-                modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .padding(start = AppDesign.spacingMedium),
-                verticalArrangement = Arrangement.spacedBy(AppDesign.spacingSmall + AppDesign.spacingExtraSmall / 2f)
-            ) {
-                DisplayModeButton(
-                    icon = Icons.Default.Timeline,
-                    selected = displayMode == FourierDisplayMode.CIRCULAR,
-                    colors = colors
-                ) {
-                    if (displayMode != FourierDisplayMode.CIRCULAR) path.clear()
-                    displayMode = FourierDisplayMode.CIRCULAR
-                }
-
-                DisplayModeButton(
-                    icon = Icons.Default.Adjust,
-                    selected = displayMode == FourierDisplayMode.WRAPPING,
-                    colors = colors
-                ) {
-                    if (displayMode != FourierDisplayMode.WRAPPING) path.clear()
-                    displayMode = FourierDisplayMode.WRAPPING
-                }
-
-                DisplayModeButton(
-                    icon = Icons.Default.Hub,
-                    selected = displayMode == FourierDisplayMode.COMPLEX,
-                    colors = colors
-                ) {
-                    if (displayMode != FourierDisplayMode.COMPLEX) path.clear()
-                    displayMode = FourierDisplayMode.COMPLEX
-                }
-
-                Spacer(Modifier.height(AppDesign.spacingSmall + AppDesign.spacingExtraSmall / 2f))
-
-                // Clear Trace Button
-                IconButton(
-                    onClick = { path.clear() },
-                    modifier = Modifier
-                        .size(AppDesign.sidebarButtonSize)
-                        .background(
-                            colors.accentHell.copy(alpha = AppDesign.opacityLow),
-                            RoundedCornerShape(AppDesign.radiusSmall)
-                        )
-                        .border(
-                            AppDesign.borderThin,
-                            colors.accentHell.copy(alpha = AppDesign.opacityLow * 2f),
-                            RoundedCornerShape(AppDesign.radiusSmall)
-                        )
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.trash_bin_outline),
-                        null,
-                        tint = colors.accentHell,
-                        modifier = Modifier.size(AppDesign.iconMedium)
-                    )
-                }
-            }
-
-            // ── Terms Handler (Right Sidebar) ──
-            Column(
-                modifier = Modifier
-                    .align(Alignment.CenterEnd)
-                    .padding(end = AppDesign.spacingMedium)
-                    .width(AppDesign.sidebarButtonSize)
-                    .fillMaxHeight(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Box(
-                    modifier = Modifier
-                        .height(AppDesign.termsBoxHeight)
-                        .background(
-                            colors.cardSurface.copy(alpha = AppDesign.opacityMedium),
-                            RoundedCornerShape(AppDesign.radiusCard)
-                        )
-                        .border(
-                            AppDesign.borderThin,
-                            colors.cardBorder.copy(alpha = AppDesign.opacityLow * 2f),
-                            RoundedCornerShape(AppDesign.radiusCard)
-                        )
-                        .padding(vertical = AppDesign.spacingMedium),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxHeight()
-                    ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.add_outline),
-                            null,
-                            tint = colors.accentCyan,
-                            modifier = Modifier.size(AppDesign.iconSmallMedium)
-                        )
-
-                        Slider(
-                            value = nTerms.toFloat(),
-                            onValueChange = { nTerms = it.toInt() },
-                            valueRange = 1f..50f,
-                            modifier = Modifier
-                                .weight(1f)
-                                .layout { measurable: Measurable, constraints ->
-                                    val placeable = measurable.measure(
-                                        constraints.copy(
-                                            minWidth = constraints.minHeight,
-                                            maxWidth = constraints.maxHeight,
-                                            minHeight = constraints.minWidth,
-                                            maxHeight = constraints.maxWidth
-                                        )
-                                    )
-                                    layout(placeable.height, placeable.width) {
-                                        placeable.placeWithLayer(
-                                            x = -(placeable.width - placeable.height) / 2,
-                                            y = (placeable.width - placeable.height) / 2
-                                        ) {
-                                            rotationZ = -90f
-                                        }
-                                    }
-                                },
-                            colors = SliderDefaults.colors(
-                                thumbColor = colors.accentCyan,
-                                activeTrackColor = colors.accentCyan,
-                                inactiveTrackColor = colors.fieldBorder.copy(alpha = AppDesign.opacityLow * 2f)
-                            )
-                        )
-
-                        Icon(
-                            painter = painterResource(id = R.drawable.remove),
-                            null,
-                            tint = colors.accentCyan,
-                            modifier = Modifier.size(AppDesign.iconSmallMedium)
-                        )
-
-                        Text(
-                            "$nTerms",
-                            color = colors.textPrimary,
-                            fontSize = AppDesign.textCaption,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(top = 2.dp)
-                        )
-                    }
-                }
-            }
-        }
-
-        // Harmonic Components or Center of Mass Graph
         when (displayMode) {
             FourierDisplayMode.WRAPPING -> {
                 CenterOfMassGraph(
@@ -1040,6 +321,7 @@ fun FourierSeries() {
                     time = time,
                     colors = colors,
                     customCoefficients = customCoefficients,
+                    customCoefficients2D = customCoefficients2D,
                     customFunctionSignals = customFunctionSignals
                 )
             }
@@ -1050,12 +332,12 @@ fun FourierSeries() {
                     time = time,
                     colors = colors,
                     customCoefficients = customCoefficients,
+                    customCoefficients2D = customCoefficients2D,
                     customFunctionSignals = customFunctionSignals
                 )
             }
         }
 
-        // Info Card
         GlassCard(colors = colors) {
             Column(modifier = Modifier.padding(AppDesign.radiusLarge)) {
                 Text(

@@ -2,6 +2,7 @@ package com.example.matharium.app
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import com.example.matharium.fourier.SignalInstance
@@ -22,6 +23,21 @@ class AppPreferences(context: Context) {
     var drawingPoints: List<Float>
         get() = prefs.getString("drawing_points", "")?.split(",")?.filter { it.isNotEmpty() }?.mapNotNull { it.toFloatOrNull() } ?: emptyList()
         set(value) = prefs.edit().putString("drawing_points", value.joinToString(",")).apply()
+
+    var drawingPoints2D: List<Offset>
+        get() {
+            val data = prefs.getString("drawing_points_2d", "") ?: ""
+            if (data.isEmpty()) return emptyList()
+            return data.split(";").filter { it.isNotEmpty() }.mapNotNull {
+                val parts = it.split(",")
+                if (parts.size == 2) {
+                    val x = parts[0].toFloatOrNull()
+                    val y = parts[1].toFloatOrNull()
+                    if (x != null && y != null) Offset(x, y) else null
+                } else null
+            }
+        }
+        set(value) = prefs.edit().putString("drawing_points_2d", value.joinToString(";") { "${it.x},${it.y}" }).apply()
 
     fun saveFourierSignals(signals: List<SignalInstance>) {
         val serialized = signals.joinToString(";") { "${it.id}|${it.color.toArgb()}|${it.freq}|${it.amp}" }

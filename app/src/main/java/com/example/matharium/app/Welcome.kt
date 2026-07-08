@@ -42,8 +42,7 @@ fun WelcomeScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = AppDesign.spacingLarge)
-            .padding(bottom = AppDesign.spacingLarge),
+            .padding(horizontal = AppDesign.spacingLarge),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Spacer(modifier = Modifier.height(60.dp))

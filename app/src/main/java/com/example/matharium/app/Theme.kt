@@ -32,18 +32,15 @@ object AppDesign {
     val radiusSmall = 8.dp
     val radiusButton = 10.dp
     val radiusMedium = 12.dp
-    val radiusField = 14.dp
     val radiusLarge = 16.dp
     val radiusCard = 20.dp
     val radiusCanvas = 24.dp
-    val radiusPill = 28.dp
 
+    val spacingTiny = 2.dp
     val spacingExtraSmall = 4.dp
     val spacingSmall = 8.dp
     val spacingMedium = 12.dp
     val spacingLarge = 16.dp
-    val spacingHeadline = 20.dp
-    val spacingExtraLarge = 28.dp
 
     val buttonHeight = 50.dp
     val buttonHeightSmall = 38.dp
@@ -51,16 +48,12 @@ object AppDesign {
     val drawingAreaHeight = 200.dp
     val textFieldHeight = 56.dp
     val canvasHeightSmall = 350.dp
-    val canvasHeightMedium = 400.dp
-    val canvasHeightLarge = 450.dp
     val sidebarButtonSize = 42.dp
     val navBarHeight = 60.dp
     val welcomeHeaderHeight = 100.dp
     val welcomeSectionSpacing = 25.dp
     val welcomeGridSpacing = 60.dp
     val termsBoxHeight = 280.dp
-    val navPillPaddingVertical = 10.dp
-    val navPillPaddingHorizontal = 12.dp
 
     val iconTiny = 10.dp
     val iconSmall = 16.dp
@@ -74,11 +67,8 @@ object AppDesign {
     val textSmall = 11.sp
     val textBody = 12.sp
     val textBodyLarge = 13.sp
-    val textTitle = 14.sp
-    val textTitleLarge = 16.sp
     val textHeadline = 15.sp
     val textHeadlineLarge = 28.sp
-    val textDisplay = 28.sp
     val textDisplayLarge = 60.sp
 
     val borderNone = 0.dp
@@ -88,19 +78,15 @@ object AppDesign {
     val strokeStandard = 2f
     val strokeThick = 2.5f
 
-    val opacityNone = 0f
     val opacitySubtle = 0.05f
     val opacityLow = 0.15f
     val opacityMedium = 0.4f
     val opacityHigh = 0.7f
-    val opacityOverlay = 0.45f
     val opacityGlass = 0.45f
     val opacityGlassBorder = 0.6f
-    val opacityFull = 1f
     val opacityTrace = 0.8f
     val opacityGrid = 0.05f
 
-    val animDurationNone = 0
     val animDurationFast = 150
     val animDurationStandard = 300
     val animDurationSlow = 500
@@ -234,10 +220,10 @@ fun GlassCard(
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(AppDesign.radiusCard))
-            .background(colors.cardSurface.copy(alpha = 0.45f))
+            .background(colors.cardSurface.copy(alpha = AppDesign.opacityGlass))
             .border(
-                1.dp,
-                colors.cardBorder.copy(alpha = 0.6f),
+                AppDesign.borderThin,
+                colors.cardBorder.copy(alpha = AppDesign.opacityGlassBorder),
                 RoundedCornerShape(AppDesign.radiusCard)
             )
     ) {
@@ -257,14 +243,14 @@ data class BlobAnimParams(
 
 @Composable
 fun AnimatedBlobBackground(
-    blob1Color: androidx.compose.ui.graphics.Color,
-    blob2Color: androidx.compose.ui.graphics.Color,
-    blob1Alpha: Float = 0.15f,
-    blob2Alpha: Float = 0.15f,
+    blob2Color: Color,
+    blob1Color: Color,
+    blob1Alpha: Float = AppDesign.opacityLow,
+    blob2Alpha: Float = AppDesign.opacityLow,
     blob1Size: Float = 800f,
     blob2Size: Float = 600f,
     label: String = "blobs",
-    content: @Composable androidx.compose.foundation.layout.BoxScope.() -> Unit
+    content: @Composable BoxScope.() -> Unit
 ) {
     val animParams = androidx.compose.runtime.remember {
         Pair(
@@ -315,24 +301,24 @@ fun AnimatedBlobBackground(
         ), label = "${label}_b2y"
     )
 
-    androidx.compose.foundation.layout.Box(modifier = androidx.compose.ui.Modifier.fillMaxSize()) {
-        androidx.compose.foundation.layout.Box(
-            modifier = androidx.compose.ui.Modifier
+    Box(modifier = Modifier.fillMaxSize()) {
+        Box(
+            modifier = Modifier
                 .offset(x = b1X.dp, y = b1Y.dp)
                 .size(blob1Size.dp)
                 .background(
                     androidx.compose.ui.graphics.Brush.radialGradient(
-                        colors = listOf(blob1Color.copy(alpha = blob1Alpha), androidx.compose.ui.graphics.Color.Transparent)
+                        colors = listOf(blob1Color.copy(alpha = blob1Alpha), Color.Transparent)
                     )
                 )
         )
-        androidx.compose.foundation.layout.Box(
-            modifier = androidx.compose.ui.Modifier
+        Box(
+            modifier = Modifier
                 .offset(x = b2X.dp, y = b2Y.dp)
                 .size(blob2Size.dp)
                 .background(
                     androidx.compose.ui.graphics.Brush.radialGradient(
-                        colors = listOf(blob2Color.copy(alpha = blob2Alpha), androidx.compose.ui.graphics.Color.Transparent)
+                        colors = listOf(blob2Color.copy(alpha = blob2Alpha), Color.Transparent)
                     )
                 )
         )
@@ -363,16 +349,16 @@ fun LabeledSlider(
                 text = label,
                 color = colors.textPrimary,
                 fontSize = AppDesign.textBody,
-                fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
+                fontWeight = FontWeight.SemiBold
             )
             androidx.compose.material3.Text(
                 text = valueDisplay,
                 color = colors.accentCyan,
                 fontSize = AppDesign.textBody,
-                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                fontWeight = FontWeight.Bold,
                 modifier = Modifier
                     .background(colors.accentCyan.copy(AppDesign.opacityLow), RoundedCornerShape(AppDesign.radiusSmall))
-                    .padding(horizontal = AppDesign.spacingSmall, vertical = 2.dp)
+                    .padding(horizontal = AppDesign.spacingSmall, vertical = AppDesign.spacingTiny)
             )
         }
         androidx.compose.material3.Slider(
@@ -384,7 +370,7 @@ fun LabeledSlider(
                 activeTrackColor = colors.accentCyan,
                 inactiveTrackColor = colors.fieldBorder.copy(AppDesign.opacityMedium)
             ),
-            modifier = Modifier.padding(top = 2.dp)
+            modifier = Modifier.padding(top = AppDesign.spacingTiny)
         )
     }
 }
@@ -402,7 +388,7 @@ fun ToggleRow(
             .height(AppDesign.textFieldHeight)
             .clip(RoundedCornerShape(AppDesign.radiusSmall))
             .clickable { onCheckedChange(!checked) }
-            .padding(horizontal = 4.dp),
+            .padding(horizontal = AppDesign.spacingExtraSmall),
         verticalAlignment = Alignment.CenterVertically
     ) {
         androidx.compose.material3.Checkbox(
@@ -419,7 +405,7 @@ fun ToggleRow(
             text = label,
             color = colors.textPrimary,
             fontSize = AppDesign.textBodyLarge,
-            fontWeight = androidx.compose.ui.text.font.FontWeight.Medium
+            fontWeight = FontWeight.Medium
         )
     }
 }
@@ -441,7 +427,7 @@ fun DisplayModeButton(
             AppDesign.opacityMedium
         ),
         border = BorderStroke(
-            1.dp,
+            AppDesign.borderThin,
             if (selected) colors.accentCyan else colors.cardBorder.copy(AppDesign.opacityMedium)
         )
     ) {

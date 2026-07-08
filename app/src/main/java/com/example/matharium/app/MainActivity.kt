@@ -171,7 +171,7 @@ fun TopNavigationBar(
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                painter = painterResource(id = R.drawable.grid_outline),
+                painter = painterResource(id = R.drawable.menu_outline),
                 contentDescription = "Menu",
                 tint = colors.accentCyan,
                 modifier = Modifier.size(AppDesign.iconMedium)
@@ -180,7 +180,7 @@ fun TopNavigationBar(
 
         Text(
             text = title,
-            fontSize = AppDesign.textHeadline,
+            fontSize = AppDesign.textHeadlineLarge,
             fontWeight = FontWeight.Bold
         )
 
