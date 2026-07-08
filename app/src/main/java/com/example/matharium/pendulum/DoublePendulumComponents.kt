@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.matharium.app.*
 
@@ -34,10 +35,10 @@ fun EnergyDashboard(
 ) {
     GlassCard(
         colors = colors,
-        modifier = modifier.width(220.dp)
+        modifier = modifier.animateContentSize()
     ) {
         Column(
-            modifier = Modifier.padding(AppDesign.spacingMedium),
+            modifier = Modifier.padding(AppDesign.spacingLarge),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
@@ -45,12 +46,20 @@ fun EnergyDashboard(
                 color = colors.textPrimary,
                 fontSize = AppDesign.textHeadline,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = AppDesign.spacingSmall)
+                modifier = Modifier.fillMaxWidth()
             )
+            if (pendulums.isEmpty()) Text(
+                "Add a Pendulum",
+                color = colors.accentCyan,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = AppDesign.spacingLarge),
+            ) else Text("")
             pendulums.forEach { p ->
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(vertical = 4.dp)
+                    modifier = Modifier.padding(vertical = 6.dp)
                 ) {
                     Box(
                         Modifier
@@ -59,11 +68,17 @@ fun EnergyDashboard(
                             .background(p.currentColor)
                     )
                     Spacer(Modifier.width(AppDesign.spacingSmall))
+                    Text(
+                        "Pendulum ${p.id}",
+                        color = colors.textSecondary,
+                        fontSize = AppDesign.textSmall,
+                        modifier = Modifier.width(80.dp)
+                    )
                     LinearProgressIndicator(
                         progress = { (p.kineticEnergy.toFloat() * DoublePendulumConstants.ENERGY_PROGRESS_MULTIPLIER).coerceIn(0f, 1f) },
                         modifier = Modifier
                             .weight(1f)
-                            .height(4.dp)
+                            .height(6.dp)
                             .clip(CircleShape),
                         color = p.currentColor,
                         trackColor = colors.textSecondary.copy(alpha = AppDesign.opacityLow)

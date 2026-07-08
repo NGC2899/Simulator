@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -41,30 +42,28 @@ fun WelcomeScreen(
 
     Column(
         modifier = Modifier
-            .fillMaxSize()
+            .fillMaxWidth()
             .padding(horizontal = AppDesign.spacingLarge),
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
-        Spacer(modifier = Modifier.height(60.dp))
 
         Text(
-            text = "Matharium",
-            fontSize = AppDesign.textDisplayLarge,
-            fontWeight = FontWeight.Normal,
-            letterSpacing = 1.sp
-        )
-
-        Spacer(modifier = Modifier.height(AppDesign.welcomeSectionSpacing))
-
-        Text(
-            text = "Select to start",
+            text = "Welcome to",
             color = colors.accentCyan,
             fontSize = AppDesign.textHeadline,
             fontWeight = FontWeight.Medium,
             letterSpacing = 0.5.sp
         )
 
-        Spacer(modifier = Modifier.height(AppDesign.welcomeGridSpacing))
+        Spacer(modifier = Modifier.height(AppDesign.spacingSmall))
+
+        Text(
+                text = "Matharium",
+        fontSize = AppDesign.textDisplayLarge,
+        fontWeight = FontWeight.Normal,
+        letterSpacing = 1.sp
+        )
 
         LazyVerticalGrid(
             columns = GridCells.Fixed(1),

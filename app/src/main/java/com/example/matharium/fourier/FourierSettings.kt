@@ -284,11 +284,16 @@ fun FourierSettingsCard(
                                                     onClearPath()
                                                     onResetTime()
                                                     drawingPoints2D.clear()
-                                                    drawingPoints2D.add(offset - Offset(size.width / 2f, size.height / 2f))
+                                                    val centered = offset - Offset(size.width / 2f, size.height / 2f)
+                                                    drawingPoints2D.add(centered)
                                                 },
                                                 onDrag = { change, _ ->
-                                                    val offset = change.position - Offset(size.width / 2f, size.height / 2f)
-                                                    drawingPoints2D.add(offset)
+                                                    val halfWidth = size.width / 2f
+                                                    val halfHeight = size.height / 2f
+                                                    val x = (change.position.x - halfWidth).coerceIn(-halfWidth, halfWidth)
+                                                    val y = (change.position.y - halfHeight).coerceIn(-halfHeight, halfHeight)
+                                                    
+                                                    drawingPoints2D.add(Offset(x, y))
                                                     onCalculateDFT2D()
                                                 },
                                                 onDragEnd = {

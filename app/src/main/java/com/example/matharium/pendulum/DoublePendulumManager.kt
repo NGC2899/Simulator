@@ -93,10 +93,10 @@ fun DoublePendulumManager(
                             RoundedCornerShape(AppDesign.radiusButton)
                         )
                         .clickable {
-                            val nextT1 = "90.0"
-                            val nextT2 = "90.0"
+                            val baseT1 = pendulums.lastOrNull()?.t1 ?: "90.0"
+                            val baseT2 = pendulums.lastOrNull()?.t2 ?: "90.0"
                             val color = Color.hsv(Random.nextFloat() * 360f, DoublePendulumConstants.COLOR_SATURATION, DoublePendulumConstants.COLOR_VALUE)
-                            val newPendulum = PendulumInstance(nextId, color, nextT1, nextT2)
+                            val newPendulum = PendulumInstance(nextId, color, baseT1, baseT2)
                             onNextIdChange(nextId + 1)
                             newPendulum.updatePositions()
                             pendulums.add(newPendulum)
@@ -135,21 +135,24 @@ fun DoublePendulumManager(
                         )
                         .clickable {
                             if (pendulums.size < DoublePendulumConstants.MAX_PENDULUMS) {
+                                val baseT1 = pendulums.lastOrNull()?.t1?.toDoubleOrNull() ?: 90.0
+                                val baseT2 = pendulums.lastOrNull()?.t2?.toDoubleOrNull() ?: 90.0
                                 var currentNextId = nextId
-                                repeat(DoublePendulumConstants.CHAOS_BATCH_COUNT) {
+                                
+                                repeat(DoublePendulumConstants.CHAOS_BATCH_COUNT) { i ->
                                     if (pendulums.size >= DoublePendulumConstants.MAX_PENDULUMS) return@repeat
-                                    val nextT1Str = String.format(
-                                        Locale.US,
-                                        "%.1f",
-                                        90.0 + (pendulums.size * DoublePendulumConstants.CHAOS_ANGLE_INCREMENT)
-                                    )
+                                    
+                                    val variation = (i + 1) * DoublePendulumConstants.CHAOS_ANGLE_INCREMENT
+                                    val nextT1Str = String.format(Locale.US, "%.1f", baseT1 + variation)
+                                    val nextT2Str = String.format(Locale.US, "%.1f", baseT2)
+                                    
                                     val randomColor =
                                         Color.hsv(Random.nextFloat() * 360f, DoublePendulumConstants.COLOR_SATURATION, DoublePendulumConstants.COLOR_VALUE)
                                     val newPendulum = PendulumInstance(
                                         currentNextId++,
                                         randomColor,
                                         nextT1Str,
-                                        "90.0"
+                                        nextT2Str
                                     )
                                     newPendulum.updatePositions()
                                     pendulums.add(newPendulum)

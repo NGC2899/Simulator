@@ -412,16 +412,5 @@ fun DoublePendulumVisualizer(
                 }
             }
         }
-
-        // Energy Dashboard Overlay
-        if (displayMode == DisplayMode.COMPLEX) {
-            EnergyDashboard(
-                modifier = Modifier
-                    .padding(bottom = AppDesign.spacingLarge)
-                    .align(Alignment.BottomCenter),
-                pendulums = pendulums,
-                colors = colors
-            )
-        }
     }
 }

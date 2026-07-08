@@ -62,6 +62,40 @@ fun FourierVisualizerBox(
             if ((displayMode == FourierDisplayMode.CIRCULAR) || (displayMode == FourierDisplayMode.COMPLEX)) {
                 val actualCenterX = if (displayMode == FourierDisplayMode.COMPLEX) size.width * 0.5f else centerX
                 translate(actualCenterX, centerY) {
+                    // Draw Grid
+                    val gridColor = colors.accentCyan.copy(alpha = AppDesign.opacityGrid)
+                    val step = 60f
+                    val left = -actualCenterX
+                    val right = size.width - actualCenterX
+                    val top = -centerY
+                    val bottom = size.height - centerY
+
+                    var gx = 0f
+                    while (gx <= right) {
+                        drawLine(gridColor, Offset(gx, top), Offset(gx, bottom), AppDesign.strokeThin)
+                        gx += step
+                    }
+                    gx = -step
+                    while (gx >= left) {
+                        drawLine(gridColor, Offset(gx, top), Offset(gx, bottom), AppDesign.strokeThin)
+                        gx -= step
+                    }
+                    var gy = 0f
+                    while (gy <= bottom) {
+                        drawLine(gridColor, Offset(left, gy), Offset(right, gy), AppDesign.strokeThin)
+                        gy += step
+                    }
+                    gy = -step
+                    while (gy >= top) {
+                        drawLine(gridColor, Offset(left, gy), Offset(right, gy), AppDesign.strokeThin)
+                        gy -= step
+                    }
+
+                    // Main Axes
+                    val axisColor = colors.textSecondary.copy(alpha = AppDesign.opacityLow + AppDesign.opacitySubtle)
+                    drawLine(axisColor, Offset(left, 0f), Offset(right, 0f), AppDesign.strokeThin)
+                    drawLine(axisColor, Offset(0f, top), Offset(0f, bottom), AppDesign.strokeThin)
+
                     var x = 0f
                     var y = 0f
 
@@ -167,23 +201,28 @@ fun FourierVisualizerBox(
                 translate(size.width / 2f, centerY) {
                     val gridColor = colors.accentCyan.copy(alpha = AppDesign.opacityGrid)
                     val step = 60f
-                    for (i in -4..4) {
-                        drawLine(gridColor, Offset(i * step, -200f), Offset(i * step, 200f), AppDesign.strokeThin)
-                        drawLine(gridColor, Offset(-240f, i * step), Offset(240f, i * step), AppDesign.strokeThin)
+
+                    val halfWidth = size.width / 2f
+                    val halfHeight = size.height / 2f
+
+                    // Draw Grid Lines
+                    var gx = 0f
+                    while (gx <= halfWidth) {
+                        drawLine(gridColor, Offset(gx, -halfHeight), Offset(gx, halfHeight), AppDesign.strokeThin)
+                        if (gx > 0) drawLine(gridColor, Offset(-gx, -halfHeight), Offset(-gx, halfHeight), AppDesign.strokeThin)
+                        gx += step
+                    }
+                    var gy = 0f
+                    while (gy <= halfHeight) {
+                        drawLine(gridColor, Offset(-halfWidth, gy), Offset(halfWidth, gy), AppDesign.strokeThin)
+                        if (gy > 0) drawLine(gridColor, Offset(-halfWidth, -gy), Offset(halfWidth, -gy), AppDesign.strokeThin)
+                        gy += step
                     }
 
-                    drawLine(
-                        colors.textSecondary.copy(alpha = AppDesign.opacityLow + AppDesign.opacitySubtle),
-                        Offset(-240f, 0f),
-                        Offset(240f, 0f),
-                        AppDesign.strokeThin
-                    )
-                    drawLine(
-                        colors.textSecondary.copy(alpha = AppDesign.opacityLow + AppDesign.opacitySubtle),
-                        Offset(0f, -200f),
-                        Offset(0f, 200f),
-                        AppDesign.strokeThin
-                    )
+                    // Main Axes
+                    val axisColor = colors.textSecondary.copy(alpha = AppDesign.opacityLow + AppDesign.opacitySubtle)
+                    drawLine(axisColor, Offset(-halfWidth, 0f), Offset(halfWidth, 0f), AppDesign.strokeThin)
+                    drawLine(axisColor, Offset(0f, -halfHeight), Offset(0f, halfHeight), AppDesign.strokeThin)
 
                     val wrappedPath = Path()
                     var sumX = 0f

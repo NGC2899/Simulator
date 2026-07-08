@@ -250,6 +250,19 @@ fun DoublePendulum() {
             prefs = prefs
         )
 
+        // ── Energy Distribution (Only in Complex Mode) ──────────
+        AnimatedVisibility(
+            visible = displayMode == DisplayMode.COMPLEX,
+            enter = expandVertically() + fadeIn(),
+            exit = shrinkVertically() + fadeOut()
+        ) {
+            EnergyDashboard(
+                modifier = Modifier.fillMaxWidth(),
+                pendulums = pendulums,
+                colors = colors
+            )
+        }
+
 
         GlassCard(colors = colors) {
             Column(modifier = Modifier.padding(AppDesign.spacingLarge)) {
