@@ -245,7 +245,9 @@ fun DoublePendulumVisualizer(
                                 val path = Path().apply {
                                     val start = p.angleTrail.first() * graphScale
                                     moveTo(start.x, start.y)
-                                    for (i in 1 until p.angleTrail.size) {
+                                    // Step optimization for high density trails
+                                    val step = if (p.angleTrail.size > 200) 2 else 1
+                                    for (i in step until p.angleTrail.size step step) {
                                         val point = p.angleTrail[i] * graphScale
                                         lineTo(point.x, point.y)
                                     }
@@ -304,27 +306,11 @@ fun DoublePendulumVisualizer(
             Spacer(Modifier.height(AppDesign.spacingSmall))
 
             // Clear Trails Button
-            IconButton(
-                onClick = { pendulums.forEach { it.trail.clear(); it.angleTrail.clear() } },
-                modifier = Modifier
-                    .size(AppDesign.sidebarButtonSize)
-                    .background(
-                        colors.accentHell.copy(AppDesign.opacityLow),
-                        RoundedCornerShape(AppDesign.radiusSmall)
-                    )
-                    .border(
-                        AppDesign.borderThin,
-                        colors.accentHell.copy(AppDesign.opacityMedium),
-                        RoundedCornerShape(AppDesign.radiusSmall)
-                    )
-            ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.trash_bin_outline),
-                    null,
-                    tint = colors.accentHell,
-                    modifier = Modifier.size(AppDesign.iconMedium)
-                )
-            }
+            SidebarActionButton(
+                icon = painterResource(id = R.drawable.trash_line_outline),
+                colors = colors,
+                onClick = { pendulums.forEach { it.trail.clear(); it.angleTrail.clear() } }
+            )
         }
 
         // ── Zoom Handler (Right Sidebar) ──

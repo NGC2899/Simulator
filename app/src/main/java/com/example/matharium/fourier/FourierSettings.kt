@@ -43,9 +43,11 @@ fun FourierSettingsCard(
     displayMode: FourierDisplayMode,
     drawingPoints: MutableList<Float>,
     drawingPoints2D: MutableList<Offset>,
+    svgPoints: MutableList<Offset>,
     customFunctionSignals: MutableList<SignalInstance>,
     onCalculateDFT: () -> Unit,
     onCalculateDFT2D: () -> Unit,
+    onCalculateSVGDFT: () -> Unit,
     onClearPath: () -> Unit,
     onResetTime: () -> Unit,
     onResetHasStarted: () -> Unit,
@@ -101,6 +103,9 @@ fun FourierSettingsCard(
                                     onWaveTypeChange(type)
                                     onClearPath()
                                     if (type == WaveType.SVG) {
+                                        onRunningChange(false)
+                                        onClearPath()
+                                        onResetTime()
                                         svgPickerLauncher.launch("image/svg+xml")
                                     }
                                     if (type == WaveType.MY_SIGNAL && drawingPoints.isEmpty()) {
@@ -366,9 +371,11 @@ fun FourierSettingsCard(
                                             drawingPoints.clear()
                                             repeat(samplesCount) { drawingPoints.add(0f) }
                                             prefs.drawingPoints = emptyList<Float>()
-                                        } else {
+                                        } else if (waveType == WaveType.MY_SIGNAL_2D) {
                                             drawingPoints2D.clear()
                                             prefs.drawingPoints2D = emptyList<Offset>()
+                                        } else if (waveType == WaveType.SVG) {
+                                            svgPoints.clear()
                                         }
                                         onClearPath()
                                         onResetTime()

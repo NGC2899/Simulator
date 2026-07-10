@@ -17,8 +17,10 @@ class PendulumInstance(
     var l2 by mutableStateOf("1.0")
 
     // Snapshot of angles when simulation starts to allow 'Reset' to return here
-    private var startT1 = t1Initial
-    private var startT2 = t2Initial
+    var startT1 = t1Initial
+        internal set
+    var startT2 = t2Initial
+        internal set
 
     var bob1 by mutableStateOf(Offset.Zero)
     var bob2 by mutableStateOf(Offset.Zero)
@@ -40,6 +42,7 @@ class PendulumInstance(
         val coords = logic.currentCoords
         bob1 = Offset(coords.x1.toFloat(), coords.y1.toFloat())
         bob2 = Offset(coords.x2.toFloat(), coords.y2.toFloat())
+        kineticEnergy = coords.kineticEnergy
     }
 
     fun initialize(gravity: Float) {
@@ -52,6 +55,8 @@ class PendulumInstance(
     fun reset() {
         t1 = startT1
         t2 = startT2
+        kineticEnergy = 0.0
+        currentColor = baseColor
         trail.clear()
         angleTrail.clear()
         updatePositions()

@@ -39,6 +39,7 @@ fun FourierVisualizerBox(
     windingFrequency: Float,
     customCoefficients: List<Pair<Float, Float>>,
     customCoefficients2D: List<FourierLogic.ComplexCoeff>,
+    svgCoefficients: List<FourierLogic.ComplexCoeff> = emptyList(),
     customFunctionSignals: List<SignalInstance>,
     colors: AppColors
 ) {
@@ -102,7 +103,7 @@ fun FourierVisualizerBox(
                     val termsToDraw = if (waveType == WaveType.CUSTOM_FUNCTION) {
                         nTerms.coerceAtMost(customFunctionSignals.size)
                     } else {
-                        nTerms.coerceAtMost(25)
+                        nTerms.coerceAtMost(15) // Reduced from 25 for better performance
                     }
 
                     for (i in 0 until termsToDraw) {
@@ -115,7 +116,8 @@ fun FourierVisualizerBox(
                             WaveType.SAWTOOTH -> (i + 1).toFloat()
                             WaveType.TRIANGLE -> (i * 2 + 1).toFloat()
                             WaveType.MY_SIGNAL -> (i + 1).toFloat()
-                            WaveType.MY_SIGNAL_2D, WaveType.SVG -> if (i < customCoefficients2D.size) customCoefficients2D[i].freq.toFloat() else 0f
+                            WaveType.MY_SIGNAL_2D -> if (i < customCoefficients2D.size) customCoefficients2D[i].freq.toFloat() else 0f
+                            WaveType.SVG -> if (i < svgCoefficients.size) svgCoefficients[i].freq.toFloat() else 0f
                             WaveType.CUSTOM_FUNCTION -> if (i < customFunctionSignals.size) customFunctionSignals[i].freq.toFloatOrNull() ?: 0f else 0f
                         }
 
@@ -125,7 +127,8 @@ fun FourierVisualizerBox(
                             WaveType.SAWTOOTH -> radiusBase * (2f / (n * PI.toFloat()))
                             WaveType.TRIANGLE -> radiusBase * (8f / (n * n * PI.toFloat() * PI.toFloat()))
                             WaveType.MY_SIGNAL -> if (i < customCoefficients.size) customCoefficients[i].first else 0f
-                            WaveType.MY_SIGNAL_2D, WaveType.SVG -> if (i < customCoefficients2D.size) customCoefficients2D[i].amp else 0f
+                            WaveType.MY_SIGNAL_2D -> if (i < customCoefficients2D.size) customCoefficients2D[i].amp else 0f
+                            WaveType.SVG -> if (i < svgCoefficients.size) svgCoefficients[i].amp else 0f
                             WaveType.CUSTOM_FUNCTION -> if (i < customFunctionSignals.size) customFunctionSignals[i].amp.toFloatOrNull() ?: 0f else 0f
                         }
 
@@ -137,7 +140,8 @@ fun FourierVisualizerBox(
                             WaveType.SAWTOOTH -> 0f
                             WaveType.TRIANGLE -> if (i % 2 != 0) PI.toFloat() else 0f
                             WaveType.MY_SIGNAL -> if (i < customCoefficients.size) customCoefficients[i].second else 0f
-                            WaveType.MY_SIGNAL_2D, WaveType.SVG -> if (i < customCoefficients2D.size) customCoefficients2D[i].phase else 0f
+                            WaveType.MY_SIGNAL_2D -> if (i < customCoefficients2D.size) customCoefficients2D[i].phase else 0f
+                            WaveType.SVG -> if (i < svgCoefficients.size) svgCoefficients[i].phase else 0f
                             WaveType.CUSTOM_FUNCTION -> 0f
                         }
                         val angle = 2 * PI.toFloat() * n * time + phase
@@ -172,7 +176,8 @@ fun FourierVisualizerBox(
                         val wavePath = Path()
                         if (path.isNotEmpty()) {
                             wavePath.moveTo(180f, path[0].y)
-                            for (i in 1 until path.size step 2) {
+                            // Performance optimization: higher step for drawing the wave
+                            for (i in 1 until path.size step 4) {
                                 wavePath.lineTo(180f + i * 0.8f, path[i].y)
                             }
                         }
@@ -186,7 +191,8 @@ fun FourierVisualizerBox(
                         val tracePath = Path()
                         if (path.isNotEmpty()) {
                             tracePath.moveTo(path[0].x, path[0].y)
-                            for (i in 1 until path.size) {
+                            // Performance optimization: higher step for 2D tracing
+                            for (i in 1 until path.size step 2) {
                                 tracePath.lineTo(path[i].x, path[i].y)
                             }
                         }
@@ -230,7 +236,10 @@ fun FourierVisualizerBox(
                     val baseRadius = 80f
 
                     if (path.isNotEmpty()) {
-                        for (i in path.indices step 4) {
+                        var processedCount = 0
+                        // Use step 2 to match physics substeps, ensuring sampling consistency
+                        // and eliminating the "orbital jitter" caused by index shifting.
+                        for (i in path.indices step 2) {
                             val point = path[i]
                             val t = point.x
                             val amplitude = point.y + baseRadius
@@ -244,6 +253,7 @@ fun FourierVisualizerBox(
 
                             sumX += wx
                             sumY += wy
+                            processedCount++
                         }
 
                         drawPath(
@@ -252,9 +262,8 @@ fun FourierVisualizerBox(
                             style = Stroke(width = AppDesign.strokeStandard, cap = StrokeCap.Round)
                         )
 
-                        val count = (path.size + 1) / 2
-                        val avgX = sumX / count
-                        val avgY = sumY / count
+                        val avgX = if (processedCount > 0) sumX / processedCount else 0f
+                        val avgY = if (processedCount > 0) sumY / processedCount else 0f
                         drawCircle(colors.accentHell, AppDesign.spacingExtraSmall.toPx() + 1f, Offset(avgX, avgY))
 
                         drawLine(
@@ -304,27 +313,11 @@ fun FourierVisualizerBox(
 
             Spacer(Modifier.height(AppDesign.spacingSmall + AppDesign.spacingExtraSmall / 2f))
 
-            IconButton(
-                onClick = { onClearPath() },
-                modifier = Modifier
-                    .size(AppDesign.sidebarButtonSize)
-                    .background(
-                        colors.accentHell.copy(alpha = AppDesign.opacityLow),
-                        RoundedCornerShape(AppDesign.radiusSmall)
-                    )
-                    .border(
-                        AppDesign.borderThin,
-                        colors.accentHell.copy(alpha = AppDesign.opacityLow * 2f),
-                        RoundedCornerShape(AppDesign.radiusSmall)
-                    )
-            ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.trash_bin_outline),
-                    null,
-                    tint = colors.accentHell,
-                    modifier = Modifier.size(AppDesign.iconMedium)
-                )
-            }
+            SidebarActionButton(
+                icon = painterResource(id = R.drawable.trash_line_outline),
+                colors = colors,
+                onClick = { onClearPath() }
+            )
         }
 
         // Terms Handler (Right Sidebar)

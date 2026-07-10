@@ -162,6 +162,7 @@ fun VoiceProcessing() {
                     .clickable(enabled = rawAudio != null) {
                         rawAudio = null
                         processedAudio = null
+                        magnitudes = null
                     },
                 contentAlignment = Alignment.Center
             ) {

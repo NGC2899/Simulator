@@ -31,7 +31,8 @@ import com.example.matharium.R
 fun WelcomeScreen(
     onNavigateToDoublePendulum: () -> Unit,
     onNavigateToFourierSeries: () -> Unit,
-    onNavigateToVoiceProcessing: () -> Unit
+    onNavigateToVoiceProcessing: () -> Unit,
+    onNavigateToFourD: () -> Unit
 ) {
     val colors = LocalAppColors.current
 
@@ -132,14 +133,24 @@ fun WelcomeScreen(
                 }
             }
 
-            // Coming Soon Card
+            // 4D Simulation Card
             item {
                 EntranceAnimation(visible = showContent, index = 3) {
                     SimulationCard(
-                        title = "Coming Soon",
+                        title = "4D Simulation",
                         colors = colors,
-                        enabled = false
-                    )
+                        onClick = onNavigateToFourD
+                    ) {
+                        Icon(
+                            painterResource(id = R.drawable.grid_outline),
+                            contentDescription = null,
+                            tint = colors.textPrimary,
+                            modifier = Modifier
+                                .align(Alignment.CenterEnd)
+                                .padding(end = 40.dp)
+                                .size(60.dp)
+                        )
+                    }
                 }
             }
 

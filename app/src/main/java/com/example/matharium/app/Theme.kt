@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.foundation.border
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.graphics.Color
@@ -437,6 +438,36 @@ fun DisplayModeButton(
                 contentDescription = null,
                 modifier = Modifier.size(AppDesign.iconMedium),
                 tint = if (selected) colors.accentCyan else colors.textSecondary
+            )
+        }
+    }
+}
+
+@Composable
+fun SidebarActionButton(
+    icon: Painter,
+    colors: AppColors,
+    modifier: Modifier = Modifier,
+    tint: Color = colors.accentHell,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = modifier
+            .size(AppDesign.sidebarButtonSize)
+            .clickable { onClick() },
+        shape = RoundedCornerShape(AppDesign.radiusSmall),
+        color = tint.copy(AppDesign.opacityLow),
+        border = BorderStroke(
+            AppDesign.borderThin,
+            tint.copy(AppDesign.opacityMedium)
+        )
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                painter = icon,
+                contentDescription = null,
+                modifier = Modifier.size(AppDesign.iconMedium),
+                tint = tint
             )
         }
     }

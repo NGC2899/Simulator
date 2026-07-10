@@ -4,12 +4,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 object DoublePendulumConstants {
-    const val PHYSICS_DT = 0.004
+    const val PHYSICS_DT = 0.006
     const val MAX_ELAPSED_TIME = 0.1
-    const val MAX_PHYSICS_STEPS = 20
+    const val MAX_PHYSICS_STEPS = 10
 
-    const val TRAIL_MAX_POINTS = 120
-    const val ANGLE_TRAIL_MAX_POINTS = 1000
+    const val TRAIL_MAX_POINTS = 80
+    const val ANGLE_TRAIL_MAX_POINTS = 500
 
     const val VELOCITY_COLOR_MULTIPLIER = 0.2f
     const val VELOCITY_HUE_OFFSET = 200f

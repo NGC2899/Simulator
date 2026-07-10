@@ -64,6 +64,10 @@ fun FourierSeries() {
     }
     var customCoefficients2D by remember { mutableStateOf<List<FourierLogic.ComplexCoeff>>(emptyList()) }
 
+    // --- SVG State ---
+    val svgPoints = remember { mutableStateListOf<Offset>() }
+    var svgCoefficients by remember { mutableStateOf<List<FourierLogic.ComplexCoeff>>(emptyList()) }
+
     // --- Custom Function State ---
     val customFunctionSignals = remember {
         val list = mutableStateListOf<SignalInstance>()
@@ -99,6 +103,17 @@ fun FourierSeries() {
         }
     }
 
+    fun calculateSVGDFT() {
+        dftJob?.cancel()
+        dftJob = coroutineScope.launch(Dispatchers.Default) {
+            if (svgPoints.isEmpty()) return@launch
+            val coeffs = FourierLogic.performComplexDFT(svgPoints.toList())
+            withContext(Dispatchers.Main) {
+                svgCoefficients = coeffs
+            }
+        }
+    }
+
     val svgPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: android.net.Uri? ->
@@ -110,9 +125,9 @@ fun FourierSeries() {
                     if (content != null) {
                         val points = FourierLogic.extractPointsFromSVG(content)
                         withContext(Dispatchers.Main) {
-                            drawingPoints2D.clear()
-                            drawingPoints2D.addAll(points)
-                            calculateDFT2D()
+                            svgPoints.clear()
+                            svgPoints.addAll(points)
+                            calculateSVGDFT()
                             path.clear()
                             time = 0f
                             running = true
@@ -156,10 +171,10 @@ fun FourierSeries() {
         var lastTime = System.nanoTime()
         while (running) {
             withFrameNanos { frameTime ->
-                val dt = (frameTime - lastTime) / 1e9f
+                val elapsedSeconds = (frameTime - lastTime) / 1e9f
                 lastTime = frameTime
-                val substeps = 4
-                val subDt = dt / substeps
+                val substeps = 2
+                val subDt = elapsedSeconds / substeps
                 val newPoints = mutableListOf<Offset>()
 
                 repeat(substeps) {
@@ -194,9 +209,19 @@ fun FourierSeries() {
                                 continue
                             }
 
-                            if (waveType == WaveType.MY_SIGNAL_2D || waveType == WaveType.SVG) {
+                            if (waveType == WaveType.MY_SIGNAL_2D) {
                                 if (i < customCoefficients2D.size) {
                                     val coeff = customCoefficients2D[i]
+                                    val angle = 2 * kotlin.math.PI.toFloat() * coeff.freq * time + coeff.phase
+                                    currentX += coeff.amp * kotlin.math.cos(angle)
+                                    currentY += coeff.amp * kotlin.math.sin(angle)
+                                }
+                                continue
+                            }
+
+                            if (waveType == WaveType.SVG) {
+                                if (i < svgCoefficients.size) {
+                                    val coeff = svgCoefficients[i]
                                     val angle = 2 * kotlin.math.PI.toFloat() * coeff.freq * time + coeff.phase
                                     currentX += coeff.amp * kotlin.math.cos(angle)
                                     currentY += coeff.amp * kotlin.math.sin(angle)
@@ -212,7 +237,7 @@ fun FourierSeries() {
                                 else -> 1f
                             }
                             val radius = when (waveType) {
-                                WaveType.SINE -> radiusBase
+                                WaveType.SINE -> if (i == 0) radiusBase else 0f
                                 WaveType.SQUARE -> radiusBase * (4f / (n * kotlin.math.PI.toFloat()))
                                 WaveType.SAWTOOTH -> radiusBase * (2f / (n * kotlin.math.PI.toFloat()))
                                 WaveType.TRIANGLE -> radiusBase * (8f / (n * n * kotlin.math.PI.toFloat() * kotlin.math.PI.toFloat()))
@@ -235,8 +260,8 @@ fun FourierSeries() {
 
                 path.addAll(0, newPoints)
 
-                if (path.size > 800) {
-                    val itemsToRemove = path.size - 800
+                if (path.size > 500) {
+                    val itemsToRemove = path.size - 500
                     repeat(itemsToRemove) { path.removeAt(path.size - 1) }
                 }
             }
@@ -260,9 +285,11 @@ fun FourierSeries() {
             displayMode = displayMode,
             drawingPoints = drawingPoints,
             drawingPoints2D = drawingPoints2D,
+            svgPoints = svgPoints,
             customFunctionSignals = customFunctionSignals,
             onCalculateDFT = { calculateDFT() },
             onCalculateDFT2D = { calculateDFT2D() },
+            onCalculateSVGDFT = { calculateSVGDFT() },
             onClearPath = { path.clear() },
             onResetTime = { time = 0f },
             onResetHasStarted = { hasStarted = false },
@@ -302,6 +329,7 @@ fun FourierSeries() {
             windingFrequency = windingFrequency,
             customCoefficients = customCoefficients,
             customCoefficients2D = customCoefficients2D,
+            svgCoefficients = svgCoefficients,
             customFunctionSignals = customFunctionSignals,
             colors = colors
         )
@@ -322,6 +350,7 @@ fun FourierSeries() {
                     colors = colors,
                     customCoefficients = customCoefficients,
                     customCoefficients2D = customCoefficients2D,
+                    svgCoefficients = svgCoefficients,
                     customFunctionSignals = customFunctionSignals
                 )
             }
@@ -333,6 +362,7 @@ fun FourierSeries() {
                     colors = colors,
                     customCoefficients = customCoefficients,
                     customCoefficients2D = customCoefficients2D,
+                    svgCoefficients = svgCoefficients,
                     customFunctionSignals = customFunctionSignals
                 )
             }

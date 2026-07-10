@@ -174,13 +174,18 @@ fun PendulumSettingsCard(
 }
 
 fun DrawScope.drawChaosTrail(trail: List<Offset>, color: Color, scale: Float) {
-    if (trail.size < 2) return
-    for (i in 0 until trail.size - 1) {
-        val alpha = (i.toFloat() / trail.size) * DoublePendulumConstants.COLOR_SATURATION_ALT
+    val size = trail.size
+    if (size < 2) return
+    
+    // Performance Optimization: Skip points if the trail is long to reduce draw calls
+    val step = if (size > 40) 2 else 1
+    
+    for (i in 0 until size - step step step) {
+        val alpha = (i.toFloat() / size) * DoublePendulumConstants.COLOR_SATURATION_ALT
         drawLine(
             color.copy(alpha = alpha),
             trail[i] * scale,
-            trail[i + 1] * scale,
+            trail[i + step] * scale,
             AppDesign.strokeThick,
             StrokeCap.Round
         )

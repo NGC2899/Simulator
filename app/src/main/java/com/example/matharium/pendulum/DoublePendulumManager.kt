@@ -93,8 +93,9 @@ fun DoublePendulumManager(
                             RoundedCornerShape(AppDesign.radiusButton)
                         )
                         .clickable {
-                            val baseT1 = pendulums.lastOrNull()?.t1 ?: "90.0"
-                            val baseT2 = pendulums.lastOrNull()?.t2 ?: "90.0"
+                            val lastP = pendulums.lastOrNull()
+                            val baseT1 = (if (hasStarted) lastP?.startT1 else lastP?.t1) ?: "90.0"
+                            val baseT2 = (if (hasStarted) lastP?.startT2 else lastP?.t2) ?: "90.0"
                             val color = Color.hsv(Random.nextFloat() * 360f, DoublePendulumConstants.COLOR_SATURATION, DoublePendulumConstants.COLOR_VALUE)
                             val newPendulum = PendulumInstance(nextId, color, baseT1, baseT2)
                             onNextIdChange(nextId + 1)
@@ -135,8 +136,9 @@ fun DoublePendulumManager(
                         )
                         .clickable {
                             if (pendulums.size < DoublePendulumConstants.MAX_PENDULUMS) {
-                                val baseT1 = pendulums.lastOrNull()?.t1?.toDoubleOrNull() ?: 90.0
-                                val baseT2 = pendulums.lastOrNull()?.t2?.toDoubleOrNull() ?: 90.0
+                                val lastP = pendulums.lastOrNull()
+                                val baseT1 = ((if (hasStarted) lastP?.startT1 else lastP?.t1) ?: "90.0").toDoubleOrNull() ?: 90.0
+                                val baseT2 = ((if (hasStarted) lastP?.startT2 else lastP?.t2) ?: "90.0").toDoubleOrNull() ?: 90.0
                                 var currentNextId = nextId
                                 
                                 repeat(DoublePendulumConstants.CHAOS_BATCH_COUNT) { i ->

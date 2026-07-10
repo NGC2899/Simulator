@@ -66,10 +66,8 @@ object FourierLogic {
      * Minimal implementation for demo purposes.
      */
     fun extractPointsFromSVG(svgContent: String): List<Offset> {
-        val points = mutableListOf<Offset>()
+        val rawPoints = mutableListOf<Offset>()
         try {
-            // Very basic validation: Check if there are elements other than <svg> and <path>
-            // This is a naive check to satisfy the requirement of "no other elements but paths"
             val tagPattern = "<([a-zA-Z0-9]+)".toRegex()
             val matches = tagPattern.findAll(svgContent)
             for (match in matches) {
@@ -79,17 +77,17 @@ object FourierLogic {
                 }
             }
 
-            // Extract path data 'd' attributes
             val dPattern = "d=\"([^\"]+)\"".toRegex()
             val dMatches = dPattern.findAll(svgContent)
             
             for (dMatch in dMatches) {
                 val d = dMatch.groupValues[1]
-                
-                // Better SVG path data parsing
-                // Split into commands and coordinates, handling both space and comma separators, and negative signs
-                val commandRegex = "([a-df-z])|([-+]?\\d*\\.?\\d+)".toRegex(RegexOption.IGNORE_CASE)
-                val tokens = commandRegex.findAll(d).map { it.value }.toList()
+                val tokens = mutableListOf<String>()
+                val tokenRegex = "([a-df-z])|(-?\\d*\\.?\\d+(?:e[-+]?\\d+)?)"
+                val matcher = java.util.regex.Pattern.compile(tokenRegex, java.util.regex.Pattern.CASE_INSENSITIVE).matcher(d)
+                while (matcher.find()) {
+                    tokens.add(matcher.group())
+                }
                 
                 var currentX = 0f
                 var currentY = 0f
@@ -103,7 +101,7 @@ object FourierLogic {
                         i++
                         
                         when (command.lowercaseChar()) {
-                            'm' -> { // MoveTo
+                            'm' -> {
                                 if (i + 1 < tokens.size) {
                                     val x = tokens[i].toFloatOrNull() ?: 0f
                                     val y = tokens[i+1].toFloatOrNull() ?: 0f
@@ -113,21 +111,19 @@ object FourierLogic {
                                         currentX = x; currentY = y
                                     }
                                     startX = currentX; startY = currentY
-                                    points.add(Offset(currentX, currentY))
+                                    rawPoints.add(Offset(currentX, currentY))
                                     i += 2
-                                    
-                                    // Implicit lineTo for subsequent coordinate pairs
                                     while (i + 1 < tokens.size && !tokens[i][0].isLetter()) {
                                         val nextX = tokens[i].toFloatOrNull() ?: 0f
                                         val nextY = tokens[i+1].toFloatOrNull() ?: 0f
                                         currentX = if (command.isLowerCase()) currentX + nextX else nextX
                                         currentY = if (command.isLowerCase()) currentY + nextY else nextY
-                                        points.add(Offset(currentX, currentY))
+                                        rawPoints.add(Offset(currentX, currentY))
                                         i += 2
                                     }
                                 }
                             }
-                            'l' -> { // LineTo
+                            'l' -> {
                                 while (i + 1 < tokens.size && !tokens[i][0].isLetter()) {
                                     val x = tokens[i].toFloatOrNull() ?: 0f
                                     val y = tokens[i+1].toFloatOrNull() ?: 0f
@@ -136,29 +132,28 @@ object FourierLogic {
                                     } else {
                                         currentX = x; currentY = y
                                     }
-                                    points.add(Offset(currentX, currentY))
+                                    rawPoints.add(Offset(currentX, currentY))
                                     i += 2
                                 }
                             }
-                            'h' -> { // Horizontal line
+                            'h' -> {
                                 while (i < tokens.size && !tokens[i][0].isLetter()) {
                                     val x = tokens[i].toFloatOrNull() ?: 0f
                                     if (command.isLowerCase()) currentX += x else currentX = x
-                                    points.add(Offset(currentX, currentY))
+                                    rawPoints.add(Offset(currentX, currentY))
                                     i++
                                 }
                             }
-                            'v' -> { // Vertical line
+                            'v' -> {
                                 while (i < tokens.size && !tokens[i][0].isLetter()) {
                                     val y = tokens[i].toFloatOrNull() ?: 0f
                                     if (command.isLowerCase()) currentY += y else currentY = y
-                                    points.add(Offset(currentX, currentY))
+                                    rawPoints.add(Offset(currentX, currentY))
                                     i++
                                 }
                             }
-                            'c' -> { // Cubic Bézier
+                            'c' -> {
                                 while (i + 5 < tokens.size && !tokens[i][0].isLetter()) {
-                                    // Sample at intervals for smoother curves
                                     val x1 = if (command.isLowerCase()) currentX + (tokens[i].toFloatOrNull() ?: 0f) else tokens[i].toFloatOrNull() ?: 0f
                                     val y1 = if (command.isLowerCase()) currentY + (tokens[i+1].toFloatOrNull() ?: 0f) else tokens[i+1].toFloatOrNull() ?: 0f
                                     val x2 = if (command.isLowerCase()) currentX + (tokens[i+2].toFloatOrNull() ?: 0f) else tokens[i+2].toFloatOrNull() ?: 0f
@@ -166,45 +161,42 @@ object FourierLogic {
                                     val ex = if (command.isLowerCase()) currentX + (tokens[i+4].toFloatOrNull() ?: 0f) else tokens[i+4].toFloatOrNull() ?: 0f
                                     val ey = if (command.isLowerCase()) currentY + (tokens[i+5].toFloatOrNull() ?: 0f) else tokens[i+5].toFloatOrNull() ?: 0f
                                     
-                                    // Simple linear sampling
-                                    val steps = 5
-                                    for (step in 1..steps) {
-                                        val t = step / steps.toFloat()
+                                    val curveSteps = 20
+                                    for (step in 1..curveSteps) {
+                                        val t = step / curveSteps.toFloat()
                                         val u = 1 - t
                                         val px = u*u*u*currentX + 3*u*u*t*x1 + 3*u*t*t*x2 + t*t*t*ex
                                         val py = u*u*u*currentY + 3*u*u*t*y1 + 3*u*t*t*y2 + t*t*t*ey
-                                        points.add(Offset(px, py))
+                                        rawPoints.add(Offset(px, py))
                                     }
-                                    
                                     currentX = ex; currentY = ey
                                     i += 6
                                 }
                             }
-                            'q' -> { // Quadratic Bézier
+                            'q' -> {
                                 while (i + 3 < tokens.size && !tokens[i][0].isLetter()) {
                                     val x1 = if (command.isLowerCase()) currentX + (tokens[i].toFloatOrNull() ?: 0f) else tokens[i].toFloatOrNull() ?: 0f
                                     val y1 = if (command.isLowerCase()) currentY + (tokens[i+1].toFloatOrNull() ?: 0f) else tokens[i+1].toFloatOrNull() ?: 0f
                                     val ex = if (command.isLowerCase()) currentX + (tokens[i+2].toFloatOrNull() ?: 0f) else tokens[i+2].toFloatOrNull() ?: 0f
                                     val ey = if (command.isLowerCase()) currentY + (tokens[i+3].toFloatOrNull() ?: 0f) else tokens[i+3].toFloatOrNull() ?: 0f
                                     
-                                    val steps = 5
-                                    for (step in 1..steps) {
-                                        val t = step / steps.toFloat()
+                                    val curveSteps = 15
+                                    for (step in 1..curveSteps) {
+                                        val t = step / curveSteps.toFloat()
                                         val u = 1 - t
                                         val px = u*u*currentX + 2*u*t*x1 + t*t*ex
                                         val py = u*u*currentY + 2*u*t*y1 + t*t*ey
-                                        points.add(Offset(px, py))
+                                        rawPoints.add(Offset(px, py))
                                     }
                                     currentX = ex; currentY = ey
                                     i += 4
                                 }
                             }
-                            'z' -> { // Close path
+                            'z' -> {
                                 currentX = startX; currentY = startY
-                                points.add(Offset(currentX, currentY))
+                                rawPoints.add(Offset(currentX, currentY))
                             }
                             else -> {
-                                // Skip unknown command coordinates
                                 while (i < tokens.size && !tokens[i][0].isLetter()) i++
                             }
                         }
@@ -212,16 +204,70 @@ object FourierLogic {
                 }
             }
             
-            // Center the points
-            if (points.isNotEmpty()) {
-                val avgX = points.map { it.x }.average().toFloat()
-                val avgY = points.map { it.y }.average().toFloat()
-                return points.map { Offset(it.x - avgX, it.y - avgY) }
+            if (rawPoints.isEmpty()) return emptyList()
+
+            // 1. Resample points uniformly along the path
+            val resampledPoints = mutableListOf<Offset>()
+            val targetSampleCount = 1000
+            
+            var totalPathLength = 0f
+            val segments = mutableListOf<Pair<Offset, Offset>>()
+            for (i in 0 until rawPoints.size - 1) {
+                val p1 = rawPoints[i]
+                val p2 = rawPoints[i+1]
+                val dist = sqrt((p2.x - p1.x).pow(2) + (p2.y - p1.y).pow(2))
+                if (dist > 0.1f) {
+                    totalPathLength += dist
+                    segments.add(p1 to p2)
+                }
             }
+            
+            if (segments.isEmpty()) return emptyList()
+            
+            val stepSize = totalPathLength / targetSampleCount
+            var currentDist = 0f
+            var currentSegmentIdx = 0
+            var distInCurrentSegment = 0f
+            
+            resampledPoints.add(segments[0].first)
+            for (i in 1 until targetSampleCount) {
+                val targetDist = i * stepSize
+                while (currentDist + sqrt((segments[currentSegmentIdx].second.x - segments[currentSegmentIdx].first.x).pow(2) + (segments[currentSegmentIdx].second.y - segments[currentSegmentIdx].first.y).pow(2)) < targetDist) {
+                    val d = sqrt((segments[currentSegmentIdx].second.x - segments[currentSegmentIdx].first.x).pow(2) + (segments[currentSegmentIdx].second.y - segments[currentSegmentIdx].first.y).pow(2))
+                    currentDist += d
+                    currentSegmentIdx++
+                    if (currentSegmentIdx >= segments.size) break
+                }
+                if (currentSegmentIdx >= segments.size) break
+                
+                val seg = segments[currentSegmentIdx]
+                val segLen = sqrt((seg.second.x - seg.first.x).pow(2) + (seg.second.y - seg.first.y).pow(2))
+                val t = (targetDist - currentDist) / segLen
+                resampledPoints.add(Offset(
+                    seg.first.x + (seg.second.x - seg.first.x) * t,
+                    seg.first.y + (seg.second.y - seg.first.y) * t
+                ))
+            }
+
+            // 2. Center and Scale
+            val minX = resampledPoints.minOf { it.x }
+            val maxX = resampledPoints.maxOf { it.x }
+            val minY = resampledPoints.minOf { it.y }
+            val maxY = resampledPoints.maxOf { it.y }
+            
+            val width = maxX - minX
+            val height = maxY - minY
+            val maxDim = max(width, height).coerceAtLeast(1f)
+            val scale = 250f / maxDim
+            val avgX = (minX + maxX) / 2f
+            val avgY = (minY + maxY) / 2f
+            
+            return resampledPoints.map { Offset((it.x - avgX) * scale, (it.y - avgY) * scale) }
+            
         } catch (e: Exception) {
             Log.e("FourierLogic", "Error parsing SVG", e)
         }
-        return points
+        return emptyList()
     }
 
     /**
