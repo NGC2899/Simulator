@@ -3,23 +3,17 @@ package com.example.matharium.fourier
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -477,6 +471,25 @@ fun ComplexHarmonicComponents(
             }
 
             Spacer(Modifier.height(AppDesign.radiusLarge))
+
+            if (maxTerms > 0) {
+                // Result Indicator
+                Text(
+                    "Signal",
+                    color = colors.accentCyan,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(Modifier.height(AppDesign.radiusSmall))
+                Icon(
+                    Icons.Default.KeyboardDoubleArrowDown,
+                    null,
+                    tint = colors.textSecondary.copy(0.5f),
+                    modifier = Modifier.size(AppDesign.radiusLarge)
+                )
+
+                Spacer(Modifier.height(AppDesign.radiusSmall))
+            }
 
             Column(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
