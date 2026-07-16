@@ -238,13 +238,15 @@ fun FourierSeries() {
                         for (i in 0 until limit) {
                             val signal = customFunctionSignals[i]
                             val freq = signal.freq.toFloatOrNull() ?: 0f
-                            val amp = signal.amp.toFloatOrNull() ?: 0f
+                            val amp = (signal.amp.toFloatOrNull() ?: 0f) * -1f // Match SINE direction
+                            val phase = kotlin.math.PI.toFloat() / 2f
                             val angle = 2 * kotlin.math.PI.toFloat() * freq * time
-                            currentX += amp * kotlin.math.cos(angle.toDouble()).toFloat()
-                            currentY += amp * kotlin.math.sin(angle.toDouble()).toFloat()
+                            currentY += amp * kotlin.math.cos((angle - phase).toDouble()).toFloat()
+                            currentX += amp * kotlin.math.sin((angle - phase).toDouble()).toFloat()
                         }
                     } else {
                         for (i in 0 until animationTerms) {
+                            if (waveType == WaveType.SINE && i > 0) continue
                             if (waveType == WaveType.MY_SIGNAL || waveType == WaveType.FORMULA) {
                                 val coeffs = if (waveType == WaveType.FORMULA) formulaCoefficients else customCoefficients
                                 if (i < coeffs.size) {

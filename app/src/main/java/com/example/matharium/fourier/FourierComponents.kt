@@ -29,6 +29,7 @@ import java.util.Locale
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
+import kotlin.math.sqrt
 
 @Composable
 fun HarmonicComponents(
@@ -71,7 +72,7 @@ fun HarmonicComponents(
 
             // Result Indicator
             Text(
-                "Pure Signal",
+                "Signal",
                 color = colors.accentCyan,
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Bold
@@ -155,7 +156,11 @@ fun HarmonicComponents(
                                 WaveType.FORMULA -> if (i < formulaCoefficients.size) (formulaCoefficients[i].first * (radiusBase / 100f) to formulaCoefficients[i].second) else (0f to 0f)
                                 WaveType.MY_SIGNAL_2D -> if (i < customCoefficients2D.size) (customCoefficients2D[i].amp * (radiusBase / 100f) to customCoefficients2D[i].phase) else (0f to 0f)
                                 WaveType.SVG -> if (i < svgCoefficients.size) (svgCoefficients[i].amp * (radiusBase / 100f) to svgCoefficients[i].phase) else (0f to 0f)
-                                WaveType.PURE_SIGNAL -> ((customFunctionSignals[i].amp.toFloatOrNull() ?: 0f) * (radiusBase / 100f) to 0f)
+                                WaveType.PURE_SIGNAL -> {
+                                    val amp = (customFunctionSignals[i].amp.toFloatOrNull() ?: 0f) * (radiusBase / 100f) * -1f
+                                    val phase = PI.toFloat() / 2f
+                                    amp to phase
+                                }
                                 else -> (0f to 0f)
                             }
 
@@ -165,7 +170,7 @@ fun HarmonicComponents(
                                 val x = (s.toFloat() / samples) * size.width
                                 val waveT = time - (1f - s.toFloat() / samples) * 2f
                                 val angle = 2 * PI.toFloat() * n * waveT
-                                val y = if (waveType == WaveType.MY_SIGNAL_2D || waveType == WaveType.SVG || waveType == WaveType.PURE_SIGNAL) {
+                                val y = if (waveType == WaveType.MY_SIGNAL_2D || waveType == WaveType.SVG) {
                                     centerY + amp * sin(angle + phase)
                                 } else {
                                     centerY + amp * cos(angle - phase)
@@ -228,117 +233,6 @@ fun HarmonicComponents(
 }
 
 @Composable
-fun SignalSettingsCard(
-    signal: SignalInstance,
-    colors: AppColors,
-    showDel: Boolean,
-    onParameterChange: () -> Unit,
-    onDel: () -> Unit
-) {
-    GlassCard(colors = colors) {
-        Column(modifier = Modifier.padding(10.dp)) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { signal.isExpanded = !signal.isExpanded },
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        Modifier
-                            .size(AppDesign.radiusSmall)
-                            .clip(androidx.compose.foundation.shape.CircleShape)
-                            .background(signal.color)
-                    )
-                    Spacer(Modifier.width(AppDesign.spacingSmall))
-                    Text(
-                        "Signal Component ${signal.id}",
-                        fontWeight = FontWeight.Bold,
-                        color = colors.textPrimary,
-                        fontSize = AppDesign.textBodyLarge
-                    )
-                }
-                Row {
-                    if (showDel) IconButton(
-                        onClick = onDel,
-                        modifier = Modifier.size(AppDesign.iconLarge)
-                    ) {
-                        Icon(
-                            Icons.Default.Delete,
-                            null,
-                            tint = colors.accentHell,
-                            modifier = Modifier.size(AppDesign.iconSmall)
-                        )
-                    }
-                    Spacer(Modifier.width(AppDesign.spacingSmall))
-                    Icon(
-                        if (signal.isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                        null,
-                        tint = colors.textSecondary
-                    )
-                }
-            }
-            AnimatedVisibility(
-                visible = signal.isExpanded,
-                enter = expandVertically(animationSpec = tween(AppDesign.animDurationStandard)) + fadeIn(
-                    animationSpec = tween(
-                        AppDesign.animDurationStandard
-                    )
-                ),
-                exit = shrinkVertically(animationSpec = tween(AppDesign.animDurationStandard)) + fadeOut(
-                    animationSpec = tween(
-                        AppDesign.animDurationStandard
-                    )
-                )
-            ) {
-                Row(
-                    modifier = Modifier.padding(top = AppDesign.spacingSmall),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Column(Modifier.weight(1f)) {
-                        SignalField("Freq (Hz)", signal.freq, colors) {
-                            signal.freq = it; onParameterChange()
-                        }
-                    }
-                    Column(Modifier.weight(1f)) {
-                        SignalField("Amp", signal.amp, colors) {
-                            signal.amp = it; onParameterChange()
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun SignalField(
-    label: String,
-    value: String,
-    colors: AppColors,
-    onValueChange: (String) -> Unit
-) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        label = { Text(label, fontSize = AppDesign.textCaption) },
-        textStyle = TextStyle(color = colors.textPrimary, fontSize = AppDesign.textBody),
-        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal),
-        singleLine = true,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = AppDesign.spacingSmall),
-        shape = RoundedCornerShape(AppDesign.radiusSmall),
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = colors.fieldFocused,
-            focusedLabelColor = colors.accentCyan,
-            unfocusedBorderColor = colors.fieldBorder
-        )
-    )
-}
-
-@Composable
 fun CenterOfMassGraph(
     path: List<Offset>,
     colors: AppColors,
@@ -385,12 +279,13 @@ fun CenterOfMassGraph(
 
                 // Calculate COM Graph using the ACTUAL data points from the simulation
                 val graphPath = Path()
-                val freqSteps = 50 // Optimized for mobile
+                val freqSteps = 150 // Increased for smoothness
 
                 for (s in 0..freqSteps) {
                     val freq = (s.toFloat() / freqSteps) * maxFreq
 
                     var sumX = 0f
+                    var sumY = 0f
                     var processedCount = 0
                     // Match physics substeps (step 2) for stability and consistent sampling
                     for (i in path.indices step 2) {
@@ -398,12 +293,16 @@ fun CenterOfMassGraph(
                         val t = point.x
                         val ft = point.y
                         sumX += ft * cos(2 * PI.toFloat() * freq * t)
+                        sumY += ft * sin(2 * PI.toFloat() * freq * t)
                         processedCount++
                     }
 
                     val avgX = if (processedCount > 0) sumX / processedCount else 0f
+                    val avgY = if (processedCount > 0) sumY / processedCount else 0f
+                    val magnitude = sqrt(avgX * avgX + avgY * avgY)
+                    
                     val x = freq * freqScale
-                    val y = centerY - avgX * 0.8f
+                    val y = centerY - magnitude * 0.9f
 
                     if (s == 0) graphPath.moveTo(x, y)
                     else graphPath.lineTo(x, y)
@@ -419,13 +318,19 @@ fun CenterOfMassGraph(
                 val currentX = currentWindingFreq * freqScale
 
                 // Highlight the point on the graph corresponding to the current winding freq
-                var currentAvgX = 0f
-                for (i in path.indices step 6) {
+                var currentSumX = 0f
+                var currentSumY = 0f
+                var currentCount = 0
+                for (i in path.indices step 2) {
                     val point = path[i]
-                    currentAvgX += point.y * cos(2 * PI.toFloat() * currentWindingFreq * point.x)
+                    currentSumX += point.y * cos(2 * PI.toFloat() * currentWindingFreq * point.x)
+                    currentSumY += point.y * sin(2 * PI.toFloat() * currentWindingFreq * point.x)
+                    currentCount++
                 }
-                currentAvgX /= ((path.size + 5) / 6)
-                val currentYOnGraph = centerY - currentAvgX * 0.8f
+                val currentAvgX = if (currentCount > 0) currentSumX / currentCount else 0f
+                val currentAvgY = if (currentCount > 0) currentSumY / currentCount else 0f
+                val currentMagnitude = sqrt(currentAvgX * currentAvgX + currentAvgY * currentAvgY)
+                val currentYOnGraph = centerY - currentMagnitude * 0.9f
 
                 drawLine(
                     colors.accentCyan.copy(0.4f),
@@ -542,6 +447,10 @@ fun ComplexHarmonicComponents(
                 fontSize = AppDesign.textHeadline,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.fillMaxWidth(),
+            )
+
+            Text(
+                if (true) "Add a component" else "",
             )
 
             Spacer(Modifier.height(AppDesign.radiusLarge))

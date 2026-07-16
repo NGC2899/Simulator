@@ -13,6 +13,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.layout.Measurable
 import androidx.compose.ui.layout.layout
@@ -98,6 +99,48 @@ fun FourierVisualizerBox(
                     drawLine(axisColor, Offset(left, 0f), Offset(right, 0f), AppDesign.strokeThin)
                     drawLine(axisColor, Offset(0f, top), Offset(0f, bottom), AppDesign.strokeThin)
 
+                    // Labels
+                    val labelColor = colors.textSecondary.copy(alpha = 0.4f).toArgb()
+                    val paint = android.graphics.Paint().apply {
+                        color = labelColor
+                        textSize = 10.sp.toPx()
+                        textAlign = android.graphics.Paint.Align.CENTER
+                        isAntiAlias = true
+                    }
+
+                    // X Labels
+                    var lx = step
+                    while (lx <= right) {
+                        drawIntoCanvas {
+                            it.nativeCanvas.drawText(lx.toInt().toString(), lx, 25f, paint)
+                        }
+                        lx += step
+                    }
+                    lx = -step
+                    while (lx >= left) {
+                        drawIntoCanvas {
+                            it.nativeCanvas.drawText(lx.toInt().toString(), lx, 25f, paint)
+                        }
+                        lx -= step
+                    }
+
+                    // Y Labels
+                    paint.textAlign = android.graphics.Paint.Align.RIGHT
+                    var ly = step
+                    while (ly <= bottom) {
+                        drawIntoCanvas {
+                            it.nativeCanvas.drawText((-ly).toInt().toString(), -8f, ly + 8f, paint)
+                        }
+                        ly += step
+                    }
+                    ly = -step
+                    while (ly >= top) {
+                        drawIntoCanvas {
+                            it.nativeCanvas.drawText((-ly).toInt().toString(), -8f, ly + 8f, paint)
+                        }
+                        ly -= step
+                    }
+
                     var x = 0f
                     var y = 0f
 
@@ -108,6 +151,7 @@ fun FourierVisualizerBox(
                     }
 
                     for (i in 0 until termsToDraw) {
+                        if (waveType == WaveType.SINE && i > 0) continue
                         val prevX = x
                         val prevY = y
 
@@ -138,13 +182,17 @@ fun FourierVisualizerBox(
                             WaveType.FORMULA -> if (i < formulaCoefficients.size) formulaCoefficients[i] else (0f to 0f)
                             WaveType.MY_SIGNAL_2D -> if (i < customCoefficients2D.size) (customCoefficients2D[i].amp to customCoefficients2D[i].phase) else (0f to 0f)
                             WaveType.SVG -> if (i < svgCoefficients.size) (svgCoefficients[i].amp to svgCoefficients[i].phase) else (0f to 0f)
-                            WaveType.PURE_SIGNAL -> if (i < customFunctionSignals.size) ((customFunctionSignals[i].amp.toFloatOrNull() ?: 0f) to 0f) else (0f to 0f)
+                            WaveType.PURE_SIGNAL -> if (i < customFunctionSignals.size) {
+                                val amp = (customFunctionSignals[i].amp.toFloatOrNull() ?: 0f) * -1f
+                                val phase = PI.toFloat() / 2f
+                                amp to phase
+                            } else (0f to 0f)
                         }
 
                         if (kotlin.math.abs(amp) < 0.5f && i > 0) continue
 
                         val angle = 2 * PI.toFloat() * n * time
-                        val (nextX, nextY) = if (waveType == WaveType.MY_SIGNAL_2D || waveType == WaveType.SVG || waveType == WaveType.PURE_SIGNAL) {
+                        val (nextX, nextY) = if (waveType == WaveType.MY_SIGNAL_2D || waveType == WaveType.SVG) {
                             Pair(x + amp * cos(angle + phase), y + amp * sin(angle + phase))
                         } else {
                             Pair(x + amp * sin(angle - phase), y + amp * cos(angle - phase))
@@ -233,6 +281,48 @@ fun FourierVisualizerBox(
                     val axisColor = colors.textSecondary.copy(alpha = AppDesign.opacityLow + AppDesign.opacitySubtle)
                     drawLine(axisColor, Offset(-halfWidth, 0f), Offset(halfWidth, 0f), AppDesign.strokeThin)
                     drawLine(axisColor, Offset(0f, -halfHeight), Offset(0f, halfHeight), AppDesign.strokeThin)
+
+                    // Labels
+                    val labelColor = colors.textSecondary.copy(alpha = 0.4f).toArgb()
+                    val paint = android.graphics.Paint().apply {
+                        color = labelColor
+                        textSize = 9.sp.toPx()
+                        textAlign = android.graphics.Paint.Align.CENTER
+                        isAntiAlias = true
+                    }
+
+                    // X Labels
+                    var lx = step
+                    while (lx <= halfWidth) {
+                        drawIntoCanvas {
+                            it.nativeCanvas.drawText(lx.toInt().toString(), lx, 20f, paint)
+                        }
+                        lx += step
+                    }
+                    lx = -step
+                    while (lx >= -halfWidth) {
+                        drawIntoCanvas {
+                            it.nativeCanvas.drawText(lx.toInt().toString(), lx, 20f, paint)
+                        }
+                        lx -= step
+                    }
+
+                    // Y Labels
+                    paint.textAlign = android.graphics.Paint.Align.RIGHT
+                    var ly = step
+                    while (ly <= halfHeight) {
+                        drawIntoCanvas {
+                            it.nativeCanvas.drawText((-ly).toInt().toString(), -8f, ly + 8f, paint)
+                        }
+                        ly += step
+                    }
+                    ly = -step
+                    while (ly >= -halfHeight) {
+                        drawIntoCanvas {
+                            it.nativeCanvas.drawText((-ly).toInt().toString(), -8f, ly + 8f, paint)
+                        }
+                        ly -= step
+                    }
 
                     val wrappedPath = Path()
                     var sumX = 0f

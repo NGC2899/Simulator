@@ -16,7 +16,9 @@
         <activity
             android:name=".app.MainActivity"
             android:exported="true"
-            android:theme="@style/Theme.MyApplication">
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.MyApplication"
+            tools:ignore="LockedOrientationActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
