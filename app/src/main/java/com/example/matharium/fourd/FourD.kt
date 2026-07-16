@@ -4,12 +4,12 @@ import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.RotateRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.*
@@ -19,19 +19,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.Measurable
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.matharium.app.*
+import com.example.matharium.R
 
 @Composable
 fun FourDScreen() {
     val colors = LocalAppColors.current
     val scrollState = rememberScrollState()
 
-    var selectedShape by remember { mutableStateOf(FourDShape.TESSERACT) }
-    var isRotating by remember { mutableStateOf(true) }
+    var selectedShape by remember { mutableStateOf(FourDShape.CUBE) }
+    var isRotating by remember { mutableStateOf(false) }
     var dimensions by remember { mutableIntStateOf(4) }
+    var isSettingsExpanded by remember { mutableStateOf(true) }
 
     Column(
         modifier = Modifier
@@ -41,54 +43,76 @@ fun FourDScreen() {
     ) {
         // --- Box 1: Samples and Controls ---
         GlassCard(colors = colors) {
-            Column(
-                modifier = Modifier.padding(AppDesign.spacingLarge),
-                verticalArrangement = Arrangement.spacedBy(AppDesign.spacingMedium)
-            ) {
-                Text(
-                    "Geometry Samples",
-                    fontSize = AppDesign.textHeadline,
-                    fontWeight = FontWeight.Bold
-                )
-
+            Column(modifier = Modifier.padding(AppDesign.spacingLarge)) {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(AppDesign.spacingSmall)
-                ) {
-                    FourDShape.entries.forEach { shape ->
-                        val selected = selectedShape == shape
-                        FilterChip(
-                            selected = selected,
-                            onClick = { selectedShape = shape },
-                            label = { Text(shape.name.lowercase().replaceFirstChar { it.uppercase() }) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = colors.accentCyan.copy(alpha = 0.2f),
-                                selectedLabelColor = colors.accentCyan
-                            )
-                        )
-                    }
-                }
-
-                // Rotation Toggle Button
-                Button(
-                    onClick = { isRotating = !isRotating },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(AppDesign.buttonHeightSmall),
-                    shape = RoundedCornerShape(AppDesign.radiusMedium),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isRotating) colors.accentCyan else colors.cardSurface,
-                        contentColor = if (isRotating) colors.textOnAccent else colors.accentCyan
-                    ),
-                    border = if (!isRotating) androidx.compose.foundation.BorderStroke(1.dp, colors.accentCyan) else null
+                        .clickable { isSettingsExpanded = !isSettingsExpanded },
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
+                    Text(
+                        "Geometry Samples",
+                        fontSize = AppDesign.textHeadline,
+                        fontWeight = FontWeight.Bold
+                    )
                     Icon(
-                        imageVector = Icons.AutoMirrored.Filled.RotateRight,
+                        painter = if (isSettingsExpanded) painterResource(id = R.drawable.chevron_up_outline) else painterResource(id = R.drawable.chevron_down_outline),
                         contentDescription = null,
+                        tint = colors.textSecondary,
                         modifier = Modifier.size(AppDesign.iconSmall)
                     )
-                    Spacer(Modifier.width(AppDesign.spacingSmall))
-                    Text(if (isRotating) "Rotation: ON" else "Rotation: OFF")
+                }
+
+                AnimatedVisibility(visible = isSettingsExpanded) {
+                    Column(
+                        modifier = Modifier.padding(top = AppDesign.spacingMedium),
+                        verticalArrangement = Arrangement.spacedBy(AppDesign.spacingMedium)
+                    ) {
+                        Text(
+                            "Select Shape",
+                            color = colors.textSecondary,
+                            fontSize = AppDesign.textBody
+                        )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(AppDesign.spacingSmall)
+                        ) {
+                            FourDShape.entries.forEach { shape ->
+                                val selected = selectedShape == shape
+                                FilterChip(
+                                    selected = selected,
+                                    onClick = { selectedShape = shape },
+                                    label = {
+                                        Text(
+                                            shape.name.lowercase().replace("_", " ").split(" ").joinToString(" ") { it.replaceFirstChar { char -> char.uppercase() } })
+                                    },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedLabelColor = colors.accentCyan,
+                                        selectedContainerColor = colors.accentCyan.copy(alpha = 0.0f)
+                                    ),
+                                    border = FilterChipDefaults.filterChipBorder(
+                                        enabled = true,
+                                        selected = selected,
+                                        borderColor = colors.cardBorder.copy(alpha = AppDesign.opacityMedium),
+                                        selectedBorderColor = colors.accentCyan,
+                                        borderWidth = AppDesign.borderThin,
+                                        selectedBorderWidth = AppDesign.borderThin
+                                    )
+                                )
+                            }
+                        }
+
+                        // Rotation Toggle Row
+                        ToggleRow(
+                            label = "Enable N-Dimensional Rotation",
+                            checked = isRotating,
+                            onCheckedChange = { isRotating = it },
+                            colors = colors
+                        )
+                    }
                 }
             }
         }
@@ -99,10 +123,10 @@ fun FourDScreen() {
                 .fillMaxWidth()
                 .height(AppDesign.canvasHeightSmall)
                 .clip(RoundedCornerShape(AppDesign.radiusCard))
-                .background(colors.cardSurface.copy(alpha = 0.45f))
+                .background(colors.cardSurface.copy(alpha = AppDesign.opacityGlass))
                 .border(
-                    1.dp,
-                    colors.cardBorder.copy(alpha = 0.6f),
+                    AppDesign.borderThin,
+                    colors.cardBorder.copy(alpha = AppDesign.opacityGlassBorder),
                     RoundedCornerShape(AppDesign.radiusCard)
                 )
         ) {
@@ -111,12 +135,12 @@ fun FourDScreen() {
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    "Simulating ${selectedShape.name} in ${dimensions}D",
-                    color = colors.textSecondary,
-                    fontSize = 14.sp
+                FourDVisualizer(
+                    shape = selectedShape,
+                    dimensions = dimensions,
+                    isRotating = isRotating,
+                    colors = colors
                 )
-                // Future implementation: FourDVisualizer(shape = selectedShape, dims = dimensions, rotating = isRotating)
             }
 
             // Dimension Handler (Right Sidebar)
@@ -138,7 +162,7 @@ fun FourDScreen() {
                         )
                         .border(
                             AppDesign.borderThin,
-                            colors.cardBorder.copy(alpha = AppDesign.opacityLow * 2f),
+                            colors.cardBorder.copy(alpha = AppDesign.opacityMedium),
                             RoundedCornerShape(AppDesign.radiusCard)
                         )
                         .padding(vertical = AppDesign.spacingMedium),
@@ -161,7 +185,7 @@ fun FourDScreen() {
                         Slider(
                             value = dimensions.toFloat(),
                             onValueChange = { dimensions = it.toInt() },
-                            valueRange = 2f..8f,
+                            valueRange = 2f..10f,
                             modifier = Modifier
                                 .weight(1f)
                                 .layout { measurable: Measurable, constraints ->
@@ -185,7 +209,7 @@ fun FourDScreen() {
                             colors = SliderDefaults.colors(
                                 thumbColor = colors.accentCyan,
                                 activeTrackColor = colors.accentCyan,
-                                inactiveTrackColor = colors.fieldBorder.copy(alpha = AppDesign.opacityLow * 2f)
+                                inactiveTrackColor = colors.fieldBorder.copy(alpha = AppDesign.opacityLow)
                             )
                         )
 

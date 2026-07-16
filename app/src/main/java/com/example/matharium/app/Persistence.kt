@@ -20,6 +20,10 @@ class AppPreferences(context: Context) {
         get() = prefs.getInt("fourier_n_terms", 5)
         set(value) = prefs.edit().putInt("fourier_n_terms", value).apply()
 
+    var fourierFormula: String
+        get() = prefs.getString("fourier_formula", "abs(sin(x))") ?: "abs(sin(x))"
+        set(value) = prefs.edit().putString("fourier_formula", value).apply()
+
     var drawingPoints: List<Float>
         get() = prefs.getString("drawing_points", "")?.split(",")?.filter { it.isNotEmpty() }?.mapNotNull { it.toFloatOrNull() } ?: emptyList()
         set(value) = prefs.edit().putString("drawing_points", value.joinToString(",")).apply()

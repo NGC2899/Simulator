@@ -6,7 +6,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -17,7 +16,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -42,52 +41,61 @@ fun WelcomeScreen(
     }
 
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = AppDesign.spacingLarge),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        modifier = Modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        Spacer(modifier = Modifier.height(AppDesign.welcomeHeaderHeight / 2))
 
-        Text(
-            text = "Welcome to",
-            color = colors.accentCyan,
-            fontSize = AppDesign.textHeadline,
-            fontWeight = FontWeight.Medium,
-            letterSpacing = 0.5.sp
-        )
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+            modifier = Modifier.padding(bottom = AppDesign.welcomeSectionSpacing)
+        ) {
+            Text(
+                text = "Welcome to",
+                color = colors.accentCyan,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Medium,
+                letterSpacing = 2.sp
+            )
 
-        Spacer(modifier = Modifier.height(AppDesign.spacingSmall))
-
-        Text(
+            Text(
                 text = "Matharium",
-        fontSize = AppDesign.textDisplayLarge,
-        fontWeight = FontWeight.Normal,
-        letterSpacing = 1.sp
-        )
+                style = androidx.compose.ui.text.TextStyle(
+                    fontSize = 48.sp,
+                    fontWeight = FontWeight.Bold,
+                    brush = Brush.linearGradient(
+                        listOf(colors.textPrimary, colors.accentCyan.copy(alpha = 0.7f))
+                    ),
+                    letterSpacing = 1.sp
+                )
+            )
+
+            Text(
+                text = "Explore the beauty of mathematics",
+                color = colors.textSecondary,
+                fontSize = 14.sp,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(top = 8.dp)
+            )
+        }
 
         LazyVerticalGrid(
-            columns = GridCells.Fixed(1),
-            modifier = Modifier.fillMaxWidth()
+            columns = GridCells.Fixed(2),
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(AppDesign.spacingLarge),
+            horizontalArrangement = Arrangement.spacedBy(AppDesign.spacingLarge),
+            contentPadding = PaddingValues(bottom = AppDesign.spacingLarge)
         ) {
-            // Fourier Transform Card
+            // Fourier Series Card
             item {
                 EntranceAnimation(visible = showContent, index = 0) {
                     SimulationCard(
-                        title = "Fourier Series",
+                        title = "Fourier\nSeries",
                         colors = colors,
                         onClick = onNavigateToFourierSeries,
-                    ) {
-                        Icon(
-                            painterResource(id = R.drawable.fourier_waves),
-                            contentDescription = null,
-                            tint = colors.textPrimary.copy(alpha = 0.8f),
-                            modifier = Modifier
-                                .align(Alignment.CenterEnd)
-                                .fillMaxHeight()
-                                .width(220.dp)
-                        )
-                    }
+                        iconRes = R.drawable.fourier_waves
+                    )
                 }
             }
 
@@ -95,20 +103,11 @@ fun WelcomeScreen(
             item {
                 EntranceAnimation(visible = showContent, index = 1) {
                     SimulationCard(
-                        title = "Voice Processing",
+                        title = "Voice\nProcessing",
                         colors = colors,
-                        onClick = onNavigateToVoiceProcessing
-                    ) {
-                        Icon(
-                            painterResource(id = R.drawable.mic_outline),
-                            contentDescription = null,
-                            tint = colors.textPrimary,
-                            modifier = Modifier
-                                .align(Alignment.CenterEnd)
-                                .padding(end = 40.dp)
-                                .size(60.dp)
-                        )
-                    }
+                        onClick = onNavigateToVoiceProcessing,
+                        iconRes = R.drawable.mic_outline
+                    )
                 }
             }
 
@@ -116,20 +115,11 @@ fun WelcomeScreen(
             item {
                 EntranceAnimation(visible = showContent, index = 2) {
                     SimulationCard(
-                        title = "Double Pendulum",
+                        title = "Double\nPendulum",
                         colors = colors,
-                        onClick = onNavigateToDoublePendulum
-                    ) {
-                        Icon(
-                            painterResource(id = R.drawable.pendulum_menu),
-                            contentDescription = null,
-                            tint = colors.textPrimary,
-                            modifier = Modifier
-                                .align(Alignment.CenterEnd)
-                                .padding(end = 40.dp)
-                                .size(60.dp)
-                        )
-                    }
+                        onClick = onNavigateToDoublePendulum,
+                        iconRes = R.drawable.pendulum_menu
+                    )
                 }
             }
 
@@ -137,26 +127,23 @@ fun WelcomeScreen(
             item {
                 EntranceAnimation(visible = showContent, index = 3) {
                     SimulationCard(
-                        title = "4D Simulation",
+                        title = "4D\nSimulation",
                         colors = colors,
-                        onClick = onNavigateToFourD
-                    ) {
-                        Icon(
-                            painterResource(id = R.drawable.grid_outline),
-                            contentDescription = null,
-                            tint = colors.textPrimary,
-                            modifier = Modifier
-                                .align(Alignment.CenterEnd)
-                                .padding(end = 40.dp)
-                                .size(60.dp)
-                        )
-                    }
+                        onClick = onNavigateToFourD,
+                        iconRes = R.drawable.grid_outline
+                    )
                 }
             }
 
-            // Empty Placeholder Cards
-            items(2) { index ->
-                EntranceAnimation(visible = showContent, index = index + 4) {
+            // Future Placeholder
+            item {
+                EntranceAnimation(visible = showContent, index = 4) {
+                    EmptyCard(colors = colors)
+                }
+            }
+            
+            item {
+                EntranceAnimation(visible = showContent, index = 5) {
                     EmptyCard(colors = colors)
                 }
             }
@@ -173,22 +160,17 @@ fun EntranceAnimation(
     var animatedVisible by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(visible) {
         if (visible && !animatedVisible) {
-            delay((index * 120L).milliseconds)
+            delay((index * 100L).milliseconds)
             animatedVisible = true
         }
     }
 
-    Box(modifier = Modifier
-        .fillMaxWidth()
-        .aspectRatio(2f)) {
-        AnimatedVisibility(
-            visible = animatedVisible,
-            enter = fadeIn(tween(800, easing = EaseOutCubic)) +
-                    slideInHorizontally(tween(600, easing = EaseOutCubic)) { it / -2 },
-            modifier = Modifier.matchParentSize()
-        ) {
-            content()
-        }
+    AnimatedVisibility(
+        visible = animatedVisible,
+        enter = fadeIn(tween(800, easing = EaseOutCubic)) +
+                slideInVertically(tween(600, easing = EaseOutCubic)) { it / 2 },
+    ) {
+        content()
     }
 }
 
@@ -196,38 +178,41 @@ fun EntranceAnimation(
 fun SimulationCard(
     title: String,
     colors: AppColors,
-    enabled: Boolean = true,
-    onClick: () -> Unit = {},
-    icon: @Composable (BoxScope.() -> Unit)? = null
+    onClick: () -> Unit,
+    iconRes: Int
 ) {
     Box(
         modifier = Modifier
-            .aspectRatio(3f)
+            .aspectRatio(0.85f)
             .clip(RoundedCornerShape(AppDesign.radiusCard))
-            .background(colors.cardSurface.copy(alpha = 0.45f))
+            .background(colors.cardSurface.copy(alpha = 0.35f))
             .border(
                 1.dp,
-                colors.cardBorder.copy(alpha = 0.6f),
+                colors.cardBorder.copy(alpha = 0.5f),
                 RoundedCornerShape(AppDesign.radiusCard)
             )
-            .clickable(enabled = enabled) { onClick() }
+            .clickable { onClick() }
+            .padding(AppDesign.spacingLarge)
     ) {
-        if (icon != null) {
-            icon()
-        }
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Icon(
+                painter = painterResource(id = iconRes),
+                contentDescription = null,
+                tint = colors.accentCyan,
+                modifier = Modifier.size(40.dp)
+            )
 
-        Text(
-            text = title,
-            color = if (enabled) Color.Unspecified else colors.textSecondary.copy(
-                alpha = 0.7f
-            ),
-            fontSize = AppDesign.textBodyLarge,
-            textAlign = TextAlign.Start,
-            fontWeight = if (enabled) FontWeight.Bold else FontWeight.Normal,
-            modifier = Modifier
-                .align(Alignment.CenterStart)
-                .padding(start = 40.dp)
-        )
+            Text(
+                text = title,
+                color = colors.textPrimary,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                lineHeight = 22.sp
+            )
+        }
     }
 }
 
@@ -235,11 +220,19 @@ fun SimulationCard(
 fun EmptyCard(colors: AppColors) {
     Box(
         modifier = Modifier
-            .aspectRatio(3f)
+            .aspectRatio(0.85f)
             .border(
-                width = AppDesign.borderThin,
-                color = colors.cardBorder.copy(alpha = 0.25f),
+                width = 1.dp,
+                color = colors.cardBorder.copy(alpha = 0.15f),
                 shape = RoundedCornerShape(AppDesign.radiusCard)
-            )
-    )
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            painter = painterResource(id = R.drawable.add_outline),
+            contentDescription = null,
+            tint = colors.textSecondary.copy(alpha = 0.2f),
+            modifier = Modifier.size(32.dp)
+        )
+    }
 }

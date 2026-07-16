@@ -39,6 +39,7 @@ fun FourierVisualizerBox(
     windingFrequency: Float,
     customCoefficients: List<Pair<Float, Float>>,
     customCoefficients2D: List<FourierLogic.ComplexCoeff>,
+    formulaCoefficients: List<Pair<Float, Float>> = emptyList(),
     svgCoefficients: List<FourierLogic.ComplexCoeff> = emptyList(),
     customFunctionSignals: List<SignalInstance>,
     colors: AppColors
@@ -115,18 +116,20 @@ fun FourierVisualizerBox(
                             WaveType.SQUARE -> (i * 2 + 1).toFloat()
                             WaveType.SAWTOOTH -> (i + 1).toFloat()
                             WaveType.TRIANGLE -> (i * 2 + 1).toFloat()
-                            WaveType.MY_SIGNAL -> (i + 1).toFloat()
+                            WaveType.MY_SIGNAL -> i.toFloat()
+                            WaveType.FORMULA -> i.toFloat()
                             WaveType.MY_SIGNAL_2D -> if (i < customCoefficients2D.size) customCoefficients2D[i].freq.toFloat() else 0f
                             WaveType.SVG -> if (i < svgCoefficients.size) svgCoefficients[i].freq.toFloat() else 0f
                             WaveType.CUSTOM_FUNCTION -> if (i < customFunctionSignals.size) customFunctionSignals[i].freq.toFloatOrNull() ?: 0f else 0f
                         }
 
                         val radius = when (waveType) {
-                            WaveType.SINE -> if (i == 0) radiusBase else 0f
-                            WaveType.SQUARE -> radiusBase * (4f / (n * PI.toFloat()))
-                            WaveType.SAWTOOTH -> radiusBase * (2f / (n * PI.toFloat()))
-                            WaveType.TRIANGLE -> radiusBase * (8f / (n * n * PI.toFloat() * PI.toFloat()))
+                            WaveType.SINE -> if (i == 0) -radiusBase else 0f
+                            WaveType.SQUARE -> -radiusBase * (4f / (n * PI.toFloat()))
+                            WaveType.SAWTOOTH -> -radiusBase * (2f / (n * PI.toFloat()))
+                            WaveType.TRIANGLE -> -radiusBase * (8f / (n * n * PI.toFloat() * PI.toFloat()))
                             WaveType.MY_SIGNAL -> if (i < customCoefficients.size) customCoefficients[i].first else 0f
+                            WaveType.FORMULA -> if (i < formulaCoefficients.size) formulaCoefficients[i].first else 0f
                             WaveType.MY_SIGNAL_2D -> if (i < customCoefficients2D.size) customCoefficients2D[i].amp else 0f
                             WaveType.SVG -> if (i < svgCoefficients.size) svgCoefficients[i].amp else 0f
                             WaveType.CUSTOM_FUNCTION -> if (i < customFunctionSignals.size) customFunctionSignals[i].amp.toFloatOrNull() ?: 0f else 0f
@@ -140,6 +143,7 @@ fun FourierVisualizerBox(
                             WaveType.SAWTOOTH -> 0f
                             WaveType.TRIANGLE -> if (i % 2 != 0) PI.toFloat() else 0f
                             WaveType.MY_SIGNAL -> if (i < customCoefficients.size) customCoefficients[i].second else 0f
+                            WaveType.FORMULA -> if (i < formulaCoefficients.size) formulaCoefficients[i].second else 0f
                             WaveType.MY_SIGNAL_2D -> if (i < customCoefficients2D.size) customCoefficients2D[i].phase else 0f
                             WaveType.SVG -> if (i < svgCoefficients.size) svgCoefficients[i].phase else 0f
                             WaveType.CUSTOM_FUNCTION -> 0f

@@ -45,6 +45,8 @@ fun FourierSettingsCard(
     drawingPoints2D: MutableList<Offset>,
     svgPoints: MutableList<Offset>,
     customFunctionSignals: MutableList<SignalInstance>,
+    formulaString: String,
+    onFormulaChange: (String) -> Unit,
     onCalculateDFT: () -> Unit,
     onCalculateDFT2D: () -> Unit,
     onCalculateSVGDFT: () -> Unit,
@@ -152,6 +154,45 @@ fun FourierSettingsCard(
                                             )
                                             .height(AppDesign.chipHeight)
                                     } else Modifier
+                            )
+                        }
+                    }
+
+                    AnimatedVisibility(visible = waveType == WaveType.FORMULA) {
+                        Column(modifier = Modifier.padding(top = AppDesign.radiusLarge)) {
+                            Text(
+                                "Mathematical Formula",
+                                color = colors.accentCyan,
+                                fontSize = AppDesign.textBody,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(Modifier.height(AppDesign.radiusSmall))
+                            
+                            OutlinedTextField(
+                                value = formulaString,
+                                onValueChange = { 
+                                    onFormulaChange(it)
+                                    onCalculateDFT()
+                                    onClearPath()
+                                    onResetTime()
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                placeholder = { Text("e.g. abs(sin(x))", color = colors.textSecondary.copy(0.5f)) },
+                                singleLine = true,
+                                shape = RoundedCornerShape(AppDesign.radiusSmall),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = colors.accentCyan,
+                                    unfocusedBorderColor = colors.cardBorder.copy(0.3f),
+                                    cursorColor = colors.accentCyan
+                                )
+                            )
+                            
+                            Spacer(Modifier.height(AppDesign.spacingSmall))
+                            
+                            Text(
+                                "Use 'x' as variable (0 to 2π). Supported: sin, cos, abs, sqrt, ^, etc.",
+                                color = colors.textSecondary,
+                                fontSize = 11.sp
                             )
                         }
                     }

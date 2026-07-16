@@ -38,6 +38,9 @@ fun FourierSeries() {
     var displayMode by remember { mutableStateOf(FourierDisplayMode.CIRCULAR) }
     var windingFrequency by remember { mutableFloatStateOf(1.0f) }
 
+    var formulaString by remember { mutableStateOf(prefs.fourierFormula) }
+    var formulaCoefficients by remember { mutableStateOf<List<Pair<Float, Float>>>(emptyList()) }
+
     var time by remember { mutableFloatStateOf(0f) }
     val path = remember { mutableStateListOf<Offset>() }
 
@@ -84,10 +87,27 @@ fun FourierSeries() {
     fun calculateDFT() {
         dftJob?.cancel()
         dftJob = coroutineScope.launch(Dispatchers.Default) {
-            if (drawingPoints.size < samplesCount) return@launch
-            val coeffs = FourierLogic.performDFT(drawingPoints.toList(), samplesCount)
+            val samples = if (waveType == WaveType.FORMULA) {
+                val list = mutableListOf<Float>()
+                for (i in 0 until samplesCount) {
+                    val x = (i.toDouble() / samplesCount) * 2 * kotlin.math.PI
+                    // Formula gives value around 0, let's scale it slightly for better default visualization
+                    val value = -FourierExpressionEvaluator.evaluate(formulaString, x).toFloat()
+                    list.add(value * 80f)
+                }
+                list
+            } else {
+                if (drawingPoints.size < samplesCount) return@launch
+                drawingPoints.toList()
+            }
+            
+            val coeffs = FourierLogic.performDFT(samples, samplesCount)
             withContext(Dispatchers.Main) {
-                customCoefficients = coeffs
+                if (waveType == WaveType.FORMULA) {
+                    formulaCoefficients = coeffs
+                } else {
+                    customCoefficients = coeffs
+                }
             }
         }
     }
@@ -146,7 +166,7 @@ fun FourierSeries() {
 
     // Initialize DFT if drawing points exist
     LaunchedEffect(Unit) {
-        if (drawingPoints.any { it != 0f }) {
+        if (drawingPoints.any { it != 0f } || formulaString.isNotEmpty()) {
             calculateDFT()
         }
         if (drawingPoints2D.isNotEmpty()) {
@@ -156,6 +176,12 @@ fun FourierSeries() {
 
     // Save state when it changes
     LaunchedEffect(nTerms) { prefs.fourierNTerms = nTerms }
+    LaunchedEffect(formulaString, waveType) { 
+        prefs.fourierFormula = formulaString
+        if (waveType == WaveType.FORMULA) {
+            calculateDFT()
+        }
+    }
     LaunchedEffect(drawingPoints.toList()) { prefs.drawingPoints = drawingPoints.toList() }
     LaunchedEffect(customFunctionSignals.toList()) { prefs.saveFourierSignals(customFunctionSignals.toList()) }
 
@@ -165,6 +191,7 @@ fun FourierSeries() {
         nTerms,
         waveType,
         customCoefficients,
+        formulaCoefficients,
         customFunctionSignals.size
     ) {
         if (!running) return@LaunchedEffect
@@ -198,10 +225,11 @@ fun FourierSeries() {
                         }
                     } else {
                         for (i in 0 until animationTerms) {
-                            if (waveType == WaveType.MY_SIGNAL) {
-                                if (i < customCoefficients.size) {
-                                    val (amp, phase) = customCoefficients[i]
-                                    val n = i + 1
+                            if (waveType == WaveType.MY_SIGNAL || waveType == WaveType.FORMULA) {
+                                val coeffs = if (waveType == WaveType.FORMULA) formulaCoefficients else customCoefficients
+                                if (i < coeffs.size) {
+                                    val (amp, phase) = coeffs[i]
+                                    val n = i // Using i instead of i+1 because coeffs[0] is now n=0
                                     val angle = 2 * kotlin.math.PI.toFloat() * n * time + phase
                                     currentX += amp * kotlin.math.cos(angle)
                                     currentY += amp * kotlin.math.sin(angle)
@@ -237,10 +265,10 @@ fun FourierSeries() {
                                 else -> 1f
                             }
                             val radius = when (waveType) {
-                                WaveType.SINE -> if (i == 0) radiusBase else 0f
-                                WaveType.SQUARE -> radiusBase * (4f / (n * kotlin.math.PI.toFloat()))
-                                WaveType.SAWTOOTH -> radiusBase * (2f / (n * kotlin.math.PI.toFloat()))
-                                WaveType.TRIANGLE -> radiusBase * (8f / (n * n * kotlin.math.PI.toFloat() * kotlin.math.PI.toFloat()))
+                                WaveType.SINE -> if (i == 0) -radiusBase else 0f
+                                WaveType.SQUARE -> -radiusBase * (4f / (n * kotlin.math.PI.toFloat()))
+                                WaveType.SAWTOOTH -> -radiusBase * (2f / (n * kotlin.math.PI.toFloat()))
+                                WaveType.TRIANGLE -> -radiusBase * (8f / (n * n * kotlin.math.PI.toFloat() * kotlin.math.PI.toFloat()))
                                 else -> 0f
                             }
                             val phase =
@@ -287,6 +315,8 @@ fun FourierSeries() {
             drawingPoints2D = drawingPoints2D,
             svgPoints = svgPoints,
             customFunctionSignals = customFunctionSignals,
+            formulaString = formulaString,
+            onFormulaChange = { formulaString = it },
             onCalculateDFT = { calculateDFT() },
             onCalculateDFT2D = { calculateDFT2D() },
             onCalculateSVGDFT = { calculateSVGDFT() },
@@ -329,6 +359,7 @@ fun FourierSeries() {
             windingFrequency = windingFrequency,
             customCoefficients = customCoefficients,
             customCoefficients2D = customCoefficients2D,
+            formulaCoefficients = formulaCoefficients,
             svgCoefficients = svgCoefficients,
             customFunctionSignals = customFunctionSignals,
             colors = colors
@@ -350,6 +381,7 @@ fun FourierSeries() {
                     colors = colors,
                     customCoefficients = customCoefficients,
                     customCoefficients2D = customCoefficients2D,
+                    formulaCoefficients = formulaCoefficients,
                     svgCoefficients = svgCoefficients,
                     customFunctionSignals = customFunctionSignals
                 )
@@ -362,6 +394,7 @@ fun FourierSeries() {
                     colors = colors,
                     customCoefficients = customCoefficients,
                     customCoefficients2D = customCoefficients2D,
+                    formulaCoefficients = formulaCoefficients,
                     svgCoefficients = svgCoefficients,
                     customFunctionSignals = customFunctionSignals
                 )

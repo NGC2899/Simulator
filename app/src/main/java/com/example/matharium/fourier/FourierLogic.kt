@@ -8,6 +8,16 @@ object FourierLogic {
 
     fun performDFT(drawingPoints: List<Float>, samplesCount: Int): List<Pair<Float, Float>> {
         val coeffs = mutableListOf<Pair<Float, Float>>()
+        
+        // n=0 (DC offset / constant term)
+        var re0 = 0f
+        for (i in 0 until samplesCount) {
+            re0 += drawingPoints[i]
+        }
+        re0 /= samplesCount
+        // Use standard atan2(im, re) for DC offset
+        coeffs.add(kotlin.math.abs(re0) to atan2(0f, re0))
+
         // Calculate Harmonics up to 50
         for (n in 1..50) {
             var re = 0f
@@ -22,7 +32,7 @@ object FourierLogic {
             im /= (samplesCount / 2f)
 
             val amp = sqrt(re * re + im * im)
-            val phase = atan2(re, im)
+            val phase = atan2(im, re)
             coeffs.add(amp to phase)
         }
         return coeffs
