@@ -20,6 +20,18 @@ class AppPreferences(context: Context) {
         get() = prefs.getInt("fourier_n_terms", 5)
         set(value) = prefs.edit().putInt("fourier_n_terms", value).apply()
 
+    var fourierWaveType: String
+        get() = prefs.getString("fourier_wave_type", "SQUARE") ?: "SQUARE"
+        set(value) = prefs.edit().putString("fourier_wave_type", value).apply()
+
+    var fourierSpeed: Float
+        get() = prefs.getFloat("fourier_speed", 1.0f)
+        set(value) = prefs.edit().putFloat("fourier_speed", value).apply()
+
+    var fourierDisplayMode: String
+        get() = prefs.getString("fourier_display_mode", "CIRCULAR") ?: "CIRCULAR"
+        set(value) = prefs.edit().putString("fourier_display_mode", value).apply()
+
     var fourierFormula: String
         get() = prefs.getString("fourier_formula", "abs(sin(x))") ?: "abs(sin(x))"
         set(value) = prefs.edit().putString("fourier_formula", value).apply()

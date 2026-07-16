@@ -23,7 +23,16 @@ fun FourierSeries() {
     val prefs = LocalAppPrefs.current
 
     var nTerms by remember { mutableIntStateOf(prefs.fourierNTerms) }
-    var waveType by remember { mutableStateOf(WaveType.SQUARE) }
+    var waveType by remember {
+        mutableStateOf(
+            try {
+                val saved = prefs.fourierWaveType
+                if (saved == "CUSTOM_FUNCTION") WaveType.PURE_SIGNAL else WaveType.valueOf(saved)
+            } catch (e: Exception) {
+                WaveType.SQUARE
+            }
+        )
+    }
 
     // Clamp nTerms when switching wave types
     LaunchedEffect(waveType) {
@@ -31,11 +40,20 @@ fun FourierSeries() {
         if (nTerms > maxForCurrent) {
             nTerms = maxForCurrent
         }
+        prefs.fourierWaveType = waveType.name
     }
     var running by remember { mutableStateOf(false) }
     var hasStarted by remember { mutableStateOf(false) }
-    var speed by remember { mutableFloatStateOf(1.0f) }
-    var displayMode by remember { mutableStateOf(FourierDisplayMode.CIRCULAR) }
+    var speed by remember { mutableFloatStateOf(prefs.fourierSpeed) }
+    var displayMode by remember {
+        mutableStateOf(
+            try {
+                FourierDisplayMode.valueOf(prefs.fourierDisplayMode)
+            } catch (e: Exception) {
+                FourierDisplayMode.CIRCULAR
+            }
+        )
+    }
     var windingFrequency by remember { mutableFloatStateOf(1.0f) }
 
     var formulaString by remember { mutableStateOf(prefs.fourierFormula) }
@@ -176,6 +194,8 @@ fun FourierSeries() {
 
     // Save state when it changes
     LaunchedEffect(nTerms) { prefs.fourierNTerms = nTerms }
+    LaunchedEffect(speed) { prefs.fourierSpeed = speed }
+    LaunchedEffect(displayMode) { prefs.fourierDisplayMode = displayMode.name }
     LaunchedEffect(formulaString, waveType) { 
         prefs.fourierFormula = formulaString
         if (waveType == WaveType.FORMULA) {
@@ -213,15 +233,15 @@ fun FourierSeries() {
 
                     val animationTerms = nTerms
 
-                    if (waveType == WaveType.CUSTOM_FUNCTION) {
+                    if (waveType == WaveType.PURE_SIGNAL) {
                         val limit = animationTerms.coerceAtMost(customFunctionSignals.size)
                         for (i in 0 until limit) {
                             val signal = customFunctionSignals[i]
                             val freq = signal.freq.toFloatOrNull() ?: 0f
                             val amp = signal.amp.toFloatOrNull() ?: 0f
                             val angle = 2 * kotlin.math.PI.toFloat() * freq * time
-                            currentX += amp * kotlin.math.cos(angle)
-                            currentY += amp * kotlin.math.sin(angle)
+                            currentX += amp * kotlin.math.cos(angle.toDouble()).toFloat()
+                            currentY += amp * kotlin.math.sin(angle.toDouble()).toFloat()
                         }
                     } else {
                         for (i in 0 until animationTerms) {
@@ -229,10 +249,10 @@ fun FourierSeries() {
                                 val coeffs = if (waveType == WaveType.FORMULA) formulaCoefficients else customCoefficients
                                 if (i < coeffs.size) {
                                     val (amp, phase) = coeffs[i]
-                                    val n = i // Using i instead of i+1 because coeffs[0] is now n=0
-                                    val angle = 2 * kotlin.math.PI.toFloat() * n * time + phase
-                                    currentX += amp * kotlin.math.cos(angle)
-                                    currentY += amp * kotlin.math.sin(angle)
+                                    val n = i.toFloat()
+                                    val angle = 2 * kotlin.math.PI.toFloat() * n * time
+                                    currentY += amp * kotlin.math.cos((angle - phase).toDouble()).toFloat()
+                                    currentX += amp * kotlin.math.sin((angle - phase).toDouble()).toFloat()
                                 }
                                 continue
                             }
@@ -241,8 +261,8 @@ fun FourierSeries() {
                                 if (i < customCoefficients2D.size) {
                                     val coeff = customCoefficients2D[i]
                                     val angle = 2 * kotlin.math.PI.toFloat() * coeff.freq * time + coeff.phase
-                                    currentX += coeff.amp * kotlin.math.cos(angle)
-                                    currentY += coeff.amp * kotlin.math.sin(angle)
+                                    currentX += coeff.amp * kotlin.math.cos(angle.toDouble()).toFloat()
+                                    currentY += coeff.amp * kotlin.math.sin(angle.toDouble()).toFloat()
                                 }
                                 continue
                             }
@@ -251,8 +271,8 @@ fun FourierSeries() {
                                 if (i < svgCoefficients.size) {
                                     val coeff = svgCoefficients[i]
                                     val angle = 2 * kotlin.math.PI.toFloat() * coeff.freq * time + coeff.phase
-                                    currentX += coeff.amp * kotlin.math.cos(angle)
-                                    currentY += coeff.amp * kotlin.math.sin(angle)
+                                    currentX += coeff.amp * kotlin.math.cos(angle.toDouble()).toFloat()
+                                    currentY += coeff.amp * kotlin.math.sin(angle.toDouble()).toFloat()
                                 }
                                 continue
                             }
@@ -264,18 +284,22 @@ fun FourierSeries() {
                                 WaveType.TRIANGLE -> (i * 2 + 1).toFloat()
                                 else -> 1f
                             }
-                            val radius = when (waveType) {
-                                WaveType.SINE -> if (i == 0) -radiusBase else 0f
-                                WaveType.SQUARE -> -radiusBase * (4f / (n * kotlin.math.PI.toFloat()))
-                                WaveType.SAWTOOTH -> -radiusBase * (2f / (n * kotlin.math.PI.toFloat()))
-                                WaveType.TRIANGLE -> -radiusBase * (8f / (n * n * kotlin.math.PI.toFloat() * kotlin.math.PI.toFloat()))
-                                else -> 0f
+                            val (amp, phase) = when (waveType) {
+                                WaveType.SINE -> Pair(-radiusBase, kotlin.math.PI.toFloat() / 2f)
+                                WaveType.SQUARE -> Pair(-radiusBase * (4f / (n * kotlin.math.PI.toFloat())), kotlin.math.PI.toFloat() / 2f)
+                                WaveType.SAWTOOTH -> {
+                                    val sign = if (n.toInt() % 2 == 0) -1f else 1f
+                                    Pair(-radiusBase * (2f / (n * kotlin.math.PI.toFloat())) * sign, kotlin.math.PI.toFloat() / 2f)
+                                }
+                                WaveType.TRIANGLE -> {
+                                    val sign = if (((n.toInt() - 1) / 2) % 2 != 0) -1f else 1f
+                                    Pair(-radiusBase * (8f / (n * n * kotlin.math.PI.toFloat() * kotlin.math.PI.toFloat())) * sign, kotlin.math.PI.toFloat() / 2f)
+                                }
+                                else -> Pair(0f, 0f)
                             }
-                            val phase =
-                                if (waveType == WaveType.TRIANGLE && i % 2 != 0) kotlin.math.PI.toFloat() else 0f
-                            val angle = 2 * kotlin.math.PI.toFloat() * n * time + phase
-                            currentX += radius * kotlin.math.cos(angle)
-                            currentY += radius * kotlin.math.sin(angle)
+                            val angle = 2 * kotlin.math.PI.toFloat() * n * time
+                            currentY += amp * kotlin.math.cos((angle - phase).toDouble()).toFloat()
+                            currentX += amp * kotlin.math.sin((angle - phase).toDouble()).toFloat()
                         }
                     }
 
@@ -319,7 +343,21 @@ fun FourierSeries() {
             onFormulaChange = { formulaString = it },
             onCalculateDFT = { calculateDFT() },
             onCalculateDFT2D = { calculateDFT2D() },
-            onCalculateSVGDFT = { calculateSVGDFT() },
+            onClearCustomCoefficients = { 
+                customCoefficients = emptyList()
+                running = false
+                hasStarted = false
+            },
+            onClearCustomCoefficients2D = { 
+                customCoefficients2D = emptyList()
+                running = false
+                hasStarted = false
+            },
+            onClearSVGCoefficients = { 
+                svgCoefficients = emptyList()
+                running = false
+                hasStarted = false
+            },
             onClearPath = { path.clear() },
             onResetTime = { time = 0f },
             onResetHasStarted = { hasStarted = false },
@@ -333,6 +371,15 @@ fun FourierSeries() {
             samplesCount = samplesCount
         )
 
+        val isSimulationEnabled = when (waveType) {
+            WaveType.MY_SIGNAL -> drawingPoints.any { it != 0f }
+            WaveType.MY_SIGNAL_2D -> drawingPoints2D.isNotEmpty()
+            WaveType.PURE_SIGNAL -> customFunctionSignals.isNotEmpty()
+            WaveType.FORMULA -> formulaCoefficients.isNotEmpty()
+            WaveType.SVG -> svgCoefficients.isNotEmpty()
+            else -> true
+        }
+
         FourierActionControls(
             running = running,
             onRunningChange = { running = it },
@@ -344,7 +391,8 @@ fun FourierSeries() {
                 time = 0f
                 path.clear()
             },
-            colors = colors
+            colors = colors,
+            enabled = isSimulationEnabled
         )
 
         FourierVisualizerBox(

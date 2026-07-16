@@ -44,7 +44,7 @@ fun HarmonicComponents(
 ) {
     var isExpanded by remember { mutableStateOf(false) }
     val maxTerms = when (waveType) {
-        WaveType.CUSTOM_FUNCTION -> nTerms.coerceAtMost(customFunctionSignals.size)
+        WaveType.PURE_SIGNAL -> nTerms.coerceAtMost(customFunctionSignals.size)
         WaveType.MY_SIGNAL_2D -> nTerms.coerceAtMost(customCoefficients2D.size)
         WaveType.FORMULA -> nTerms.coerceAtMost(formulaCoefficients.size)
         WaveType.SVG -> nTerms.coerceAtMost(svgCoefficients.size)
@@ -100,23 +100,12 @@ fun HarmonicComponents(
                         WaveType.FORMULA -> i.toFloat()
                         WaveType.MY_SIGNAL_2D -> if (i < customCoefficients2D.size) customCoefficients2D[i].freq.toFloat() else 0f
                         WaveType.SVG -> if (i < svgCoefficients.size) svgCoefficients[i].freq.toFloat() else 0f
-                        WaveType.CUSTOM_FUNCTION -> customFunctionSignals[i].freq.toFloatOrNull() ?: 0f
+                        WaveType.PURE_SIGNAL -> customFunctionSignals[i].freq.toFloatOrNull() ?: 0f
                     }
 
                     if (waveType == WaveType.SINE && i > 0) continue
 
                     val radiusBase = 30f
-                    val radius = when (waveType) {
-                        WaveType.SINE -> -radiusBase
-                        WaveType.SQUARE -> -radiusBase * (4f / (n * PI.toFloat()))
-                        WaveType.SAWTOOTH -> -radiusBase * (2f / (n * PI.toFloat()))
-                        WaveType.TRIANGLE -> -radiusBase * (8f / (n * n * PI.toFloat() * PI.toFloat()))
-                        WaveType.MY_SIGNAL -> if (i < customCoefficients.size) customCoefficients[i].first * (radiusBase / 100f) else 0f
-                        WaveType.FORMULA -> if (i < formulaCoefficients.size) formulaCoefficients[i].first * (radiusBase / 100f) else 0f
-                        WaveType.MY_SIGNAL_2D -> if (i < customCoefficients2D.size) customCoefficients2D[i].amp * (radiusBase / 100f) else 0f
-                        WaveType.SVG -> if (i < svgCoefficients.size) svgCoefficients[i].amp * (radiusBase / 100f) else 0f
-                        WaveType.CUSTOM_FUNCTION -> (customFunctionSignals[i].amp.toFloatOrNull() ?: 0f) * (radiusBase / 100f)
-                    }
 
                     if (i > 0) {
                         Text(
@@ -151,13 +140,23 @@ fun HarmonicComponents(
                                 .fillMaxHeight()
                         ) {
                             val centerY = size.height / 2
-                            val phase = when (waveType) {
-                                WaveType.TRIANGLE -> if (i % 2 != 0) PI.toFloat() else 0f
-                                WaveType.MY_SIGNAL -> if (i < customCoefficients.size) customCoefficients[i].second else 0f
-                                WaveType.FORMULA -> if (i < formulaCoefficients.size) formulaCoefficients[i].second else 0f
-                                WaveType.MY_SIGNAL_2D -> if (i < customCoefficients2D.size) customCoefficients2D[i].phase else 0f
-                                WaveType.SVG -> if (i < svgCoefficients.size) svgCoefficients[i].phase else 0f
-                                else -> 0f
+                            val (amp, phase) = when (waveType) {
+                                WaveType.SINE -> Pair(-radiusBase, PI.toFloat() / 2f)
+                                WaveType.SQUARE -> Pair(-radiusBase * (4f / (n * PI.toFloat())), PI.toFloat() / 2f)
+                                WaveType.SAWTOOTH -> {
+                                    val sign = if (n.toInt() % 2 == 0) -1f else 1f
+                                    Pair(-radiusBase * (2f / (n * PI.toFloat())) * sign, PI.toFloat() / 2f)
+                                }
+                                WaveType.TRIANGLE -> {
+                                    val sign = if (((n.toInt() - 1) / 2) % 2 != 0) -1f else 1f
+                                    Pair(-radiusBase * (8f / (n * n * PI.toFloat() * PI.toFloat())) * sign, PI.toFloat() / 2f)
+                                }
+                                WaveType.MY_SIGNAL -> if (i < customCoefficients.size) (customCoefficients[i].first * (radiusBase / 100f) to customCoefficients[i].second) else (0f to 0f)
+                                WaveType.FORMULA -> if (i < formulaCoefficients.size) (formulaCoefficients[i].first * (radiusBase / 100f) to formulaCoefficients[i].second) else (0f to 0f)
+                                WaveType.MY_SIGNAL_2D -> if (i < customCoefficients2D.size) (customCoefficients2D[i].amp * (radiusBase / 100f) to customCoefficients2D[i].phase) else (0f to 0f)
+                                WaveType.SVG -> if (i < svgCoefficients.size) (svgCoefficients[i].amp * (radiusBase / 100f) to svgCoefficients[i].phase) else (0f to 0f)
+                                WaveType.PURE_SIGNAL -> ((customFunctionSignals[i].amp.toFloatOrNull() ?: 0f) * (radiusBase / 100f) to 0f)
+                                else -> (0f to 0f)
                             }
 
                             val path = Path()
@@ -165,8 +164,12 @@ fun HarmonicComponents(
                             for (s in 0..samples) {
                                 val x = (s.toFloat() / samples) * size.width
                                 val waveT = time - (1f - s.toFloat() / samples) * 2f
-                                val angle = 2 * PI.toFloat() * n * waveT + phase
-                                val y = centerY + radius * sin(angle)
+                                val angle = 2 * PI.toFloat() * n * waveT
+                                val y = if (waveType == WaveType.MY_SIGNAL_2D || waveType == WaveType.SVG || waveType == WaveType.PURE_SIGNAL) {
+                                    centerY + amp * sin(angle + phase)
+                                } else {
+                                    centerY + amp * cos(angle - phase)
+                                }
 
                                 if (s == 0) path.moveTo(x, y)
                                 else path.lineTo(x, y)
@@ -518,7 +521,7 @@ fun ComplexHarmonicComponents(
 ) {
     var isExpanded by remember { mutableStateOf(false) }
     val maxTerms = when (waveType) {
-        WaveType.CUSTOM_FUNCTION -> nTerms.coerceAtMost(customFunctionSignals.size)
+        WaveType.PURE_SIGNAL -> nTerms.coerceAtMost(customFunctionSignals.size)
         WaveType.MY_SIGNAL_2D -> nTerms.coerceAtMost(customCoefficients2D.size)
         WaveType.FORMULA -> nTerms.coerceAtMost(formulaCoefficients.size)
         WaveType.SVG -> nTerms.coerceAtMost(svgCoefficients.size)
@@ -557,7 +560,7 @@ fun ComplexHarmonicComponents(
                         WaveType.FORMULA -> i.toFloat()
                         WaveType.MY_SIGNAL_2D -> if (i < customCoefficients2D.size) customCoefficients2D[i].freq.toFloat() else 0f
                         WaveType.SVG -> if (i < svgCoefficients.size) svgCoefficients[i].freq.toFloat() else 0f
-                        WaveType.CUSTOM_FUNCTION -> customFunctionSignals[i].freq.toFloatOrNull() ?: 0f
+                        WaveType.PURE_SIGNAL -> customFunctionSignals[i].freq.toFloatOrNull() ?: 0f
                     }
 
                     if (waveType == WaveType.SINE && i > 0) continue
@@ -572,7 +575,7 @@ fun ComplexHarmonicComponents(
                         WaveType.FORMULA -> if (i < formulaCoefficients.size) formulaCoefficients[i].first * (radiusBase / 100f) else 0f
                         WaveType.MY_SIGNAL_2D -> if (i < customCoefficients2D.size) customCoefficients2D[i].amp * (radiusBase / 100f) else 0f
                         WaveType.SVG -> if (i < svgCoefficients.size) svgCoefficients[i].amp * (radiusBase / 100f) else 0f
-                        WaveType.CUSTOM_FUNCTION -> (customFunctionSignals[i].amp.toFloatOrNull() ?: 0f) * (radiusBase / 100f)
+                        WaveType.PURE_SIGNAL -> (customFunctionSignals[i].amp.toFloatOrNull() ?: 0f) * (radiusBase / 100f)
                     }
 
                     Row(

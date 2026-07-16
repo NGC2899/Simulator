@@ -53,7 +53,7 @@ fun WelcomeScreen(
         ) {
             Text(
                 text = "Welcome to",
-                color = colors.accentCyan,
+                color = colors.textSecondary,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Medium,
                 letterSpacing = 2.sp

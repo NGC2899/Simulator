@@ -23,6 +23,7 @@ fun FourierActionControls(
     onHasStartedChange: (Boolean) -> Unit,
     onReset: () -> Unit,
     colors: AppColors,
+    enabled: Boolean = true,
 ) {
     Row(
         modifier = Modifier
@@ -35,12 +36,14 @@ fun FourierActionControls(
                 if (!hasStarted) onHasStartedChange(true)
                 onRunningChange(!running)
             },
+            enabled = enabled || running,
             modifier = Modifier
                 .weight(1f)
                 .height(AppDesign.buttonHeight),
             shape = RoundedCornerShape(AppDesign.radiusMedium),
             colors = ButtonDefaults.buttonColors(
-                containerColor = if (running) colors.accentHell else colors.accentCyan
+                containerColor = if (running) colors.accentHell else colors.accentCyan,
+                disabledContainerColor = colors.accentCyan.copy(alpha = 0.5f),
             )
         ) {
             Icon(

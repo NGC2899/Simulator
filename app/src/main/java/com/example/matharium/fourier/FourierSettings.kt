@@ -49,7 +49,9 @@ fun FourierSettingsCard(
     onFormulaChange: (String) -> Unit,
     onCalculateDFT: () -> Unit,
     onCalculateDFT2D: () -> Unit,
-    onCalculateSVGDFT: () -> Unit,
+    onClearCustomCoefficients: () -> Unit,
+    onClearCustomCoefficients2D: () -> Unit,
+    onClearSVGCoefficients: () -> Unit,
     onClearPath: () -> Unit,
     onResetTime: () -> Unit,
     onResetHasStarted: () -> Unit,
@@ -94,11 +96,12 @@ fun FourierSettingsCard(
                             .fillMaxWidth()
                             .horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(AppDesign.radiusSmall),
-                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         WaveType.entries.forEach { type ->
-                            if (type == WaveType.MY_SIGNAL_2D) return@forEach // Skip MY_SIGNAL_2D as it's merged with MY_SIGNAL
-                            val selected = (waveType == type) || (type == WaveType.MY_SIGNAL && waveType == WaveType.MY_SIGNAL_2D)
+                            if (type == WaveType.MY_SIGNAL_2D || type == WaveType.FORMULA) return@forEach // Skip merged types
+                            val selected = (waveType == type) || 
+                                         (type == WaveType.MY_SIGNAL && waveType == WaveType.MY_SIGNAL_2D) ||
+                                         (type == WaveType.PURE_SIGNAL && waveType == WaveType.FORMULA)
                             FilterChip(
                                 selected = selected,
                                 onClick = {
@@ -117,7 +120,7 @@ fun FourierSettingsCard(
                                 label = {
                                     val labelText = when (type) {
                                         WaveType.MY_SIGNAL -> "Draw"
-                                        WaveType.CUSTOM_FUNCTION -> "Custom Function"
+                                        WaveType.PURE_SIGNAL -> "Custom Function"
                                         WaveType.SVG -> "Import SVG"
                                         else -> type.name.lowercase().replaceFirstChar {
                                             if (it.isLowerCase()) it.titlecase(Locale.US) else it.toString()
@@ -132,15 +135,15 @@ fun FourierSettingsCard(
                                 border = FilterChipDefaults.filterChipBorder(
                                     enabled = true,
                                     selected = selected,
-                                    borderColor = if ((type == WaveType.MY_SIGNAL || type == WaveType.CUSTOM_FUNCTION || type == WaveType.SVG) && selected) Color.Transparent else colors.cardBorder.copy(
+                                    borderColor = if ((type == WaveType.MY_SIGNAL || type == WaveType.PURE_SIGNAL || type == WaveType.SVG) && selected) Color.Transparent else colors.cardBorder.copy(
                                         alpha = AppDesign.opacityMedium
                                     ),
-                                    selectedBorderColor = if ((type == WaveType.MY_SIGNAL || type == WaveType.CUSTOM_FUNCTION || type == WaveType.SVG) && selected) Color.Transparent else colors.accentCyan,
+                                    selectedBorderColor = if ((type == WaveType.MY_SIGNAL || type == WaveType.PURE_SIGNAL || type == WaveType.SVG) && selected) Color.Transparent else colors.accentCyan,
                                     borderWidth = AppDesign.borderThin,
-                                    selectedBorderWidth = if ((type == WaveType.MY_SIGNAL || type == WaveType.CUSTOM_FUNCTION || type == WaveType.SVG) && selected) AppDesign.borderStandard else AppDesign.borderThin
+                                    selectedBorderWidth = if ((type == WaveType.MY_SIGNAL || type == WaveType.PURE_SIGNAL || type == WaveType.SVG) && selected) AppDesign.borderStandard else AppDesign.borderThin
                                 ),
                                 modifier =
-                                    if ((type == WaveType.MY_SIGNAL || type == WaveType.CUSTOM_FUNCTION || type == WaveType.SVG) && selected) {
+                                    if ((type == WaveType.MY_SIGNAL || type == WaveType.PURE_SIGNAL || type == WaveType.SVG) && selected) {
                                         Modifier
                                             .border(
                                                 AppDesign.borderStandard,
@@ -154,45 +157,6 @@ fun FourierSettingsCard(
                                             )
                                             .height(AppDesign.chipHeight)
                                     } else Modifier
-                            )
-                        }
-                    }
-
-                    AnimatedVisibility(visible = waveType == WaveType.FORMULA) {
-                        Column(modifier = Modifier.padding(top = AppDesign.radiusLarge)) {
-                            Text(
-                                "Mathematical Formula",
-                                color = colors.accentCyan,
-                                fontSize = AppDesign.textBody,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(Modifier.height(AppDesign.radiusSmall))
-                            
-                            OutlinedTextField(
-                                value = formulaString,
-                                onValueChange = { 
-                                    onFormulaChange(it)
-                                    onCalculateDFT()
-                                    onClearPath()
-                                    onResetTime()
-                                },
-                                modifier = Modifier.fillMaxWidth(),
-                                placeholder = { Text("e.g. abs(sin(x))", color = colors.textSecondary.copy(0.5f)) },
-                                singleLine = true,
-                                shape = RoundedCornerShape(AppDesign.radiusSmall),
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = colors.accentCyan,
-                                    unfocusedBorderColor = colors.cardBorder.copy(0.3f),
-                                    cursorColor = colors.accentCyan
-                                )
-                            )
-                            
-                            Spacer(Modifier.height(AppDesign.spacingSmall))
-                            
-                            Text(
-                                "Use 'x' as variable (0 to 2π). Supported: sin, cos, abs, sqrt, ^, etc.",
-                                color = colors.textSecondary,
-                                fontSize = 11.sp
                             )
                         }
                     }
@@ -412,11 +376,14 @@ fun FourierSettingsCard(
                                             drawingPoints.clear()
                                             repeat(samplesCount) { drawingPoints.add(0f) }
                                             prefs.drawingPoints = emptyList<Float>()
+                                            onClearCustomCoefficients()
                                         } else if (waveType == WaveType.MY_SIGNAL_2D) {
                                             drawingPoints2D.clear()
                                             prefs.drawingPoints2D = emptyList<Offset>()
+                                            onClearCustomCoefficients2D()
                                         } else if (waveType == WaveType.SVG) {
                                             svgPoints.clear()
+                                            onClearSVGCoefficients()
                                         }
                                         onClearPath()
                                         onResetTime()
@@ -445,16 +412,8 @@ fun FourierSettingsCard(
                         }
                     }
 
-                    AnimatedVisibility(visible = waveType == WaveType.CUSTOM_FUNCTION) {
+                    AnimatedVisibility(visible = waveType == WaveType.PURE_SIGNAL || waveType == WaveType.FORMULA) {
                         Column(modifier = Modifier.padding(top = AppDesign.radiusLarge)) {
-                            Text(
-                                "Define your signal components",
-                                color = colors.accentCyan,
-                                fontSize = AppDesign.textBody,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(Modifier.height(AppDesign.radiusSmall))
-
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(AppDesign.spacingSmall)
@@ -462,131 +421,235 @@ fun FourierSettingsCard(
                                 Box(
                                     modifier = Modifier
                                         .weight(1f)
-                                        .height(AppDesign.buttonHeightSmall)
-                                        .clip(RoundedCornerShape(AppDesign.radiusButton))
-                                        .background(colors.cardSurface.copy(AppDesign.opacityLow))
+                                        .height(32.dp)
+                                        .clip(RoundedCornerShape(AppDesign.radiusSmall))
+                                        .background(if (waveType == WaveType.PURE_SIGNAL) colors.accentCyan.copy(0.1f) else Color.Transparent)
                                         .border(
-                                            BorderStroke(
-                                                2.dp,
-                                                Brush.linearGradient(
-                                                    listOf(colors.accentCyan, colors.accentViolet)
-                                                )
-                                            ),
-                                            RoundedCornerShape(AppDesign.radiusButton)
+                                            1.dp,
+                                            if (waveType == WaveType.PURE_SIGNAL) colors.accentCyan else colors.cardBorder.copy(0.3f),
+                                            RoundedCornerShape(AppDesign.radiusSmall)
                                         )
-                                        .clickable {
-                                            val last = customFunctionSignals.lastOrNull()
-                                            val nextFreq = last?.freq ?: "1.0"
-                                            val nextAmp = last?.amp ?: "50.0"
-                                            val color = Color.hsv(kotlin.random.Random.nextFloat() * 360f, 0.7f, 0.9f)
-                                            customFunctionSignals.add(SignalInstance(nextSignalId, color, nextFreq, nextAmp))
-                                            onNextSignalIdChange(nextSignalId + 1)
-                                        },
+                                        .clickable { onWaveTypeChange(WaveType.PURE_SIGNAL); onClearPath() },
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(
-                                            painter = painterResource(id = R.drawable.add_outline),
-                                            null,
-                                            modifier = Modifier.size(AppDesign.iconSmall),
-                                            tint = colors.textPrimary
-                                        )
-                                        Spacer(Modifier.width(4.dp))
-                                        Text(
-                                            "Add",
-                                            fontSize = AppDesign.textSmall,
-                                            color = colors.textPrimary,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
+                                    Text("Pure Signal", color = if (waveType == WaveType.PURE_SIGNAL) colors.accentCyan else colors.textSecondary, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                 }
-
                                 Box(
                                     modifier = Modifier
                                         .weight(1f)
-                                        .height(AppDesign.buttonHeightSmall)
-                                        .clip(RoundedCornerShape(AppDesign.radiusButton))
-                                        .background(colors.accentHell.copy(AppDesign.opacityLow))
+                                        .height(32.dp)
+                                        .clip(RoundedCornerShape(AppDesign.radiusSmall))
+                                        .background(if (waveType == WaveType.FORMULA) colors.accentCyan.copy(0.1f) else Color.Transparent)
                                         .border(
-                                            2.dp,
-                                            colors.accentHell.copy(AppDesign.opacityMedium),
-                                            RoundedCornerShape(AppDesign.radiusButton)
+                                            1.dp,
+                                            if (waveType == WaveType.FORMULA) colors.accentCyan else colors.cardBorder.copy(0.3f),
+                                            RoundedCornerShape(AppDesign.radiusSmall)
                                         )
-                                        .clickable {
-                                            customFunctionSignals.clear()
-                                            onNextSignalIdChange(0)
-                                            onRunningChange(false)
-                                            onResetHasStarted()
-                                            onClearPath()
-                                        },
+                                        .clickable { onWaveTypeChange(WaveType.FORMULA); onClearPath() },
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(
-                                            painter = painterResource(id = R.drawable.trash_outline),
-                                            null,
-                                            tint = colors.accentHell,
-                                            modifier = Modifier.size(AppDesign.iconSmall)
-                                        )
-                                        Spacer(Modifier.width(4.dp))
-                                        Text(
-                                            "Clear",
-                                            fontSize = AppDesign.textSmall,
-                                            color = colors.accentHell,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
+                                    Text("Formula", color = if (waveType == WaveType.FORMULA) colors.accentCyan else colors.textSecondary, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                 }
                             }
 
-                            if (customFunctionSignals.isNotEmpty()) {
-                                Spacer(Modifier.height(AppDesign.spacingMedium))
-                                Column(
-                                    verticalArrangement = Arrangement.spacedBy(AppDesign.spacingSmall)
+                            Spacer(Modifier.height(AppDesign.spacingMedium))
+
+                            if (waveType == WaveType.PURE_SIGNAL) {
+                                Text(
+                                    "Define your signal components",
+                                    color = colors.accentCyan,
+                                    fontSize = AppDesign.textBody,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Spacer(Modifier.height(AppDesign.radiusSmall))
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(AppDesign.spacingSmall)
                                 ) {
-                                    val displayList = if (isSignalsExpanded) customFunctionSignals else customFunctionSignals.take(5)
-                                    displayList.forEachIndexed { _, signal ->
-                                        SignalSettingsCard(
-                                            signal = signal,
-                                            colors = colors,
-                                            showDel = customFunctionSignals.size > 1,
-                                            onParameterChange = {
-                                                onResetHasStarted()
-                                                onClearPath()
-                                                prefs.saveFourierSignals(customFunctionSignals.toList())
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(AppDesign.buttonHeightSmall)
+                                            .clip(RoundedCornerShape(AppDesign.radiusButton))
+                                            .background(colors.cardSurface.copy(AppDesign.opacityLow))
+                                            .border(
+                                                BorderStroke(
+                                                    2.dp,
+                                                    Brush.linearGradient(
+                                                        listOf(colors.accentCyan, colors.accentViolet)
+                                                    )
+                                                ),
+                                                RoundedCornerShape(AppDesign.radiusButton)
+                                            )
+                                            .clickable {
+                                                val last = customFunctionSignals.lastOrNull()
+                                                val nextFreq = last?.freq ?: "1.0"
+                                                val nextAmp = last?.amp ?: "50.0"
+                                                val color = Color.hsv(
+                                                    kotlin.random.Random.nextFloat() * 360f,
+                                                    0.7f,
+                                                    0.9f
+                                                )
+                                                customFunctionSignals.add(
+                                                    SignalInstance(
+                                                        nextSignalId,
+                                                        color,
+                                                        nextFreq,
+                                                        nextAmp
+                                                    )
+                                                )
+                                                onNextSignalIdChange(nextSignalId + 1)
                                             },
-                                            onDel = {
-                                                customFunctionSignals.remove(signal)
-                                                if (customFunctionSignals.isEmpty()) {
-                                                    onNextSignalIdChange(0)
-                                                }
-                                            }
-                                        )
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(
+                                                painter = painterResource(id = R.drawable.add_outline),
+                                                null,
+                                                modifier = Modifier.size(AppDesign.iconSmall),
+                                                tint = colors.textPrimary
+                                            )
+                                            Spacer(Modifier.width(4.dp))
+                                            Text(
+                                                "Add",
+                                                fontSize = AppDesign.textSmall,
+                                                color = colors.textPrimary,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
                                     }
 
-                                    if (customFunctionSignals.size > 5) {
-                                        TextButton(
-                                            onClick = { onSignalsExpandedChange(!isSignalsExpanded) },
-                                            modifier = Modifier.fillMaxWidth()
-                                        ) {
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                                Text(
-                                                    if (isSignalsExpanded) "Show Less" else "Show All Components (${customFunctionSignals.size})",
-                                                    color = colors.accentCyan,
-                                                    fontWeight = FontWeight.Bold,
-                                                    fontSize = 12.sp
-                                                )
-                                                Spacer(Modifier.width(4.dp))
-                                                Icon(
-                                                    if (isSignalsExpanded) painterResource(id = R.drawable.chevron_up_outline) else painterResource(id = R.drawable.chevron_down_outline),
-                                                    null,
-                                                    tint = colors.accentCyan,
-                                                    modifier = Modifier.size( AppDesign.iconTiny)
-                                                )
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(AppDesign.buttonHeightSmall)
+                                            .clip(RoundedCornerShape(AppDesign.radiusButton))
+                                            .background(colors.accentHell.copy(AppDesign.opacityLow))
+                                            .border(
+                                                2.dp,
+                                                colors.accentHell.copy(AppDesign.opacityMedium),
+                                                RoundedCornerShape(AppDesign.radiusButton)
+                                            )
+                                            .clickable {
+                                                customFunctionSignals.clear()
+                                                onNextSignalIdChange(0)
+                                                onRunningChange(false)
+                                                onResetHasStarted()
+                                                onClearPath()
+                                            },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(
+                                                painter = painterResource(id = R.drawable.trash_outline),
+                                                null,
+                                                tint = colors.accentHell,
+                                                modifier = Modifier.size(AppDesign.iconSmall)
+                                            )
+                                            Spacer(Modifier.width(4.dp))
+                                            Text(
+                                                "Clear",
+                                                fontSize = AppDesign.textSmall,
+                                                color = colors.accentHell,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+                                    }
+                                }
+
+                                if (customFunctionSignals.isNotEmpty()) {
+                                    Spacer(Modifier.height(AppDesign.spacingMedium))
+                                    Column(
+                                        verticalArrangement = Arrangement.spacedBy(AppDesign.spacingSmall)
+                                    ) {
+                                        val displayList =
+                                            if (isSignalsExpanded) customFunctionSignals else customFunctionSignals.take(
+                                                5
+                                            )
+                                        displayList.forEachIndexed { _, signal ->
+                                            SignalSettingsCard(
+                                                signal = signal,
+                                                colors = colors,
+                                                showDel = customFunctionSignals.size > 1,
+                                                onParameterChange = {
+                                                    onResetHasStarted()
+                                                    onClearPath()
+                                                    prefs.saveFourierSignals(customFunctionSignals.toList())
+                                                },
+                                                onDel = {
+                                                    customFunctionSignals.remove(signal)
+                                                    if (customFunctionSignals.isEmpty()) {
+                                                        onNextSignalIdChange(0)
+                                                    }
+                                                }
+                                            )
+                                        }
+
+                                        if (customFunctionSignals.size > 5) {
+                                            TextButton(
+                                                onClick = { onSignalsExpandedChange(!isSignalsExpanded) },
+                                                modifier = Modifier.fillMaxWidth()
+                                            ) {
+                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    Text(
+                                                        if (isSignalsExpanded) "Show Less" else "Show All Components (${customFunctionSignals.size})",
+                                                        color = colors.accentCyan,
+                                                        fontWeight = FontWeight.Bold,
+                                                        fontSize = 12.sp
+                                                    )
+                                                    Spacer(Modifier.width(4.dp))
+                                                    Icon(
+                                                        if (isSignalsExpanded) painterResource(id = R.drawable.chevron_up_outline) else painterResource(id = R.drawable.chevron_down_outline),
+                                                        null,
+                                                        tint = colors.accentCyan,
+                                                        modifier = Modifier.size(AppDesign.iconTiny)
+                                                    )
+                                                }
                                             }
                                         }
                                     }
                                 }
+                            } else {
+                                Text(
+                                    "Mathematical Formula",
+                                    color = colors.accentCyan,
+                                    fontSize = AppDesign.textBody,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Spacer(Modifier.height(AppDesign.radiusSmall))
+
+                                OutlinedTextField(
+                                    value = formulaString,
+                                    onValueChange = {
+                                        onFormulaChange(it)
+                                        onCalculateDFT()
+                                        onClearPath()
+                                        onResetTime()
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    placeholder = {
+                                        Text(
+                                            "e.g. abs(sin(x))",
+                                            color = colors.textSecondary.copy(0.5f)
+                                        )
+                                    },
+                                    singleLine = true,
+                                    shape = RoundedCornerShape(AppDesign.radiusSmall),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = colors.accentCyan,
+                                        unfocusedBorderColor = colors.cardBorder.copy(0.3f),
+                                        cursorColor = colors.accentCyan
+                                    )
+                                )
+
+                                Spacer(Modifier.height(AppDesign.spacingSmall))
+
+                                Text(
+                                    "Use 'x' as variable (0 to 2π). Supported: sin, cos, abs, sqrt, ^, etc.",
+                                    color = colors.textSecondary,
+                                    fontSize = 11.sp
+                                )
                             }
                         }
                     }
