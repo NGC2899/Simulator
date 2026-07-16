@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.matharium.app.*
@@ -68,24 +69,38 @@ fun HarmonicComponents(
                 modifier = Modifier.fillMaxWidth(),
             )
 
+            if (maxTerms == 0) {
+                Text(
+                    "Add a component",
+                    color = colors.accentCyan,
+                    textAlign = TextAlign.Center,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = AppDesign.spacingLarge),
+                )
+            }
+
             Spacer(Modifier.height(AppDesign.radiusLarge))
 
-            // Result Indicator
-            Text(
-                "Signal",
-                color = colors.accentCyan,
-                fontSize = 10.sp,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(Modifier.height(AppDesign.radiusSmall))
-            Icon(
-                Icons.Default.KeyboardDoubleArrowDown,
-                null,
-                tint = colors.textSecondary.copy(0.5f),
-                modifier = Modifier.size(AppDesign.radiusLarge)
-            )
+            if (maxTerms > 0) {
+                // Result Indicator
+                Text(
+                    "Signal",
+                    color = colors.accentCyan,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(Modifier.height(AppDesign.radiusSmall))
+                Icon(
+                    Icons.Default.KeyboardDoubleArrowDown,
+                    null,
+                    tint = colors.textSecondary.copy(0.5f),
+                    modifier = Modifier.size(AppDesign.radiusLarge)
+                )
 
-            Spacer(Modifier.height(AppDesign.radiusSmall))
+                Spacer(Modifier.height(AppDesign.radiusSmall))
+            }
 
             Column(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -449,9 +464,17 @@ fun ComplexHarmonicComponents(
                 modifier = Modifier.fillMaxWidth(),
             )
 
-            Text(
-                if (true) "Add a component" else "",
-            )
+            if (maxTerms == 0) {
+                Text(
+                    "Add a component",
+                    color = colors.accentCyan,
+                    textAlign = TextAlign.Center,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = AppDesign.spacingLarge),
+                )
+            }
 
             Spacer(Modifier.height(AppDesign.radiusLarge))
 

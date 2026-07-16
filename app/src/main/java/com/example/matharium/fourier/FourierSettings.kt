@@ -110,63 +110,54 @@ fun FourierSettingsCard(
                             val selected = (waveType == type) ||
                                     (type == WaveType.MY_SIGNAL && waveType == WaveType.MY_SIGNAL_2D) ||
                                     (type == WaveType.PURE_SIGNAL && waveType == WaveType.FORMULA)
-                            FilterChip(
-                                selected = selected,
-                                onClick = {
-                                    onWaveTypeChange(type)
-                                    onClearPath()
-                                    if (type == WaveType.SVG) {
-                                        onRunningChange(false)
-                                        onClearPath()
-                                        onResetTime()
-                                        svgPickerLauncher.launch("image/svg+xml")
-                                    }
-                                    if (type == WaveType.MY_SIGNAL && drawingPoints.isEmpty()) {
-                                        repeat(samplesCount) { drawingPoints.add(0f) }
-                                    }
-                                },
-                                label = {
-                                    val labelText = when (type) {
-                                        WaveType.MY_SIGNAL -> "Draw"
-                                        WaveType.PURE_SIGNAL -> "Custom"
-                                        WaveType.SVG -> "Import SVG"
-                                        else -> type.name.lowercase().replaceFirstChar {
-                                            if (it.isLowerCase()) it.titlecase(Locale.US) else it.toString()
-                                        }
-                                    }
-                                    Text(labelText)
-                                },
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedLabelColor = colors.accentCyan,
-                                    selectedContainerColor = colors.accentCyan.copy(0.0f)
-                                ),
-                                border = FilterChipDefaults.filterChipBorder(
-                                    enabled = true,
-                                    selected = selected,
-                                    borderColor = if ((type == WaveType.MY_SIGNAL || type == WaveType.PURE_SIGNAL || type == WaveType.SVG) && selected) Color.Transparent else colors.cardBorder.copy(
-                                        alpha = AppDesign.opacityMedium
-                                    ),
-                                    selectedBorderColor = if ((type == WaveType.MY_SIGNAL || type == WaveType.PURE_SIGNAL || type == WaveType.SVG) && selected) Color.Transparent else colors.accentCyan,
-                                    borderWidth = AppDesign.borderThin,
-                                    selectedBorderWidth = AppDesign.borderThin
-                                ),
+                            
+                            val isSpecialType = type == WaveType.MY_SIGNAL || type == WaveType.PURE_SIGNAL || type == WaveType.SVG
+
+                            Box(
                                 modifier = Modifier
                                     .height(AppDesign.chipHeight)
+                                    .clip(RoundedCornerShape(AppDesign.radiusSmall))
+                                    .background(if (selected && !isSpecialType) colors.accentCyan.copy(alpha = 0.05f) else Color.Transparent)
                                     .border(
                                         AppDesign.borderThin,
-                                        if ((type == WaveType.MY_SIGNAL || type == WaveType.PURE_SIGNAL || type == WaveType.SVG) && selected) {
-                                            Brush.linearGradient(
-                                                listOf(
-                                                    colors.accentCyan,
-                                                    colors.accentViolet
-                                                )
-                                            )
+                                        if (isSpecialType && selected) {
+                                            Brush.linearGradient(listOf(colors.accentCyan, colors.accentViolet))
                                         } else {
-                                            SolidColor(Color.Transparent)
+                                            SolidColor(if (selected) colors.accentCyan else colors.cardBorder.copy(alpha = AppDesign.opacityMedium))
                                         },
                                         RoundedCornerShape(AppDesign.radiusSmall)
                                     )
-                            )
+                                    .clickable {
+                                        onWaveTypeChange(type)
+                                        onClearPath()
+                                        if (type == WaveType.SVG) {
+                                            onRunningChange(false)
+                                            onClearPath()
+                                            onResetTime()
+                                            svgPickerLauncher.launch("image/svg+xml")
+                                        }
+                                        if (type == WaveType.MY_SIGNAL && drawingPoints.isEmpty()) {
+                                            repeat(samplesCount) { drawingPoints.add(0f) }
+                                        }
+                                    }
+                                    .padding(horizontal = AppDesign.spacingMedium),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                val labelText = when (type) {
+                                    WaveType.MY_SIGNAL -> "Draw"
+                                    WaveType.PURE_SIGNAL -> "Custom"
+                                    WaveType.SVG -> "Import SVG"
+                                    else -> type.name.lowercase().replaceFirstChar {
+                                        if (it.isLowerCase()) it.titlecase(Locale.US) else it.toString()
+                                    }
+                                }
+                                Text(
+                                    labelText,
+                                    color = if (selected) colors.accentCyan else colors.textSecondary,
+                                    fontSize = 12.sp,
+                                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium
+                                )
+                            }
                         }
                     }
 
@@ -763,7 +754,7 @@ fun SignalSettingsCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(AppDesign.radiusSmall),
+        shape = RoundedCornerShape(AppDesign.radiusCard),
         colors = CardDefaults.cardColors(containerColor = colors.cardSurface.copy(alpha = 0.3f)),
         border = BorderStroke(AppDesign.borderThin, colors.cardBorder.copy(alpha = 0.1f))
     ) {
@@ -777,7 +768,8 @@ fun SignalSettingsCard(
                     Box(
                         modifier = Modifier
                             .size(12.dp)
-                            .background(signal.color, RoundedCornerShape(2.dp))
+                            .background(signal.color,
+                            RoundedCornerShape(100.dp)),
                     )
                     Spacer(Modifier.width(AppDesign.spacingSmall))
                     Text(

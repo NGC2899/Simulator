@@ -35,7 +35,6 @@ object AppDesign {
     val radiusMedium = 12.dp
     val radiusLarge = 16.dp
     val radiusCard = 20.dp
-    val radiusCanvas = 24.dp
 
     val spacingTiny = 2.dp
     val spacingExtraSmall = 4.dp

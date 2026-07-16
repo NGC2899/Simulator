@@ -52,6 +52,7 @@ fun EnergyDashboard(
                 "Add a Pendulum",
                 color = colors.accentCyan,
                 textAlign = TextAlign.Center,
+                fontWeight = FontWeight.Bold,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = AppDesign.spacingLarge),
