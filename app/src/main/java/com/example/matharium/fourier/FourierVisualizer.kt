@@ -45,6 +45,7 @@ fun FourierVisualizerBox(
     customFunctionSignals: List<SignalInstance>,
     colors: AppColors,
     pausedHarmonics: Map<Int, Boolean> = emptyMap(),
+    removedHarmonics: Map<Int, Boolean> = emptyMap(),
     harmonicFrequencies: Map<Int, Float> = emptyMap(),
     harmonicAmplitudes: Map<Int, Float> = emptyMap()
 ) {
@@ -159,6 +160,7 @@ fun FourierVisualizerBox(
                         if (waveType == WaveType.PURE_SIGNAL) {
                             if (customFunctionSignals[i].isPaused) continue
                         } else {
+                            if (removedHarmonics[i] == true) continue
                             if (pausedHarmonics[i] == true) continue
                         }
 

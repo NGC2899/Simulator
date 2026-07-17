@@ -46,18 +46,31 @@ fun HarmonicComponents(
     getHarmonicFrequency: (Int, Float) -> Float = { _, default -> default },
     onAmplitudeChange: (Int, Float) -> Unit = { _, _ -> },
     getHarmonicAmplitude: (Int, Float) -> Float = { _, default -> default },
+    removedHarmonics: Map<Int, Boolean> = emptyMap(),
+    onResetHarmonic: (Int) -> Unit = {},
     onResetHarmonics: () -> Unit = {}
 ) {
     var isExpanded by remember { mutableStateOf(false) }
     val maxTerms = when (waveType) {
-        WaveType.PURE_SIGNAL -> nTerms.coerceAtMost(customFunctionSignals.size)
-        WaveType.MY_SIGNAL_2D -> nTerms.coerceAtMost(customCoefficients2D.size)
-        WaveType.FORMULA -> nTerms.coerceAtMost(formulaCoefficients.size)
-        WaveType.SVG -> nTerms.coerceAtMost(svgCoefficients.size)
+        WaveType.PURE_SIGNAL -> customFunctionSignals.size
+        WaveType.MY_SIGNAL_2D -> customCoefficients2D.size
+        WaveType.FORMULA -> formulaCoefficients.size
+        WaveType.SVG -> svgCoefficients.size
         else -> nTerms
     }
 
-    val displayTerms = if (isExpanded) maxTerms.coerceAtMost(100) else maxTerms.coerceAtMost(6)
+    val activeTermsIndices = remember(waveType, maxTerms, removedHarmonics.size) {
+        (0 until maxTerms).filter { index ->
+            if (waveType == WaveType.SINE && index > 0) false
+            else removedHarmonics[index] != true
+        }
+    }
+
+    val displayTermsIndices = if (isExpanded) {
+        activeTermsIndices.take(100)
+    } else {
+        activeTermsIndices.take(6)
+    }
 
     GlassCard(colors = colors) {
         Column(
@@ -76,16 +89,16 @@ fun HarmonicComponents(
                     fontSize = AppDesign.textHeadline,
                     fontWeight = FontWeight.Bold,
                 )
-                if (maxTerms > 0) {
+                if (activeTermsIndices.isNotEmpty()) {
                     TextButton(onClick = onResetHarmonics) {
                         Text("Reset", color = colors.accentCyan, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                     }
                 }
             }
 
-            if (maxTerms == 0) {
+            if (activeTermsIndices.isEmpty()) {
                 Text(
-                    "Add a component",
+                    "No active components",
                     color = colors.accentCyan,
                     textAlign = TextAlign.Center,
                     fontWeight = FontWeight.Bold,
@@ -97,7 +110,7 @@ fun HarmonicComponents(
 
             Spacer(Modifier.height(AppDesign.radiusLarge))
 
-            if (maxTerms > 0) {
+            if (activeTermsIndices.isNotEmpty()) {
                 // Result Indicator
                 Text(
                     "Signal",
@@ -120,7 +133,7 @@ fun HarmonicComponents(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                for (i in 0 until displayTerms) {
+                displayTermsIndices.forEach { i ->
                     val defaultN = when (waveType) {
                         WaveType.SINE -> 1.0f
                         WaveType.SQUARE -> (i * 2 + 1).toFloat()
@@ -135,8 +148,6 @@ fun HarmonicComponents(
                     val n = getHarmonicFrequency(i, defaultN)
                     val isPaused = isHarmonicPaused(i)
 
-                    if (waveType == WaveType.SINE && i > 0) continue
-
                     val radiusBase = 30f
 
                     val baseN = when (waveType) {
@@ -145,15 +156,6 @@ fun HarmonicComponents(
                         WaveType.SAWTOOTH -> (i + 1).toFloat()
                         WaveType.TRIANGLE -> (i * 2 + 1).toFloat()
                         else -> 1f
-                    }
-
-                    if (i > 0) {
-                        Text(
-                            "+",
-                            color = colors.textSecondary.copy(0.6f),
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold
-                        )
                     }
 
                     Row(
@@ -174,9 +176,6 @@ fun HarmonicComponents(
                                 fontWeight = FontWeight.Bold
                             )
                         }
-
-                        var menuExpanded by remember { mutableStateOf(false) }
-                        var defaultAmpValue by remember { mutableFloatStateOf(0f) }
 
                         Canvas(
                             modifier = Modifier
@@ -207,7 +206,6 @@ fun HarmonicComponents(
                                 else -> (0f to 0f)
                             }
                             
-                            defaultAmpValue = defaultAmp
                             val amp = getHarmonicAmplitude(i, defaultAmp)
 
                             val path = Path()
@@ -250,6 +248,7 @@ fun HarmonicComponents(
 
                         // Edit Menu
                         Box {
+                            var menuExpanded by remember { mutableStateOf(false) }
                             IconButton(
                                 onClick = { menuExpanded = true },
                                 modifier = Modifier.size(28.dp)
@@ -311,7 +310,7 @@ fun HarmonicComponents(
                                     modifier = Modifier.padding(horizontal = 12.dp)
                                 )
                                 Slider(
-                                    value = getHarmonicAmplitude(i, defaultAmpValue),
+                                    value = getHarmonicAmplitude(i, 0f), // Fallback
                                     onValueChange = { onAmplitudeChange(i, it) },
                                     valueRange = -200f..200f,
                                     modifier = Modifier.padding(horizontal = 12.dp),
@@ -319,6 +318,24 @@ fun HarmonicComponents(
                                         thumbColor = colors.accentViolet,
                                         activeTrackColor = colors.accentViolet
                                     )
+                                )
+
+                                HorizontalDivider(color = colors.cardBorder.copy(alpha = 0.1f), modifier = Modifier.padding(vertical = 4.dp))
+
+                                DropdownMenuItem(
+                                    text = { Text("Reset to Default") },
+                                    onClick = {
+                                        onResetHarmonic(i)
+                                        menuExpanded = false
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Default.Refresh,
+                                            contentDescription = null,
+                                            tint = colors.accentCyan,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
                                 )
 
                                 HorizontalDivider(color = colors.cardBorder.copy(alpha = 0.1f), modifier = Modifier.padding(vertical = 4.dp))
@@ -343,7 +360,7 @@ fun HarmonicComponents(
                     }
                 }
 
-                if (maxTerms > 6 && waveType != WaveType.SINE) {
+                if (activeTermsIndices.size > displayTermsIndices.size && waveType != WaveType.SINE) {
                     Spacer(Modifier.height(AppDesign.spacingSmall))
                     TextButton(
                         onClick = { isExpanded = !isExpanded },
@@ -351,7 +368,7 @@ fun HarmonicComponents(
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                if (isExpanded) "Show Less" else "Show All Components",
+                                if (isExpanded) "Show Less" else "Show All Components (${activeTermsIndices.size})",
                                 color = colors.accentCyan,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 12.sp
@@ -509,7 +526,7 @@ fun CenterOfMassGraph(
                 )
             ) {
                 Column(modifier = Modifier.padding(top = 8.dp)) {
-                    HorizontalDivider(color = colors.cardBorder.copy(AppDesign.opacityLow))
+                    HorizontalDivider(color = colors.cardBorder.copy(alpha = 0.2f))
                     Spacer(Modifier.height(8.dp))
                     Text(
                         "Technical Insight:",
@@ -569,18 +586,31 @@ fun ComplexHarmonicComponents(
     getHarmonicFrequency: (Int, Float) -> Float = { _, default -> default },
     onAmplitudeChange: (Int, Float) -> Unit = { _, _ -> },
     getHarmonicAmplitude: (Int, Float) -> Float = { _, default -> default },
+    removedHarmonics: Map<Int, Boolean> = emptyMap(),
+    onResetHarmonic: (Int) -> Unit = {},
     onResetHarmonics: () -> Unit = {}
 ) {
     var isExpanded by remember { mutableStateOf(false) }
     val maxTerms = when (waveType) {
-        WaveType.PURE_SIGNAL -> nTerms.coerceAtMost(customFunctionSignals.size)
-        WaveType.MY_SIGNAL_2D -> nTerms.coerceAtMost(customCoefficients2D.size)
-        WaveType.FORMULA -> nTerms.coerceAtMost(formulaCoefficients.size)
-        WaveType.SVG -> nTerms.coerceAtMost(svgCoefficients.size)
+        WaveType.PURE_SIGNAL -> customFunctionSignals.size
+        WaveType.MY_SIGNAL_2D -> customCoefficients2D.size
+        WaveType.FORMULA -> formulaCoefficients.size
+        WaveType.SVG -> svgCoefficients.size
         else -> nTerms
     }
 
-    val displayTerms = if (isExpanded) maxTerms.coerceAtMost(100) else maxTerms.coerceAtMost(6)
+    val activeTermsIndices = remember(waveType, maxTerms, removedHarmonics.size) {
+        (0 until maxTerms).filter { index ->
+            if (waveType == WaveType.SINE && index > 0) false
+            else removedHarmonics[index] != true
+        }
+    }
+
+    val displayTermsIndices = if (isExpanded) {
+        activeTermsIndices.take(100)
+    } else {
+        activeTermsIndices.take(6)
+    }
 
     GlassCard(colors = colors) {
         Column(
@@ -599,16 +629,16 @@ fun ComplexHarmonicComponents(
                     fontSize = AppDesign.textHeadline,
                     fontWeight = FontWeight.Bold,
                 )
-                if (maxTerms > 0) {
+                if (activeTermsIndices.isNotEmpty()) {
                     TextButton(onClick = onResetHarmonics) {
                         Text("Reset", color = colors.accentCyan, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                     }
                 }
             }
 
-            if (maxTerms == 0) {
+            if (activeTermsIndices.isEmpty()) {
                 Text(
-                    "Add a component",
+                    "No active components",
                     color = colors.accentCyan,
                     textAlign = TextAlign.Center,
                     fontWeight = FontWeight.Bold,
@@ -620,7 +650,7 @@ fun ComplexHarmonicComponents(
 
             Spacer(Modifier.height(AppDesign.radiusLarge))
 
-            if (maxTerms > 0) {
+            if (activeTermsIndices.isNotEmpty()) {
                 // Result Indicator
                 Text(
                     "Signal",
@@ -643,7 +673,7 @@ fun ComplexHarmonicComponents(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                for (i in 0 until displayTerms) {
+                displayTermsIndices.forEach { i ->
                     val defaultN = when (waveType) {
                         WaveType.SINE -> 1.0f
                         WaveType.SQUARE -> (i * 2 + 1).toFloat()
@@ -657,8 +687,6 @@ fun ComplexHarmonicComponents(
                     }
                     val n = getHarmonicFrequency(i, defaultN)
                     val isPaused = isHarmonicPaused(i)
-
-                    if (waveType == WaveType.SINE && i > 0) continue
 
                     val radiusBase = 40f
                     val baseN = when (waveType) {
@@ -679,6 +707,7 @@ fun ComplexHarmonicComponents(
                         WaveType.MY_SIGNAL_2D -> if (i < customCoefficients2D.size) customCoefficients2D[i].amp * (radiusBase / 100f) else 0f
                         WaveType.SVG -> if (i < svgCoefficients.size) svgCoefficients[i].amp * (radiusBase / 100f) else 0f
                         WaveType.PURE_SIGNAL -> (customFunctionSignals[i].amp.toFloatOrNull() ?: 0f) * (radiusBase / 100f)
+                        else -> 0f
                     }
                     
                     val radius = getHarmonicAmplitude(i, defaultRadius)
@@ -836,6 +865,42 @@ fun ComplexHarmonicComponents(
                                     )
                                 )
 
+                                Spacer(Modifier.height(8.dp))
+                                Text(
+                                    "Amplitude",
+                                    fontSize = 10.sp,
+                                    color = colors.textSecondary,
+                                    modifier = Modifier.padding(horizontal = 12.dp)
+                                )
+                                Slider(
+                                    value = getHarmonicAmplitude(i, radius),
+                                    onValueChange = { onAmplitudeChange(i, it) },
+                                    valueRange = -200f..200f,
+                                    modifier = Modifier.padding(horizontal = 12.dp),
+                                    colors = SliderDefaults.colors(
+                                        thumbColor = colors.accentViolet,
+                                        activeTrackColor = colors.accentViolet
+                                    )
+                                )
+
+                                HorizontalDivider(color = colors.cardBorder.copy(alpha = 0.1f), modifier = Modifier.padding(vertical = 4.dp))
+
+                                DropdownMenuItem(
+                                    text = { Text("Reset to Default") },
+                                    onClick = {
+                                        onResetHarmonic(i)
+                                        menuExpanded = false
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Default.Refresh,
+                                            contentDescription = null,
+                                            tint = colors.accentCyan,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                )
+
                                 HorizontalDivider(color = colors.cardBorder.copy(alpha = 0.1f), modifier = Modifier.padding(vertical = 4.dp))
 
                                 DropdownMenuItem(
@@ -858,7 +923,7 @@ fun ComplexHarmonicComponents(
                     }
                 }
 
-                if (maxTerms > 6 && waveType != WaveType.SINE) {
+                if (activeTermsIndices.size > displayTermsIndices.size && waveType != WaveType.SINE) {
                     Spacer(Modifier.height(AppDesign.spacingSmall))
                     TextButton(
                         onClick = { isExpanded = !isExpanded },
@@ -866,7 +931,7 @@ fun ComplexHarmonicComponents(
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                if (isExpanded) "Show Less" else "Show All Harmonics",
+                                if (isExpanded) "Show Less" else "Show All Harmonics (${activeTermsIndices.size})",
                                 color = colors.accentCyan,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 12.sp

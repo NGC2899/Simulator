@@ -101,6 +101,7 @@ fun FourierSeries() {
 
     // --- Dynamic Tuning State ---
     val pausedHarmonics = remember { mutableStateMapOf<Int, Boolean>() }
+    val removedHarmonics = remember { mutableStateMapOf<Int, Boolean>() }
     val harmonicFrequencies = remember { mutableStateMapOf<Int, Float>() }
     val harmonicAmplitudes = remember { mutableStateMapOf<Int, Float>() }
 
@@ -193,7 +194,7 @@ fun FourierSeries() {
                         }
                     }
                 } catch (e: Exception) {
-                    android.util.Log.e("FourierSeries", "Error loading SVG", e)
+                    Log.e("FourierSeries", "Error loading SVG", e)
                     withContext(Dispatchers.Main) {
                         waveType = WaveType.SQUARE
                         android.widget.Toast.makeText(context, "Invalid SVG: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
@@ -272,6 +273,7 @@ fun FourierSeries() {
                     } else {
                         for (i in 0 until animationTerms) {
                             if (waveType == WaveType.SINE && i > 0) continue
+                            if (removedHarmonics[i] == true) continue
                             if (pausedHarmonics[i] == true) continue
 
                             if (waveType == WaveType.MY_SIGNAL || waveType == WaveType.FORMULA) {
@@ -458,6 +460,7 @@ fun FourierSeries() {
             customFunctionSignals = customFunctionSignals,
             colors = colors,
             pausedHarmonics = pausedHarmonics,
+            removedHarmonics = removedHarmonics,
             harmonicFrequencies = harmonicFrequencies,
             harmonicAmplitudes = harmonicAmplitudes
         )
@@ -498,8 +501,22 @@ fun FourierSeries() {
                     }
                 }
                 else -> {
-                    pausedHarmonics[index] = true
+                    removedHarmonics[index] = true
                 }
+            }
+            path.clear()
+            time = 0f
+        }
+
+        val handleResetHarmonic: (Int) -> Unit = { index ->
+            pausedHarmonics.remove(index)
+            removedHarmonics.remove(index)
+            harmonicFrequencies.remove(index)
+            harmonicAmplitudes.remove(index)
+            if (waveType == WaveType.PURE_SIGNAL && index < customFunctionSignals.size) {
+                customFunctionSignals[index].freq = "1.0"
+                customFunctionSignals[index].amp = "50.0"
+                customFunctionSignals[index].isPaused = false
             }
             path.clear()
             time = 0f
@@ -507,8 +524,16 @@ fun FourierSeries() {
 
         val handleResetHarmonics: () -> Unit = {
             pausedHarmonics.clear()
+            removedHarmonics.clear()
             harmonicFrequencies.clear()
-            customFunctionSignals.forEach { it.isPaused = false }
+            harmonicAmplitudes.clear()
+            if (waveType == WaveType.PURE_SIGNAL) {
+                customFunctionSignals.forEach {
+                    it.freq = "1.0"
+                    it.amp = "50.0"
+                    it.isPaused = false
+                }
+            }
             path.clear()
             time = 0f
         }
@@ -587,6 +612,8 @@ fun FourierSeries() {
                             harmonicAmplitudes[index] ?: default
                         }
                     },
+                    removedHarmonics = removedHarmonics,
+                    onResetHarmonic = handleResetHarmonic,
                     onResetHarmonics = handleResetHarmonics
                 )
             }
@@ -656,6 +683,8 @@ fun FourierSeries() {
                             harmonicAmplitudes[index] ?: default
                         }
                     },
+                    removedHarmonics = removedHarmonics,
+                    onResetHarmonic = handleResetHarmonic,
                     onResetHarmonics = handleResetHarmonics
                 )
             }
