@@ -90,6 +90,8 @@ object AppDesign {
     val animDurationFast = 150
     val animDurationStandard = 300
     val animDurationSlow = 500
+
+    val coloredIndicator = 12.dp
 }
 
 // ─────────────────────────────────────────────

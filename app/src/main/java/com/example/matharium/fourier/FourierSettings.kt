@@ -161,6 +161,9 @@ fun FourierSettingsCard(
                         }
                     }
 
+                    Spacer(modifier = Modifier.height( AppDesign.spacingLarge))
+                    HorizontalDivider(color = colors.cardBorder.copy(alpha = 0.2f))
+
                     val customUiType = when (waveType) {
                         WaveType.MY_SIGNAL, WaveType.MY_SIGNAL_2D -> 1
                         WaveType.PURE_SIGNAL, WaveType.FORMULA -> 2
@@ -401,6 +404,8 @@ fun FourierSettingsCard(
                                                 }
                                                 onClearPath()
                                                 onResetTime()
+                                                onRunningChange(false)
+                                                onResetHasStarted()
                                             },
                                         contentAlignment = Alignment.Center
                                     ) {
@@ -688,6 +693,8 @@ fun FourierSettingsCard(
                                                 onClearSVGCoefficients()
                                                 onClearPath()
                                                 onResetTime()
+                                                onRunningChange(false)
+                                                onResetHasStarted()
                                             },
                                         contentAlignment = Alignment.Center
                                     ) {
@@ -753,10 +760,14 @@ fun SignalSettingsCard(
     onDel: () -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().border(
+            AppDesign.borderThin,
+            colors.cardBorder.copy(alpha = AppDesign.opacityGlassBorder),
+            RoundedCornerShape(AppDesign.radiusCard)
+        ),
         shape = RoundedCornerShape(AppDesign.radiusCard),
         colors = CardDefaults.cardColors(containerColor = colors.cardSurface.copy(alpha = 0.3f)),
-        border = BorderStroke(AppDesign.borderThin, colors.cardBorder.copy(alpha = 0.1f))
+//        border = BorderStroke(AppDesign.borderThin, colors.cardBorder.copy(alpha = 0.1f))
     ) {
         Column(modifier = Modifier.padding(AppDesign.spacingMedium)) {
             Row(
@@ -767,7 +778,7 @@ fun SignalSettingsCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         modifier = Modifier
-                            .size(12.dp)
+                            .size(AppDesign.coloredIndicator)
                             .background(signal.color,
                             RoundedCornerShape(100.dp)),
                     )
@@ -781,17 +792,6 @@ fun SignalSettingsCard(
                 }
 
                 Row {
-                    IconButton(
-                        onClick = { signal.isExpanded = !signal.isExpanded },
-                        modifier = Modifier.size(24.dp)
-                    ) {
-                        Icon(
-                            if (signal.isExpanded) painterResource(id = R.drawable.chevron_up_outline) else painterResource(id = R.drawable.chevron_down_outline),
-                            null,
-                            tint = colors.textSecondary,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
                     if (showDel) {
                         IconButton(
                             onClick = onDel,
@@ -805,13 +805,25 @@ fun SignalSettingsCard(
                             )
                         }
                     }
+                    Spacer( modifier = Modifier.width(AppDesign.spacingSmall))
+                    IconButton(
+                        onClick = { signal.isExpanded = !signal.isExpanded },
+                        modifier = Modifier.size(24.dp)
+                    ) {
+                        Icon(
+                            if (signal.isExpanded) painterResource(id = R.drawable.chevron_up_outline) else painterResource(id = R.drawable.chevron_down_outline),
+                            null,
+                            tint = colors.textSecondary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
                 }
             }
 
             AnimatedVisibility(visible = signal.isExpanded) {
                 Column(modifier = Modifier.padding(top = AppDesign.spacingSmall)) {
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().height(AppDesign.chipHeight + 8.dp),
                         horizontalArrangement = Arrangement.spacedBy(AppDesign.spacingSmall)
                     ) {
                         SignalField(
@@ -847,7 +859,8 @@ fun RowScope.SignalField(
     onValueChange: (String) -> Unit
 ) {
     Column(modifier = Modifier.weight(1f)) {
-        Text(label, color = colors.textSecondary, fontSize = 10.sp)
+        Text(label, color = colors.textSecondary, fontSize = AppDesign.textOverline)
+        Spacer( modifier = Modifier.height( AppDesign.spacingSmall))
         BasicTextField(
             value = value,
             onValueChange = onValueChange,
@@ -859,9 +872,8 @@ fun RowScope.SignalField(
             cursorBrush = SolidColor(colors.accentCyan),
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 4.dp)
-                .background(colors.cardSurface.copy(alpha = 0.2f), RoundedCornerShape(4.dp))
-                .border(1.dp, colors.cardBorder.copy(alpha = 0.1f), RoundedCornerShape(4.dp))
+                .background(colors.cardSurface.copy(alpha = 0.2f), RoundedCornerShape(AppDesign.radiusCard))
+                .border(AppDesign.borderThin, colors.cardBorder.copy(alpha = 0.1f), RoundedCornerShape(AppDesign.radiusCard))
                 .padding(horizontal = 8.dp, vertical = 6.dp)
         )
     }

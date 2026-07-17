@@ -15,8 +15,8 @@ object FourierLogic {
             re0 += drawingPoints[i]
         }
         re0 /= samplesCount
-        // Use standard atan2(im, re) for DC offset
-        coeffs.add(kotlin.math.abs(re0) to atan2(0f, re0))
+        // DC offset has 0 phase. Amplitude is the actual mean value.
+        coeffs.add(re0 to 0f)
 
         // Calculate Harmonics up to 50
         for (n in 1..50) {
@@ -237,7 +237,6 @@ object FourierLogic {
             val stepSize = totalPathLength / targetSampleCount
             var currentDist = 0f
             var currentSegmentIdx = 0
-            var distInCurrentSegment = 0f
             
             resampledPoints.add(segments[0].first)
             for (i in 1 until targetSampleCount) {
@@ -272,13 +271,19 @@ object FourierLogic {
             val avgX = (minX + maxX) / 2f
             val avgY = (minY + maxY) / 2f
             
-            return resampledPoints.map { Offset((it.x - avgX) * scale, (it.y - avgY) * scale) }
+            return resampledPoints.map { 
+                val x = (it.x - avgX) * scale
+                val y = (it.y - avgY) * scale
+                if (x.isNaN() || y.isNaN()) Offset.Zero else Offset(x, y)
+            }
             
         } catch (e: Exception) {
             Log.e("FourierLogic", "Error parsing SVG", e)
         }
         return emptyList()
     }
+
+    data class SimulationPoint(val time: Float, val value: Float)
 
     /**
      * Performs a Forward Fourier Transform on a single segment.

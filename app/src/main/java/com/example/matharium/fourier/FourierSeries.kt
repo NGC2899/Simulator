@@ -1,5 +1,6 @@
 package com.example.matharium.fourier
 
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
@@ -98,6 +99,11 @@ fun FourierSeries() {
     var nextSignalId by remember { mutableIntStateOf(customFunctionSignals.maxOfOrNull { it.id }?.plus(1) ?: 1) }
     var isSignalsExpanded by remember { mutableStateOf(false) }
 
+    // --- Dynamic Tuning State ---
+    val pausedHarmonics = remember { mutableStateMapOf<Int, Boolean>() }
+    val harmonicFrequencies = remember { mutableStateMapOf<Int, Float>() }
+    val harmonicAmplitudes = remember { mutableStateMapOf<Int, Float>() }
+
     val coroutineScope = rememberCoroutineScope()
     var dftJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -119,7 +125,12 @@ fun FourierSeries() {
                 drawingPoints.toList()
             }
             
-            val coeffs = FourierLogic.performDFT(samples, samplesCount)
+            val coeffs = try {
+                FourierLogic.performDFT(samples, samplesCount)
+            } catch (e: Exception) {
+                Log.e("FourierSeries", "DFT Calculation error", e)
+                emptyList()
+            }
             withContext(Dispatchers.Main) {
                 if (waveType == WaveType.FORMULA) {
                     formulaCoefficients = coeffs
@@ -134,7 +145,12 @@ fun FourierSeries() {
         dftJob?.cancel()
         dftJob = coroutineScope.launch(Dispatchers.Default) {
             if (drawingPoints2D.isEmpty()) return@launch
-            val coeffs = FourierLogic.performComplexDFT(drawingPoints2D.toList())
+            val coeffs = try {
+                FourierLogic.performComplexDFT(drawingPoints2D.toList())
+            } catch (e: Exception) {
+                Log.e("FourierSeries", "Complex DFT Calculation error", e)
+                emptyList()
+            }
             withContext(Dispatchers.Main) {
                 customCoefficients2D = coeffs
             }
@@ -145,7 +161,12 @@ fun FourierSeries() {
         dftJob?.cancel()
         dftJob = coroutineScope.launch(Dispatchers.Default) {
             if (svgPoints.isEmpty()) return@launch
-            val coeffs = FourierLogic.performComplexDFT(svgPoints.toList())
+            val coeffs = try {
+                FourierLogic.performComplexDFT(svgPoints.toList())
+            } catch (e: Exception) {
+                Log.e("FourierSeries", "SVG DFT Calculation error", e)
+                emptyList()
+            }
             withContext(Dispatchers.Main) {
                 svgCoefficients = coeffs
             }
@@ -183,12 +204,15 @@ fun FourierSeries() {
     }
 
     // Initialize DFT if drawing points exist
-    LaunchedEffect(Unit) {
+    DisposableEffect(Unit) {
         if (drawingPoints.any { it != 0f } || formulaString.isNotEmpty()) {
             calculateDFT()
         }
         if (drawingPoints2D.isNotEmpty()) {
             calculateDFT2D()
+        }
+        onDispose {
+            dftJob?.cancel()
         }
     }
 
@@ -237,8 +261,9 @@ fun FourierSeries() {
                         val limit = animationTerms.coerceAtMost(customFunctionSignals.size)
                         for (i in 0 until limit) {
                             val signal = customFunctionSignals[i]
-                            val freq = signal.freq.toFloatOrNull() ?: 0f
-                            val amp = (signal.amp.toFloatOrNull() ?: 0f) * -1f // Match SINE direction
+                            if (signal.isPaused) continue
+                            val freq = harmonicFrequencies[i] ?: signal.freq.toFloatOrNull() ?: 0f
+                            val amp = (harmonicAmplitudes[i] ?: signal.amp.toFloatOrNull() ?: 0f) * -1f
                             val phase = kotlin.math.PI.toFloat() / 2f
                             val angle = 2 * kotlin.math.PI.toFloat() * freq * time
                             currentY += amp * kotlin.math.cos((angle - phase).toDouble()).toFloat()
@@ -247,11 +272,14 @@ fun FourierSeries() {
                     } else {
                         for (i in 0 until animationTerms) {
                             if (waveType == WaveType.SINE && i > 0) continue
+                            if (pausedHarmonics[i] == true) continue
+
                             if (waveType == WaveType.MY_SIGNAL || waveType == WaveType.FORMULA) {
                                 val coeffs = if (waveType == WaveType.FORMULA) formulaCoefficients else customCoefficients
                                 if (i < coeffs.size) {
-                                    val (amp, phase) = coeffs[i]
-                                    val n = i.toFloat()
+                                    val (origAmp, phase) = coeffs[i]
+                                    val n = harmonicFrequencies[i] ?: i.toFloat()
+                                    val amp = harmonicAmplitudes[i] ?: origAmp
                                     val angle = 2 * kotlin.math.PI.toFloat() * n * time
                                     currentY += amp * kotlin.math.cos((angle - phase).toDouble()).toFloat()
                                     currentX += amp * kotlin.math.sin((angle - phase).toDouble()).toFloat()
@@ -262,9 +290,11 @@ fun FourierSeries() {
                             if (waveType == WaveType.MY_SIGNAL_2D) {
                                 if (i < customCoefficients2D.size) {
                                     val coeff = customCoefficients2D[i]
-                                    val angle = 2 * kotlin.math.PI.toFloat() * coeff.freq * time + coeff.phase
-                                    currentX += coeff.amp * kotlin.math.cos(angle.toDouble()).toFloat()
-                                    currentY += coeff.amp * kotlin.math.sin(angle.toDouble()).toFloat()
+                                    val n = harmonicFrequencies[i] ?: coeff.freq.toFloat()
+                                    val amp = harmonicAmplitudes[i] ?: coeff.amp
+                                    val angle = 2 * kotlin.math.PI.toFloat() * n * time + coeff.phase
+                                    currentX += amp * kotlin.math.cos(angle.toDouble()).toFloat()
+                                    currentY += amp * kotlin.math.sin(angle.toDouble()).toFloat()
                                 }
                                 continue
                             }
@@ -272,33 +302,47 @@ fun FourierSeries() {
                             if (waveType == WaveType.SVG) {
                                 if (i < svgCoefficients.size) {
                                     val coeff = svgCoefficients[i]
-                                    val angle = 2 * kotlin.math.PI.toFloat() * coeff.freq * time + coeff.phase
-                                    currentX += coeff.amp * kotlin.math.cos(angle.toDouble()).toFloat()
-                                    currentY += coeff.amp * kotlin.math.sin(angle.toDouble()).toFloat()
+                                    val n = harmonicFrequencies[i] ?: coeff.freq.toFloat()
+                                    val amp = harmonicAmplitudes[i] ?: coeff.amp
+                                    val angle = 2 * kotlin.math.PI.toFloat() * n * time + coeff.phase
+                                    currentX += amp * kotlin.math.cos(angle.toDouble()).toFloat()
+                                    currentY += amp * kotlin.math.sin(angle.toDouble()).toFloat()
                                 }
                                 continue
                             }
 
-                            val n = when (waveType) {
+                            val n = harmonicFrequencies[i] ?: when (waveType) {
                                 WaveType.SINE -> 1f
                                 WaveType.SQUARE -> (i * 2 + 1).toFloat()
                                 WaveType.SAWTOOTH -> (i + 1).toFloat()
                                 WaveType.TRIANGLE -> (i * 2 + 1).toFloat()
                                 else -> 1f
                             }
-                            val (amp, phase) = when (waveType) {
-                                WaveType.SINE -> Pair(-radiusBase, kotlin.math.PI.toFloat() / 2f)
-                                WaveType.SQUARE -> Pair(-radiusBase * (4f / (n * kotlin.math.PI.toFloat())), kotlin.math.PI.toFloat() / 2f)
+                            
+                            val baseN = when (waveType) {
+                                WaveType.SINE -> 1f
+                                WaveType.SQUARE -> (i * 2 + 1).toFloat()
+                                WaveType.SAWTOOTH -> (i + 1).toFloat()
+                                WaveType.TRIANGLE -> (i * 2 + 1).toFloat()
+                                else -> 1f
+                            }
+
+                            val phase = kotlin.math.PI.toFloat() / 2f
+                            val defaultAmp = when (waveType) {
+                                WaveType.SINE -> -radiusBase
+                                WaveType.SQUARE -> -radiusBase * (4f / (baseN * kotlin.math.PI.toFloat()))
                                 WaveType.SAWTOOTH -> {
-                                    val sign = if (n.toInt() % 2 == 0) -1f else 1f
-                                    Pair(-radiusBase * (2f / (n * kotlin.math.PI.toFloat())) * sign, kotlin.math.PI.toFloat() / 2f)
+                                    val sign = if (baseN.toInt() % 2 == 0) -1f else 1f
+                                    -radiusBase * (2f / (baseN * kotlin.math.PI.toFloat())) * sign
                                 }
                                 WaveType.TRIANGLE -> {
-                                    val sign = if (((n.toInt() - 1) / 2) % 2 != 0) -1f else 1f
-                                    Pair(-radiusBase * (8f / (n * n * kotlin.math.PI.toFloat() * kotlin.math.PI.toFloat())) * sign, kotlin.math.PI.toFloat() / 2f)
+                                    val sign = if (((baseN.toInt() - 1) / 2) % 2 != 0) -1f else 1f
+                                    -radiusBase * (8f / (baseN * baseN * kotlin.math.PI.toFloat() * kotlin.math.PI.toFloat())) * sign
                                 }
-                                else -> Pair(0f, 0f)
+                                else -> 0f
                             }
+                            
+                            val amp = harmonicAmplitudes[i] ?: defaultAmp
                             val angle = 2 * kotlin.math.PI.toFloat() * n * time
                             currentY += amp * kotlin.math.cos((angle - phase).toDouble()).toFloat()
                             currentX += amp * kotlin.math.sin((angle - phase).toDouble()).toFloat()
@@ -412,8 +456,62 @@ fun FourierSeries() {
             formulaCoefficients = formulaCoefficients,
             svgCoefficients = svgCoefficients,
             customFunctionSignals = customFunctionSignals,
-            colors = colors
+            colors = colors,
+            pausedHarmonics = pausedHarmonics,
+            harmonicFrequencies = harmonicFrequencies,
+            harmonicAmplitudes = harmonicAmplitudes
         )
+
+        val handleRemoveHarmonic: (Int) -> Unit = { index ->
+            when (waveType) {
+                WaveType.MY_SIGNAL -> {
+                    val newList = customCoefficients.toMutableList()
+                    if (index < newList.size) {
+                        newList[index] = 0f to 0f
+                        customCoefficients = newList
+                    }
+                }
+                WaveType.FORMULA -> {
+                    val newList = formulaCoefficients.toMutableList()
+                    if (index < newList.size) {
+                        newList[index] = 0f to 0f
+                        formulaCoefficients = newList
+                    }
+                }
+                WaveType.MY_SIGNAL_2D -> {
+                    val newList = customCoefficients2D.toMutableList()
+                    if (index < newList.size) {
+                        newList.removeAt(index)
+                        customCoefficients2D = newList
+                    }
+                }
+                WaveType.SVG -> {
+                    val newList = svgCoefficients.toMutableList()
+                    if (index < newList.size) {
+                        newList.removeAt(index)
+                        svgCoefficients = newList
+                    }
+                }
+                WaveType.PURE_SIGNAL -> {
+                    if (index < customFunctionSignals.size) {
+                        customFunctionSignals.removeAt(index)
+                    }
+                }
+                else -> {
+                    pausedHarmonics[index] = true
+                }
+            }
+            path.clear()
+            time = 0f
+        }
+
+        val handleResetHarmonics: () -> Unit = {
+            pausedHarmonics.clear()
+            harmonicFrequencies.clear()
+            customFunctionSignals.forEach { it.isPaused = false }
+            path.clear()
+            time = 0f
+        }
 
         when (displayMode) {
             FourierDisplayMode.WRAPPING -> {
@@ -433,7 +531,63 @@ fun FourierSeries() {
                     customCoefficients2D = customCoefficients2D,
                     formulaCoefficients = formulaCoefficients,
                     svgCoefficients = svgCoefficients,
-                    customFunctionSignals = customFunctionSignals
+                    customFunctionSignals = customFunctionSignals,
+                    onRemoveHarmonic = handleRemoveHarmonic,
+                    onTogglePause = { index ->
+                        if (waveType == WaveType.PURE_SIGNAL) {
+                            if (index < customFunctionSignals.size) {
+                                customFunctionSignals[index].isPaused = !customFunctionSignals[index].isPaused
+                            }
+                        } else {
+                            pausedHarmonics[index] = !(pausedHarmonics[index] ?: false)
+                        }
+                    },
+                    isHarmonicPaused = { index ->
+                        if (waveType == WaveType.PURE_SIGNAL) {
+                            if (index < customFunctionSignals.size) customFunctionSignals[index].isPaused else false
+                        } else {
+                            pausedHarmonics[index] ?: false
+                        }
+                    },
+                    onFrequencyChange = { index, newFreq ->
+                        if (waveType == WaveType.PURE_SIGNAL) {
+                            if (index < customFunctionSignals.size) {
+                                customFunctionSignals[index].freq = String.format(java.util.Locale.US, "%.2f", newFreq)
+                            }
+                        } else {
+                            harmonicFrequencies[index] = newFreq
+                        }
+                        path.clear()
+                    },
+                    getHarmonicFrequency = { index, default ->
+                        if (waveType == WaveType.PURE_SIGNAL) {
+                            if (index < customFunctionSignals.size) {
+                                customFunctionSignals[index].freq.toFloatOrNull() ?: default
+                            } else default
+                        } else {
+                            harmonicFrequencies[index] ?: default
+                        }
+                    },
+                    onAmplitudeChange = { index, newAmp ->
+                        if (waveType == WaveType.PURE_SIGNAL) {
+                            if (index < customFunctionSignals.size) {
+                                customFunctionSignals[index].amp = String.format(java.util.Locale.US, "%.2f", newAmp)
+                            }
+                        } else {
+                            harmonicAmplitudes[index] = newAmp
+                        }
+                        path.clear()
+                    },
+                    getHarmonicAmplitude = { index, default ->
+                        if (waveType == WaveType.PURE_SIGNAL) {
+                            if (index < customFunctionSignals.size) {
+                                customFunctionSignals[index].amp.toFloatOrNull() ?: default
+                            } else default
+                        } else {
+                            harmonicAmplitudes[index] ?: default
+                        }
+                    },
+                    onResetHarmonics = handleResetHarmonics
                 )
             }
             else -> {
@@ -446,7 +600,63 @@ fun FourierSeries() {
                     customCoefficients2D = customCoefficients2D,
                     formulaCoefficients = formulaCoefficients,
                     svgCoefficients = svgCoefficients,
-                    customFunctionSignals = customFunctionSignals
+                    customFunctionSignals = customFunctionSignals,
+                    onRemoveHarmonic = handleRemoveHarmonic,
+                    onTogglePause = { index ->
+                        if (waveType == WaveType.PURE_SIGNAL) {
+                            if (index < customFunctionSignals.size) {
+                                customFunctionSignals[index].isPaused = !customFunctionSignals[index].isPaused
+                            }
+                        } else {
+                            pausedHarmonics[index] = !(pausedHarmonics[index] ?: false)
+                        }
+                    },
+                    isHarmonicPaused = { index ->
+                        if (waveType == WaveType.PURE_SIGNAL) {
+                            if (index < customFunctionSignals.size) customFunctionSignals[index].isPaused else false
+                        } else {
+                            pausedHarmonics[index] ?: false
+                        }
+                    },
+                    onFrequencyChange = { index, newFreq ->
+                        if (waveType == WaveType.PURE_SIGNAL) {
+                            if (index < customFunctionSignals.size) {
+                                customFunctionSignals[index].freq = String.format(java.util.Locale.US, "%.2f", newFreq)
+                            }
+                        } else {
+                            harmonicFrequencies[index] = newFreq
+                        }
+                        path.clear()
+                    },
+                    getHarmonicFrequency = { index, default ->
+                        if (waveType == WaveType.PURE_SIGNAL) {
+                            if (index < customFunctionSignals.size) {
+                                customFunctionSignals[index].freq.toFloatOrNull() ?: default
+                            } else default
+                        } else {
+                            harmonicFrequencies[index] ?: default
+                        }
+                    },
+                    onAmplitudeChange = { index, newAmp ->
+                        if (waveType == WaveType.PURE_SIGNAL) {
+                            if (index < customFunctionSignals.size) {
+                                customFunctionSignals[index].amp = String.format(java.util.Locale.US, "%.2f", newAmp)
+                            }
+                        } else {
+                            harmonicAmplitudes[index] = newAmp
+                        }
+                        path.clear()
+                    },
+                    getHarmonicAmplitude = { index, default ->
+                        if (waveType == WaveType.PURE_SIGNAL) {
+                            if (index < customFunctionSignals.size) {
+                                customFunctionSignals[index].amp.toFloatOrNull() ?: default
+                            } else default
+                        } else {
+                            harmonicAmplitudes[index] ?: default
+                        }
+                    },
+                    onResetHarmonics = handleResetHarmonics
                 )
             }
         }

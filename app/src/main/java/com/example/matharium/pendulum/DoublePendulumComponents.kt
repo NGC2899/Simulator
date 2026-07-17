@@ -3,13 +3,13 @@ package com.example.matharium.pendulum
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.*
@@ -19,13 +19,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.matharium.app.*
+import com.example.matharium.R
 
 @Composable
 fun EnergyDashboard(
@@ -99,7 +103,7 @@ fun PendulumSettingsCard(
     onDel: () -> Unit
 ) {
     GlassCard(colors = colors) {
-        Column(modifier = Modifier.padding(AppDesign.spacingSmall)) {
+        Column(modifier = Modifier.padding(AppDesign.spacingMedium)) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -110,13 +114,13 @@ fun PendulumSettingsCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         Modifier
-                            .size(AppDesign.radiusSmall)
+                            .size(AppDesign.coloredIndicator)
                             .clip(CircleShape)
                             .background(p.currentColor)
                     )
                     Spacer(Modifier.width(AppDesign.spacingSmall))
                     Text(
-                        "Pendulum  ${p.id}",
+                        "Pendulum #${p.id}",
                         fontWeight = FontWeight.Bold,
                         fontSize = AppDesign.textBodyLarge
                     )
@@ -127,7 +131,7 @@ fun PendulumSettingsCard(
                         modifier = Modifier.size(AppDesign.iconLarge)
                     ) {
                         Icon(
-                            Icons.Default.Delete,
+                            painter = painterResource( id = R.drawable.trash_outline),
                             null,
                             tint = colors.accentHell,
                             modifier = Modifier.size(AppDesign.iconSmall)
@@ -161,12 +165,20 @@ fun PendulumSettingsCard(
                     Column(Modifier.weight(1f)) {
                         PendulumField("L1", p.l1, colors) {
                             p.l1 = it; onParameterChange()
-                        }; PendulumField("θ1 (°)", p.t1, colors) { p.t1 = it; onParameterChange() }
+                        }
+                        Spacer(modifier = Modifier.height(AppDesign.spacingSmall))
+                        PendulumField("θ1 (°)", p.t1, colors) {
+                            p.t1 = it; onParameterChange()
+                        }
                     }
                     Column(Modifier.weight(1f)) {
                         PendulumField("L2", p.l2, colors) {
                             p.l2 = it; onParameterChange()
-                        }; PendulumField("θ2 (°)", p.t2, colors) { p.t2 = it; onParameterChange() }
+                        }
+                        Spacer(modifier = Modifier.height(AppDesign.spacingSmall))
+                        PendulumField("θ2 (°)", p.t2, colors) {
+                            p.t2 = it; onParameterChange()
+                        }
                     }
                 }
             }
@@ -201,24 +213,44 @@ fun PendulumField(
     onValueChange: (String) -> Unit
 ) {
     val isError = value.toDoubleOrNull() == null
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        label = { Text(label, fontSize = AppDesign.textCaption) },
-        textStyle = LocalTextStyle.current.copy(fontSize = AppDesign.textBody),
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-        singleLine = true,
-        isError = isError,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = AppDesign.spacingSmall),
-        shape = RoundedCornerShape(AppDesign.radiusSmall),
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = colors.fieldFocused,
-            focusedLabelColor = colors.accentCyan,
-            unfocusedBorderColor = colors.fieldBorder,
-            errorBorderColor = colors.accentHell,
-            errorLabelColor = colors.accentHell
+    Column {
+        Text(label, color = colors.textSecondary, fontSize = AppDesign.textOverline)
+        Spacer( modifier = Modifier.height( AppDesign.spacingSmall))
+        BasicTextField(
+            onValueChange = onValueChange,
+            value = value,
+            textStyle = TextStyle(
+                color = colors.textPrimary,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium
+            ),
+            cursorBrush = SolidColor(colors.accentCyan),
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(colors.cardSurface.copy(alpha = 0.2f), RoundedCornerShape(AppDesign.radiusCard))
+                .border(AppDesign.borderThin, colors.cardBorder.copy(alpha = 0.1f), RoundedCornerShape(AppDesign.radiusCard))
+                .padding(horizontal = 8.dp, vertical = 6.dp)
         )
-    )
+    }
+
+//    OutlinedTextField(
+//        value = value,
+//        onValueChange = onValueChange,
+//        label = { Text(label, fontSize = AppDesign.textCaption) },
+//        textStyle = LocalTextStyle.current.copy(fontSize = AppDesign.textBody),
+//        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+//        singleLine = true,
+//        isError = isError,
+//        modifier = Modifier
+//            .fillMaxWidth()
+//            .padding(bottom = AppDesign.spacingSmall),
+//        shape = RoundedCornerShape(AppDesign.radiusSmall),
+//        colors = OutlinedTextFieldDefaults.colors(
+//            focusedBorderColor = colors.fieldFocused,
+//            focusedLabelColor = colors.accentCyan,
+//            unfocusedBorderColor = colors.fieldBorder,
+//            errorBorderColor = colors.accentHell,
+//            errorLabelColor = colors.accentHell
+//        )
+//    )
 }

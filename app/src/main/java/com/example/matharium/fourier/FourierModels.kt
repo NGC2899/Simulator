@@ -20,4 +20,5 @@ class SignalInstance(
     var freq by mutableStateOf(initialFreq)
     var amp by mutableStateOf(initialAmp)
     var isExpanded by mutableStateOf(false)
+    var isPaused by mutableStateOf(false)
 }

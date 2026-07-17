@@ -43,7 +43,10 @@ fun FourierVisualizerBox(
     formulaCoefficients: List<Pair<Float, Float>> = emptyList(),
     svgCoefficients: List<FourierLogic.ComplexCoeff> = emptyList(),
     customFunctionSignals: List<SignalInstance>,
-    colors: AppColors
+    colors: AppColors,
+    pausedHarmonics: Map<Int, Boolean> = emptyMap(),
+    harmonicFrequencies: Map<Int, Float> = emptyMap(),
+    harmonicAmplitudes: Map<Int, Float> = emptyMap()
 ) {
     Box(
         modifier = Modifier
@@ -152,10 +155,17 @@ fun FourierVisualizerBox(
 
                     for (i in 0 until termsToDraw) {
                         if (waveType == WaveType.SINE && i > 0) continue
+                        
+                        if (waveType == WaveType.PURE_SIGNAL) {
+                            if (customFunctionSignals[i].isPaused) continue
+                        } else {
+                            if (pausedHarmonics[i] == true) continue
+                        }
+
                         val prevX = x
                         val prevY = y
 
-                        val n = when (waveType) {
+                        val n = harmonicFrequencies[i] ?: when (waveType) {
                             WaveType.SINE -> 1f
                             WaveType.SQUARE -> (i * 2 + 1).toFloat()
                             WaveType.SAWTOOTH -> (i + 1).toFloat()
@@ -167,16 +177,26 @@ fun FourierVisualizerBox(
                             WaveType.PURE_SIGNAL -> if (i < customFunctionSignals.size) customFunctionSignals[i].freq.toFloatOrNull() ?: 0f else 0f
                         }
 
-                        val (amp, phase) = when (waveType) {
+                        val baseN = when (waveType) {
+                            WaveType.SINE -> 1f
+                            WaveType.SQUARE -> (i * 2 + 1).toFloat()
+                            WaveType.SAWTOOTH -> (i + 1).toFloat()
+                            WaveType.TRIANGLE -> (i * 2 + 1).toFloat()
+                            else -> 1f
+                        }
+
+                        val (defaultAmp, phase) = when (waveType) {
                             WaveType.SINE -> Pair(-radiusBase, PI.toFloat() / 2f)
-                            WaveType.SQUARE -> Pair(-radiusBase * (4f / (n * PI.toFloat())), PI.toFloat() / 2f)
+                            WaveType.SQUARE -> {
+                                Pair(-radiusBase * (4f / (baseN * PI.toFloat())), PI.toFloat() / 2f)
+                            }
                             WaveType.SAWTOOTH -> {
-                                val sign = if (n.toInt() % 2 == 0) -1f else 1f
-                                Pair(-radiusBase * (2f / (n * PI.toFloat())) * sign, PI.toFloat() / 2f)
+                                val sign = if (baseN.toInt() % 2 == 0) -1f else 1f
+                                Pair(-radiusBase * (2f / (baseN * PI.toFloat())) * sign, PI.toFloat() / 2f)
                             }
                             WaveType.TRIANGLE -> {
-                                val sign = if (((n.toInt() - 1) / 2) % 2 != 0) -1f else 1f
-                                Pair(-radiusBase * (8f / (n * n * PI.toFloat() * PI.toFloat())) * sign, PI.toFloat() / 2f)
+                                val sign = if (((baseN.toInt() - 1) / 2) % 2 != 0) -1f else 1f
+                                Pair(-radiusBase * (8f / (baseN * baseN * PI.toFloat() * PI.toFloat())) * sign, PI.toFloat() / 2f)
                             }
                             WaveType.MY_SIGNAL -> if (i < customCoefficients.size) customCoefficients[i] else (0f to 0f)
                             WaveType.FORMULA -> if (i < formulaCoefficients.size) formulaCoefficients[i] else (0f to 0f)
@@ -189,6 +209,8 @@ fun FourierVisualizerBox(
                             } else (0f to 0f)
                         }
 
+                        val amp = harmonicAmplitudes[i] ?: defaultAmp
+
                         if (kotlin.math.abs(amp) < 0.5f && i > 0) continue
 
                         val angle = 2 * PI.toFloat() * n * time
@@ -199,7 +221,7 @@ fun FourierVisualizerBox(
                         }
 
                         drawCircle(
-                            color = colors.accentCyan.copy(alpha = AppDesign.opacityLow * 2f),
+                            color = (if (waveType == WaveType.PURE_SIGNAL && i < customFunctionSignals.size) customFunctionSignals[i].color else colors.accentCyan).copy(alpha = AppDesign.opacityLow * 2f),
                             radius = kotlin.math.abs(amp),
                             center = Offset(prevX, prevY),
                             style = Stroke(width = AppDesign.strokeThin)
@@ -208,7 +230,7 @@ fun FourierVisualizerBox(
                         y = nextY
 
                         drawLine(
-                            color = colors.accentCyan.copy(alpha = AppDesign.opacityMedium),
+                            color = (if (waveType == WaveType.PURE_SIGNAL && i < customFunctionSignals.size) customFunctionSignals[i].color else colors.accentCyan).copy(alpha = AppDesign.opacityMedium),
                             start = Offset(prevX, prevY),
                             end = Offset(x, y),
                             strokeWidth = 1.5f
