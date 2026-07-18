@@ -4,7 +4,9 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -247,16 +249,16 @@ fun HarmonicComponents(
                         }
 
                         // Edit Menu
-                        Box {
+                        Box () {
                             var menuExpanded by remember { mutableStateOf(false) }
                             IconButton(
                                 onClick = { menuExpanded = true },
-                                modifier = Modifier.size(28.dp)
+                                modifier = Modifier.size(AppDesign.iconSmall)
                             ) {
                                 Icon(
                                     Icons.Default.MoreVert,
                                     contentDescription = "Edit",
-                                    tint = colors.textSecondary.copy(alpha = 0.5f),
+                                    tint = colors.textSecondary.copy(AppDesign.opacityMedium),
                                     modifier = Modifier.size(16.dp)
                                 )
                             }
@@ -265,8 +267,14 @@ fun HarmonicComponents(
                                 onDismissRequest = { menuExpanded = false },
                                 modifier = Modifier
                                     .width(200.dp)
-                                    .background(colors.cardSurface)
-                                    .padding(8.dp)
+                                    .clip(RoundedCornerShape(AppDesign.radiusCard))
+                                    .background(colors.cardSurface.copy(alpha = AppDesign.opacityGlass))
+                                    .border(
+                                        AppDesign.borderThin,
+                                        colors.cardBorder.copy(alpha = AppDesign.opacityGlassBorder),
+                                        RoundedCornerShape(AppDesign.radiusCard)
+                                    )
+                                    .padding(8.dp),
                             ) {
                                 val isPaused = isHarmonicPaused(i)
                                 DropdownMenuItem(
@@ -277,14 +285,15 @@ fun HarmonicComponents(
                                     },
                                     leadingIcon = {
                                         Icon(
-                                            if (isPaused) Icons.Default.PlayArrow else Icons.Default.Pause,
+                                            if (isPaused) painterResource( id = R.drawable.pause_outline) else painterResource( id = R.drawable.caret_forward_outline),
                                             contentDescription = null,
+                                            modifier = Modifier.size(AppDesign.iconSmall),
                                             tint = colors.accentCyan
                                         )
                                     }
                                 )
                                 
-                                Spacer(Modifier.height(8.dp))
+                                Spacer(Modifier.height(AppDesign.spacingSmall))
                                 Text(
                                     "Frequency",
                                     fontSize = 10.sp,
@@ -294,7 +303,7 @@ fun HarmonicComponents(
                                 Slider(
                                     value = getHarmonicFrequency(i, n),
                                     onValueChange = { onFrequencyChange(i, it) },
-                                    valueRange = 0f..20f,
+                                    valueRange = -20f..20f,
                                     modifier = Modifier.padding(horizontal = 12.dp),
                                     colors = SliderDefaults.colors(
                                         thumbColor = colors.accentCyan,
@@ -312,15 +321,13 @@ fun HarmonicComponents(
                                 Slider(
                                     value = getHarmonicAmplitude(i, 0f), // Fallback
                                     onValueChange = { onAmplitudeChange(i, it) },
-                                    valueRange = -200f..200f,
+                                    valueRange = -50f..50f,
                                     modifier = Modifier.padding(horizontal = 12.dp),
                                     colors = SliderDefaults.colors(
-                                        thumbColor = colors.accentViolet,
-                                        activeTrackColor = colors.accentViolet
+                                        thumbColor = colors.accentCyan,
+                                        activeTrackColor = colors.accentCyan
                                     )
                                 )
-
-                                HorizontalDivider(color = colors.cardBorder.copy(alpha = 0.1f), modifier = Modifier.padding(vertical = 4.dp))
 
                                 DropdownMenuItem(
                                     text = { Text("Reset to Default") },
@@ -338,8 +345,6 @@ fun HarmonicComponents(
                                     }
                                 )
 
-                                HorizontalDivider(color = colors.cardBorder.copy(alpha = 0.1f), modifier = Modifier.padding(vertical = 4.dp))
-
                                 DropdownMenuItem(
                                     text = { Text("Remove", color = MaterialTheme.colorScheme.error) },
                                     onClick = {
@@ -348,7 +353,7 @@ fun HarmonicComponents(
                                     },
                                     leadingIcon = {
                                         Icon(
-                                            Icons.Default.Delete,
+                                            painter = painterResource( id = R.drawable.trash_outline),
                                             contentDescription = null,
                                             tint = MaterialTheme.colorScheme.error,
                                             modifier = Modifier.size(18.dp)

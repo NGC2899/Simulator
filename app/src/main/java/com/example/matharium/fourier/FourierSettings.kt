@@ -497,7 +497,7 @@ fun FourierSettingsCard(
                                                     .background(colors.cardSurface.copy(AppDesign.opacityLow))
                                                     .border(
                                                         BorderStroke(
-                                                            AppDesign.borderThin,
+                                                            AppDesign.borderStandard,
                                                             Brush.linearGradient(
                                                                 listOf(colors.accentCyan, colors.accentViolet)
                                                             )
@@ -549,7 +549,7 @@ fun FourierSettingsCard(
                                                     .clip(RoundedCornerShape(AppDesign.radiusButton))
                                                     .background(colors.accentHell.copy(AppDesign.opacityLow))
                                                     .border(
-                                                        AppDesign.borderThin,
+                                                        AppDesign.borderStandard,
                                                         colors.accentHell.copy(AppDesign.opacityMedium),
                                                         RoundedCornerShape(AppDesign.radiusButton)
                                                     )
