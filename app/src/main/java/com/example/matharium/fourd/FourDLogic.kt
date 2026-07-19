@@ -26,7 +26,7 @@ object FourDLogic {
         for (i in 0 until numVertices) {
             val coords = DoubleArray(dim)
             for (j in 0 until dim) {
-                coords[j] = (if ((i shr j) and 1 == 1) 1.5 else -1.5) * normalization
+                coords[j] = (if (((i shr j) and 1) == 1) 1.5 else -1.5) * normalization
             }
             vertices.add(PointND(coords))
         }
@@ -173,7 +173,6 @@ object FourDLogic {
             for (i in 0 until dim - 1 step 2) {
                 val a = i
                 val b = dim - 1
-                if (a >= dim || b >= dim) continue
                 
                 val currentAngle = autoAngle * (1.0 + i * 0.1)
                 val valA = coords[a]

@@ -440,7 +440,7 @@ fun CenterOfMassGraph(
 
                 // Calculate COM Graph using the ACTUAL data points from the simulation
                 val graphPath = Path()
-                val freqSteps = 80 // Reduced for performance
+                val freqSteps = 120
 
                 for (s in 0..freqSteps) {
                     val freq = (s.toFloat() / freqSteps) * maxFreq
@@ -448,8 +448,8 @@ fun CenterOfMassGraph(
                     var sumX = 0f
                     var sumY = 0f
                     var processedCount = 0
-                    // Increase step to 8 for significantly better performance
-                    for (i in path.indices step 8) {
+                    // Increased sampling density (step 5) for better accuracy at low speeds
+                    for (i in path.indices step 5) {
                         val point = path[i]
                         val t = point.x
                         val ft = point.y
@@ -482,7 +482,7 @@ fun CenterOfMassGraph(
                 var currentSumX = 0f
                 var currentSumY = 0f
                 var currentCount = 0
-                for (i in path.indices step 8) {
+                for (i in path.indices step 5) {
                     val point = path[i]
                     currentSumX += point.y * cos(2 * PI.toFloat() * currentWindingFreq * point.x)
                     currentSumY += point.y * sin(2 * PI.toFloat() * currentWindingFreq * point.x)

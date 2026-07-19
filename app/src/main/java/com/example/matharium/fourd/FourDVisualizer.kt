@@ -8,6 +8,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.unit.dp
 import com.example.matharium.app.AppColors
 import com.example.matharium.app.AppDesign
 
@@ -69,7 +70,7 @@ fun FourDVisualizer(
     ) {
         val centerX = size.width / 2f
         val centerY = size.height / 2f
-        val scale = size.minDimension / 4f
+        val scale = 80.dp.toPx() // Canvas already provides Density
 
         // 1. Apply N-Dimensional automatic rotation first
         val autoRotated = FourDLogic.rotateHigherDims(baseVertices, dimensions, autoAngle)

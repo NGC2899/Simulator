@@ -141,40 +141,23 @@ fun DoublePendulum() {
     }
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
+        modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(AppDesign.spacingLarge)
     ) {
-        // ── Physics Environment ──────────────────────────────────
-        DoublePendulumEnvironment(
-            colors = colors,
-            speedMultiplier = speedMultiplier,
-            onSpeedChange = { speedMultiplier = it },
-            gravityAmount = gravityAmount,
-            onGravityChange = { gravityAmount = it },
-            frictionEnabled = frictionEnabled,
-            onFrictionEnabledChange = { frictionEnabled = it },
-            frictionAmount = frictionAmount,
-            onFrictionAmountChange = { frictionAmount = it },
-            colorByVelocity = colorByVelocity,
-            onColorByVelocityChange = { colorByVelocity = it }
-        )
 
-        // ── Pendulum Management ───────────────────────────────────
-        DoublePendulumManager(
+        // --- FIXED TOP SECTION ---
+        DoublePendulumVisualizer(
             colors = colors,
             pendulums = pendulums,
             running = running,
-            onRunningChange = { running = it },
-            hasStarted = hasStarted,
             onHasStartedChange = { hasStarted = it },
-            nextId = nextId,
-            onNextIdChange = { nextId = it },
+            displayMode = displayMode,
+            onDisplayModeChange = { displayMode = it },
+            scale = scale,
+            onScaleChange = { scale = it },
             prefs = prefs
         )
 
-        // ── Action Buttons ────────────────────────────────────────
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -209,6 +192,7 @@ fun DoublePendulum() {
                     modifier = Modifier.size(AppDesign.iconSmall)
                 )
                 Spacer(Modifier.width(AppDesign.spacingSmall))
+                @Suppress("SpellCheckingInspection")
                 Text(
                     if (running) "Pause" else if (hasStarted) "Resume" else "Simulate",
                     fontWeight = FontWeight.Bold,
@@ -232,53 +216,78 @@ fun DoublePendulum() {
                     colors = ButtonDefaults.buttonColors(containerColor = colors.cardSurface),
                     border = BorderStroke(AppDesign.borderStandard, colors.accentCyan)
                 ) {
+                    @Suppress("SpellCheckingInspection")
                     Text("Reset", color = colors.accentCyan)
                 }
             }
         }
 
-        // ── Visualization Canvas ──────────────────────────────────
-        DoublePendulumVisualizer(
-            colors = colors,
-            pendulums = pendulums,
-            running = running,
-            onHasStartedChange = { hasStarted = it },
-            displayMode = displayMode,
-            onDisplayModeChange = { displayMode = it },
-            scale = scale,
-            onScaleChange = { scale = it },
-            prefs = prefs
-        )
-
-        // ── Energy Distribution (Only in Complex Mode) ──────────
-        AnimatedVisibility(
-            visible = displayMode == DisplayMode.COMPLEX,
-            enter = expandVertically() + fadeIn(),
-            exit = shrinkVertically() + fadeOut()
+        // --- SCROLLABLE BOTTOM SECTION ---
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(AppDesign.spacingLarge)
         ) {
-            EnergyDashboard(
-                modifier = Modifier.fillMaxWidth(),
-                pendulums = pendulums,
-                colors = colors
+            // Physics Environment
+            DoublePendulumEnvironment(
+                colors = colors,
+                speedMultiplier = speedMultiplier,
+                onSpeedChange = { speedMultiplier = it },
+                gravityAmount = gravityAmount,
+                onGravityChange = { gravityAmount = it },
+                frictionEnabled = frictionEnabled,
+                onFrictionEnabledChange = { frictionEnabled = it },
+                frictionAmount = frictionAmount,
+                onFrictionAmountChange = { frictionAmount = it },
+                colorByVelocity = colorByVelocity,
+                onColorByVelocityChange = { colorByVelocity = it }
             )
-        }
 
+            // Pendulum Management
+            DoublePendulumManager(
+                colors = colors,
+                pendulums = pendulums,
+                running = running,
+                onRunningChange = { running = it },
+                hasStarted = hasStarted,
+                onHasStartedChange = { hasStarted = it },
+                nextId = nextId,
+                onNextIdChange = { nextId = it },
+                prefs = prefs
+            )
 
-        GlassCard(colors = colors) {
-            Column(modifier = Modifier.padding(AppDesign.spacingLarge)) {
-                Text(
-                    "How it works",
-                    fontSize = AppDesign.textHeadline,
-                    fontWeight = FontWeight.Bold
+            // Energy Distribution (Only in Complex Mode)
+            AnimatedVisibility(
+                visible = displayMode == DisplayMode.COMPLEX,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
+                EnergyDashboard(
+                    modifier = Modifier.fillMaxWidth(),
+                    pendulums = pendulums,
+                    colors = colors
                 )
-                Spacer(Modifier.height(AppDesign.spacingSmall))
-                Text(
-                    "The Double Pendulum constitutes a compelling physics experiment that demonstrates the elegance of physical principles, illustrating how a system can simultaneously exhibit unpredictability and determinism. By establishing the initial angles (θ1 and θ2) and subsequently releasing the pendulum, one can observe the behavior of the system under controlled conditions.",
-                    color = colors.textSecondary,
-                    lineHeight = DoublePendulumConstants.LINE_HEIGHT_EXPLAINER
-                )
+            }
+
+            // Explainer Card
+            GlassCard(colors = colors) {
+                Column(modifier = Modifier.padding(AppDesign.spacingLarge)) {
+                    @Suppress("SpellCheckingInspection")
+                    Text(
+                        "How it works",
+                        fontSize = AppDesign.textHeadline,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(Modifier.height(AppDesign.spacingSmall))
+                    @Suppress("SpellCheckingInspection")
+                    Text(
+                        "The Double Pendulum constitutes a compelling physics experiment that demonstrates the elegance of physical principles, illustrating how a system can simultaneously exhibit unpredictability and determinism. By establishing the initial angles (θ1 and θ2) and subsequently releasing the pendulum, one can observe the behavior of the system under controlled conditions.",
+                        color = colors.textSecondary,
+                        lineHeight = DoublePendulumConstants.LINE_HEIGHT_EXPLAINER
+                    )
+                }
             }
         }
     }
 }
-

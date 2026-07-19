@@ -3,6 +3,7 @@ package com.example.matharium.fourier
 import android.Manifest
 import android.content.pm.PackageManager
 import android.media.*
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
@@ -198,24 +199,31 @@ fun VoiceProcessing() {
                         minBufferSize.coerceAtLeast(windowSize * 2)
                     )
 
-                    val recordDurationMs = 3000
-                    val totalSamples = sampleRate * recordDurationMs / 1000
-                    val rawBuffer = ShortArray(totalSamples)
+                    try {
+                        val recordDurationMs = 3000
+                        val totalSamples = sampleRate * recordDurationMs / 1000
+                        val rawBuffer = ShortArray(totalSamples)
 
-                    audioRecord.startRecording()
-                    var samplesRead = 0
-                    while (samplesRead < totalSamples && isRecording) {
-                        val read =
-                            audioRecord.read(rawBuffer, samplesRead, totalSamples - samplesRead)
-                        if (read > 0) samplesRead += read else break
-                        delay(10)
-                    }
-                    audioRecord.stop()
-                    audioRecord.release()
-
-                    withContext(Dispatchers.Main) {
-                        rawAudio = rawBuffer
-                        isRecording = false
+                        audioRecord.startRecording()
+                        var samplesRead = 0
+                        while (samplesRead < totalSamples && isRecording) {
+                            val read =
+                                audioRecord.read(rawBuffer, samplesRead, totalSamples - samplesRead)
+                            if (read > 0) samplesRead += read else break
+                            delay(10)
+                        }
+                        
+                        withContext(Dispatchers.Main) {
+                            rawAudio = rawBuffer
+                            isRecording = false
+                        }
+                    } finally {
+                        try {
+                            audioRecord.stop()
+                        } catch (e: Exception) {
+                            Log.e("VoiceProcessing", "Error stopping AudioRecord", e)
+                        }
+                        audioRecord.release()
                     }
                 }
             }
@@ -306,7 +314,7 @@ fun VoiceProcessing() {
                 )
                 Spacer(Modifier.height(AppDesign.spacingSmall))
                 Text(
-                    "This mode processes your voice using Short-Time Fourier Transform (STFT) with 2ms intervals, mimicking modern DSP algorithms.",
+                    "This mode processes your voice using Short-Time Fourier Transform (STFT) with 42ms windows, balancing time and frequency resolution.",
                     color = colors.textSecondary,
                     fontSize = 13.sp
                 )
@@ -317,7 +325,7 @@ fun VoiceProcessing() {
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(Modifier.height(AppDesign.radiusSmall))
-                BulletPoint("Signal is sliced into 2ms windows (approx. 96 samples).")
+                BulletPoint("Signal is sliced into 42ms windows (2048 samples).")
                 BulletPoint("FFT converts each slice from time to frequency domain.")
                 BulletPoint("Inverse FFT reconstructs the signal back to time domain.")
                 BulletPoint("Overlap-Add (OLA) ensures smooth transitions between slices.")
@@ -394,7 +402,7 @@ private fun BulletPoint(text: String) {
     }
 }
 
-private fun playAudio(audioData: ShortArray) {
+private suspend fun playAudio(audioData: ShortArray) {
     val sampleRate = 48000
     val audioTrack = AudioTrack.Builder()
         .setAudioAttributes(
@@ -414,8 +422,12 @@ private fun playAudio(audioData: ShortArray) {
         .setTransferMode(AudioTrack.MODE_STATIC)
         .build()
 
-    audioTrack.write(audioData, 0, audioData.size)
-    audioTrack.play()
-    Thread.sleep((audioData.size.toFloat() / sampleRate * 1000).toLong())
-    audioTrack.release()
+    try {
+        audioTrack.write(audioData, 0, audioData.size)
+        audioTrack.play()
+        delay((audioData.size.toFloat() / sampleRate * 1000).toLong())
+    } finally {
+        audioTrack.stop()
+        audioTrack.release()
+    }
 }

@@ -49,6 +49,11 @@ fun FourierVisualizerBox(
     harmonicFrequencies: Map<Int, Float> = emptyMap(),
     harmonicAmplitudes: Map<Int, Float> = emptyMap()
 ) {
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val radiusBasePx = with(density) { 100.dp.toPx() }
+    val gridStepPx = with(density) { 60.dp.toPx() }
+    val pathStepPx = with(density) { 0.8f.dp.toPx() }
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -64,14 +69,14 @@ fun FourierVisualizerBox(
         Canvas(modifier = Modifier.fillMaxSize()) {
             val centerX = size.width * 0.3f
             val centerY = size.height * 0.5f
-            val radiusBase = 100f
+            val radiusBase = radiusBasePx
 
             if ((displayMode == FourierDisplayMode.CIRCULAR) || (displayMode == FourierDisplayMode.COMPLEX)) {
                 val actualCenterX = if (displayMode == FourierDisplayMode.COMPLEX) size.width * 0.5f else centerX
                 translate(actualCenterX, centerY) {
                     // Draw Grid
                     val gridColor = colors.accentCyan.copy(alpha = AppDesign.opacityGrid)
-                    val step = 60f
+                    val step = gridStepPx
                     val left = -actualCenterX
                     val right = size.width - actualCenterX
                     val top = -centerY
@@ -116,14 +121,17 @@ fun FourierVisualizerBox(
                     var lx = step
                     while (lx <= right) {
                         drawIntoCanvas {
-                            it.nativeCanvas.drawText(lx.toInt().toString(), lx, 25f, paint)
+                            // Display values based on dp logic (60dp steps)
+                            val labelValue = (lx / step * 60).toInt()
+                            it.nativeCanvas.drawText(labelValue.toString(), lx, 25f, paint)
                         }
                         lx += step
                     }
                     lx = -step
                     while (lx >= left) {
                         drawIntoCanvas {
-                            it.nativeCanvas.drawText(lx.toInt().toString(), lx, 25f, paint)
+                            val labelValue = (lx / step * 60).toInt()
+                            it.nativeCanvas.drawText(labelValue.toString(), lx, 25f, paint)
                         }
                         lx -= step
                     }
@@ -133,14 +141,16 @@ fun FourierVisualizerBox(
                     var ly = step
                     while (ly <= bottom) {
                         drawIntoCanvas {
-                            it.nativeCanvas.drawText((-ly).toInt().toString(), -8f, ly + 8f, paint)
+                            val labelValue = (-ly / step * 60).toInt()
+                            it.nativeCanvas.drawText(labelValue.toString(), -8f, ly + 8f, paint)
                         }
                         ly += step
                     }
                     ly = -step
                     while (ly >= top) {
                         drawIntoCanvas {
-                            it.nativeCanvas.drawText((-ly).toInt().toString(), -8f, ly + 8f, paint)
+                            val labelValue = (-ly / step * 60).toInt()
+                            it.nativeCanvas.drawText(labelValue.toString(), -8f, ly + 8f, paint)
                         }
                         ly -= step
                     }
@@ -254,7 +264,7 @@ fun FourierVisualizerBox(
                             wavePath.moveTo(180f, path[0].y)
                             // Performance optimization: higher step for drawing the wave
                             for (i in 1 until path.size step 4) {
-                                wavePath.lineTo(180f + i * 0.8f, path[i].y)
+                                wavePath.lineTo(180f + i * pathStepPx, path[i].y)
                             }
                         }
 
@@ -282,7 +292,7 @@ fun FourierVisualizerBox(
             } else if (displayMode == FourierDisplayMode.WRAPPING) {
                 translate(size.width / 2f, centerY) {
                     val gridColor = colors.accentCyan.copy(alpha = AppDesign.opacityGrid)
-                    val step = 60f
+                    val step = gridStepPx
 
                     val halfWidth = size.width / 2f
                     val halfHeight = size.height / 2f
@@ -319,14 +329,16 @@ fun FourierVisualizerBox(
                     var lx = step
                     while (lx <= halfWidth) {
                         drawIntoCanvas {
-                            it.nativeCanvas.drawText(lx.toInt().toString(), lx, 20f, paint)
+                            val labelValue = (lx / step * 60).toInt()
+                            it.nativeCanvas.drawText(labelValue.toString(), lx, 20f, paint)
                         }
                         lx += step
                     }
                     lx = -step
                     while (lx >= -halfWidth) {
                         drawIntoCanvas {
-                            it.nativeCanvas.drawText(lx.toInt().toString(), lx, 20f, paint)
+                            val labelValue = (lx / step * 60).toInt()
+                            it.nativeCanvas.drawText(labelValue.toString(), lx, 20f, paint)
                         }
                         lx -= step
                     }
@@ -336,14 +348,16 @@ fun FourierVisualizerBox(
                     var ly = step
                     while (ly <= halfHeight) {
                         drawIntoCanvas {
-                            it.nativeCanvas.drawText((-ly).toInt().toString(), -8f, ly + 8f, paint)
+                            val labelValue = (-ly / step * 60).toInt()
+                            it.nativeCanvas.drawText(labelValue.toString(), -8f, ly + 8f, paint)
                         }
                         ly += step
                     }
                     ly = -step
                     while (ly >= -halfHeight) {
                         drawIntoCanvas {
-                            it.nativeCanvas.drawText((-ly).toInt().toString(), -8f, ly + 8f, paint)
+                            val labelValue = (-ly / step * 60).toInt()
+                            it.nativeCanvas.drawText(labelValue.toString(), -8f, ly + 8f, paint)
                         }
                         ly -= step
                     }
@@ -351,7 +365,7 @@ fun FourierVisualizerBox(
                     val wrappedPath = Path()
                     var sumX = 0f
                     var sumY = 0f
-                    val baseRadius = 80f
+                    val baseRadius = radiusBasePx * 0.8f
 
                     if (path.isNotEmpty()) {
                         var processedCount = 0

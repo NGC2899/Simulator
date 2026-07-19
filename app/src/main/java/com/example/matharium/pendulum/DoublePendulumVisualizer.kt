@@ -48,6 +48,9 @@ fun DoublePendulumVisualizer(
     var draggingPendulumId by remember { mutableStateOf<Int?>(null) }
     var draggingBobType by remember { mutableStateOf(DragTarget.NONE) }
 
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val vectorLineScalePx = with(density) { DoublePendulumConstants.VECTOR_LINE_SCALE.dp.toPx() }
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -197,7 +200,7 @@ fun DoublePendulumVisualizer(
                                     p.bob1 * scale + Offset(
                                         v1x.toFloat(),
                                         v1y.toFloat()
-                                    ) * DoublePendulumConstants.VECTOR_LINE_SCALE,
+                                    ) * vectorLineScalePx,
                                     AppDesign.strokeStandard,
                                     StrokeCap.Round
                                 )
@@ -207,7 +210,7 @@ fun DoublePendulumVisualizer(
                                     p.bob2 * scale + Offset(
                                         v2x.toFloat(),
                                         v2y.toFloat()
-                                    ) * DoublePendulumConstants.VECTOR_LINE_SCALE,
+                                    ) * vectorLineScalePx,
                                     AppDesign.strokeStandard,
                                     StrokeCap.Round
                                 )

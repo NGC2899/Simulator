@@ -44,7 +44,7 @@ fun WelcomeScreen(
         modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Spacer(modifier = Modifier.height(AppDesign.welcomeHeaderHeight / 2))
+        Spacer(modifier = Modifier.height(AppDesign.welcomeSectionSpacing))
 
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,

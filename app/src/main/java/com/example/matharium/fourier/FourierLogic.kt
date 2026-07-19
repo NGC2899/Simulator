@@ -311,7 +311,7 @@ object FourierLogic {
         // Iterative FFT
         var len = 2
         while (len <= n) {
-            val ang = 2 * PI / len
+            val ang = 2.0 * PI / len
             val wlen = Complex(cos(ang), -sin(ang))
             for (i in 0 until n step len) {
                 var w = Complex(1.0, 0.0)
@@ -333,15 +333,15 @@ object FourierLogic {
      */
     fun ifft(coeffs: Array<Complex>): FloatArray {
         val n = coeffs.size
-        val reversed = Array(n) { i -> coeffs[i].conj() }
+        val result = Array(n) { i -> Complex(coeffs[i].re, coeffs[i].im) }
         
         // Bit-reversal
         var j = 0
         for (i in 0 until n) {
             if (i < j) {
-                val temp = reversed[i]
-                reversed[i] = reversed[j]
-                reversed[j] = temp
+                val temp = result[i]
+                result[i] = result[j]
+                result[j] = temp
             }
             var m = n shr 1
             while (m >= 1 && j >= m) {
@@ -353,22 +353,22 @@ object FourierLogic {
 
         var len = 2
         while (len <= n) {
-            val ang = 2 * PI / len
-            val wlen = Complex(cos(ang), sin(ang)) // Conjugate angle for IFFT
+            val ang = 2.0 * PI / len
+            val wlen = Complex(cos(ang), sin(ang)) // Correct angle for IFFT
             for (i in 0 until n step len) {
                 var w = Complex(1.0, 0.0)
                 for (k in 0 until len / 2) {
-                    val u = reversed[i + k]
-                    val v = reversed[i + k + len / 2] * w
-                    reversed[i + k] = u + v
-                    reversed[i + k + len / 2] = u - v
+                    val u = result[i + k]
+                    val v = result[i + k + len / 2] * w
+                    result[i + k] = u + v
+                    result[i + k + len / 2] = u - v
                     w *= wlen
                 }
             }
             len = len shl 1
         }
         
-        return FloatArray(n) { (reversed[it].re / n).toFloat() }
+        return FloatArray(n) { (result[it].re / n).toFloat() }
     }
 
     data class Complex(val re: Double, val im: Double) {

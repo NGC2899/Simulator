@@ -55,8 +55,11 @@ class AppPreferences(context: Context) {
         }
         set(value) = prefs.edit().putString("drawing_points_2d", value.joinToString(";") { "${it.x},${it.y}" }).apply()
 
+    private fun escape(s: String) = s.replace("%", "%25").replace("|", "%7C").replace(";", "%3B")
+    private fun unescape(s: String) = s.replace("%7C", "|").replace("%3B", ";").replace("%25", "%")
+
     fun saveFourierSignals(signals: List<SignalInstance>) {
-        val serialized = signals.joinToString(";") { "${it.id}|${it.color.toArgb()}|${it.freq}|${it.amp}" }
+        val serialized = signals.joinToString(";") { "${it.id}|${it.color.toArgb()}|${escape(it.freq)}|${escape(it.amp)}" }
         prefs.edit().putString("fourier_signals", serialized).apply()
     }
 
@@ -68,8 +71,8 @@ class AppPreferences(context: Context) {
                 SignalInstance(
                     id = parts.getOrNull(0)?.toIntOrNull() ?: 0,
                     color = Color(parts.getOrNull(1)?.toIntOrNull() ?: accentColor.toArgb()),
-                    initialFreq = parts.getOrNull(2) ?: "1.0",
-                    initialAmp = parts.getOrNull(3) ?: "50.0"
+                    initialFreq = unescape(parts.getOrNull(2) ?: "1.0"),
+                    initialAmp = unescape(parts.getOrNull(3) ?: "50.0")
                 )
             }
         } catch (e: Exception) {
@@ -84,7 +87,7 @@ class AppPreferences(context: Context) {
 
     fun savePendulums(pendulums: List<PendulumInstance>) {
         val serialized = pendulums.joinToString(";") {
-            "${it.id}|${it.baseColor.toArgb()}|${it.t1}|${it.t2}|${it.l1}|${it.l2}"
+            "${it.id}|${it.baseColor.toArgb()}|${escape(it.t1)}|${escape(it.t2)}|${escape(it.l1)}|${escape(it.l2)}"
         }
         prefs.edit().putString("pendulums", serialized).apply()
     }
@@ -97,11 +100,11 @@ class AppPreferences(context: Context) {
                 PendulumInstance(
                     id = parts.getOrNull(0)?.toIntOrNull() ?: 0,
                     baseColor = Color(parts.getOrNull(1)?.toIntOrNull() ?: accentColor.toArgb()),
-                    t1Initial = parts.getOrNull(2) ?: "90.0",
-                    t2Initial = parts.getOrNull(3) ?: "90.0"
+                    t1Initial = unescape(parts.getOrNull(2) ?: "90.0"),
+                    t2Initial = unescape(parts.getOrNull(3) ?: "90.0")
                 ).apply {
-                    l1 = parts.getOrNull(4) ?: "1.0"
-                    l2 = parts.getOrNull(5) ?: "1.0"
+                    l1 = unescape(parts.getOrNull(4) ?: "1.0")
+                    l2 = unescape(parts.getOrNull(5) ?: "1.0")
                 }
             }
         } catch (e: Exception) {
