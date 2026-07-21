@@ -161,7 +161,7 @@ fun FourierVisualizerBox(
                     val termsToDraw = if (waveType == WaveType.PURE_SIGNAL) {
                         nTerms.coerceAtMost(customFunctionSignals.size)
                     } else {
-                        nTerms.coerceAtMost(15) // Reduced from 25 for better performance
+                        nTerms.coerceAtMost(50) // Increased from 15 for better visual feedback
                     }
 
                     for (i in 0 until termsToDraw) {
@@ -492,7 +492,7 @@ fun FourierVisualizerBox(
                     Slider(
                         value = nTerms.toFloat(),
                         onValueChange = { onNTermsChange(it.toInt()) },
-                        valueRange = 1f..50f,
+                        valueRange = 1f..250f,
                         modifier = Modifier
                             .weight(1f)
                             .layout { measurable: Measurable, constraints ->

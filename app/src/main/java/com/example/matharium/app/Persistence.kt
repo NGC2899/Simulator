@@ -15,6 +15,10 @@ class AppPreferences(context: Context) {
         get() = prefs.getBoolean("is_dark_theme", true)
         set(value) = prefs.edit().putBoolean("is_dark_theme", value).apply()
 
+    var isAnimatedBackground: Boolean
+        get() = prefs.getBoolean("is_animated_background", true)
+        set(value) = prefs.edit().putBoolean("is_animated_background", value).apply()
+
     // Fourier Settings
     var fourierNTerms: Int
         get() = prefs.getInt("fourier_n_terms", 5)

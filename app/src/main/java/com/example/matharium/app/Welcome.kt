@@ -31,7 +31,8 @@ fun WelcomeScreen(
     onNavigateToDoublePendulum: () -> Unit,
     onNavigateToFourierSeries: () -> Unit,
     onNavigateToVoiceProcessing: () -> Unit,
-    onNavigateToFourD: () -> Unit
+    onNavigateToFourD: () -> Unit,
+    onNavigateToSettings: () -> Unit
 ) {
     val colors = LocalAppColors.current
 
@@ -135,13 +136,19 @@ fun WelcomeScreen(
                 }
             }
 
-            // Future Placeholder
+            // Settings Card
             item {
                 EntranceAnimation(visible = showContent, index = 4) {
-                    EmptyCard(colors = colors)
+                    SimulationCard(
+                        title = "Settings",
+                        colors = colors,
+                        onClick = onNavigateToSettings,
+                        iconRes = R.drawable.moon_outline // Temporary until we have a real settings icon
+                    )
                 }
             }
-            
+
+            // Future Placeholder
             item {
                 EntranceAnimation(visible = showContent, index = 5) {
                     EmptyCard(colors = colors)

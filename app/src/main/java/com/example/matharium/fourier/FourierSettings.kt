@@ -62,6 +62,7 @@ fun FourierSettingsCard(
     onNextSignalIdChange: (Int) -> Unit,
     isSignalsExpanded: Boolean,
     onSignalsExpandedChange: (Boolean) -> Unit,
+    symmetryResult: FourierLogic.SymmetryResult?,
     colors: AppColors,
     prefs: AppPreferences,
     samplesCount: Int
@@ -219,6 +220,8 @@ fun FourierSettingsCard(
                                     }
 
                                     Spacer(Modifier.height(AppDesign.spacingMedium))
+
+                                    SymmetryMessage(result = symmetryResult, colors = colors)
 
                                     Text(
                                         "Draw your wave below",
@@ -667,8 +670,10 @@ fun FourierSettingsCard(
 
                                         Spacer(Modifier.height(AppDesign.spacingSmall))
 
+                                        SymmetryMessage(result = symmetryResult, colors = colors)
+
                                         Text(
-                                            "Use 'x' as variable (0 to 2π). Supported: sin, cos, abs, sqrt, ^, etc.",
+                                            "Use 'x' as variable (-π to π). Supported: sin, cos, abs, sqrt, ^, etc.",
                                             color = colors.textSecondary,
                                             fontSize = 11.sp
                                         )
@@ -746,6 +751,50 @@ fun FourierSettingsCard(
                         ) { onWindingFrequencyChange(it) }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun SymmetryMessage(result: FourierLogic.SymmetryResult?, colors: AppColors) {
+    if (result == null) return
+    
+    val message = when {
+        result.evenPercent > 99.5f -> "This function is symmetric and is even therefore only cosine coefficients exist."
+        result.oddPercent > 99.5f -> "This function is symmetric and is odd therefore only sine coefficients exist."
+        result.evenPercent > 85f -> "This function is ${result.evenPercent.toInt()}% even so we can safely ignore sine coefficients."
+        result.oddPercent > 85f -> "This function is ${result.oddPercent.toInt()}% odd so we can safely ignore cosine coefficients."
+        else -> null
+    }
+
+    if (message != null) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = AppDesign.spacingSmall),
+            colors = CardDefaults.cardColors(containerColor = colors.accentCyan.copy(alpha = 0.08f)),
+            border = BorderStroke(1.dp, colors.accentCyan.copy(alpha = 0.2f)),
+            shape = RoundedCornerShape(AppDesign.radiusSmall)
+        ) {
+            Row(
+                modifier = Modifier.padding(AppDesign.spacingMedium),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.cloud), // Or any suitable info icon
+                    contentDescription = null,
+                    tint = colors.accentCyan,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(Modifier.width(AppDesign.spacingSmall))
+                Text(
+                    text = message,
+                    color = colors.textPrimary,
+                    fontSize = 11.sp,
+                    lineHeight = 16.sp,
+                    fontWeight = FontWeight.Medium
+                )
             }
         }
     }

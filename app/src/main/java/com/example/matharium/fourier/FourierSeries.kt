@@ -38,7 +38,7 @@ fun FourierSeries() {
 
     // Clamp nTerms when switching wave types
     LaunchedEffect(waveType) {
-        val maxForCurrent = 50
+        val maxForCurrent = 250
         if (nTerms > maxForCurrent) {
             nTerms = maxForCurrent
         }
@@ -61,12 +61,13 @@ fun FourierSeries() {
     var formulaString by remember { mutableStateOf(prefs.fourierFormula) }
     var formulaCoefficients by remember { mutableStateOf<List<Pair<Float, Float>>>(emptyList()) }
     var baseFormulaCoefficients by remember { mutableStateOf<List<Pair<Float, Float>>>(emptyList()) }
+    var symmetryResult by remember { mutableStateOf<FourierLogic.SymmetryResult?>(null) }
 
     var time by remember { mutableFloatStateOf(0f) }
     val path = remember { mutableStateListOf<Offset>() }
 
     // --- Draw a Wave State ---
-    val samplesCount = 200
+    val samplesCount = 1000
     val drawingPoints = remember { 
         val saved = prefs.drawingPoints
         val list = mutableStateListOf<Float>()
@@ -122,7 +123,9 @@ fun FourierSeries() {
             val samples = if (waveType == WaveType.FORMULA) {
                 val list = mutableListOf<Float>()
                 for (i in 0 until samplesCount) {
-                    val x = (i.toDouble() / samplesCount) * 2 * kotlin.math.PI
+                    var x = (i.toDouble() / samplesCount) * 2 * kotlin.math.PI
+                    if (x > kotlin.math.PI) x -= 2 * kotlin.math.PI
+                    
                     // Formula gives value around 0, let's scale it slightly for better default visualization
                     val value = -FourierExpressionEvaluator.evaluate(formulaString, x).toFloat()
                     list.add(value * 80f)
@@ -139,7 +142,11 @@ fun FourierSeries() {
                 Log.e("FourierSeries", "DFT Calculation error", e)
                 emptyList()
             }
+            
+            val symmetry = FourierLogic.detectSymmetry(samples)
+
             withContext(Dispatchers.Main) {
+                symmetryResult = symmetry
                 if (waveType == WaveType.FORMULA) {
                     formulaCoefficients = coeffs
                     baseFormulaCoefficients = coeffs
@@ -458,16 +465,19 @@ fun FourierSeries() {
                 onCalculateDFT2D = { calculateDFT2D() },
                 onClearCustomCoefficients = {
                     customCoefficients = emptyList()
+                    symmetryResult = null
                     running = false
                     hasStarted = false
                 },
                 onClearCustomCoefficients2D = {
                     customCoefficients2D = emptyList()
+                    symmetryResult = null
                     running = false
                     hasStarted = false
                 },
                 onClearSVGCoefficients = {
                     svgCoefficients = emptyList()
+                    symmetryResult = null
                     running = false
                     hasStarted = false
                 },
@@ -479,6 +489,7 @@ fun FourierSeries() {
                 onNextSignalIdChange = { nextSignalId = it },
                 isSignalsExpanded = isSignalsExpanded,
                 onSignalsExpandedChange = { isSignalsExpanded = it },
+                symmetryResult = symmetryResult,
                 colors = colors,
                 prefs = prefs,
                 samplesCount = samplesCount

@@ -1,0 +1,3 @@
+- `[x]` Update `calculateDFT` in `FourierSeries.kt` to center `x` range around 0
+- `[x]` Update UI hint in `FourierSettings.kt`
+- `[x]` Verify symmetry detection for `x^3` and `x^2`

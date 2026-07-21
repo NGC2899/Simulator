@@ -18,8 +18,8 @@ object FourierLogic {
         // DC offset has 0 phase. Amplitude is the actual mean value.
         coeffs.add(re0 to 0f)
 
-        // Calculate Harmonics up to 50
-        for (n in 1..50) {
+        // Calculate Harmonics up to 250
+        for (n in 1..250) {
             var re = 0f
             var im = 0f
             val angleFactor = 2 * PI.toFloat() * n / samplesCount
@@ -43,8 +43,8 @@ object FourierLogic {
         val coeffs = mutableListOf<ComplexCoeff>()
         // We calculate both positive and negative frequencies for 2D drawing
         // to handle non-symmetric shapes.
-        // Let's take up to 50 terms total (e.g., -25 to 25)
-        val limit = 25
+        // Let's take up to 250 terms total (e.g., -125 to 125)
+        val limit = 125
         for (k in -limit..limit) {
             var re = 0.0
             var im = 0.0
@@ -69,6 +69,41 @@ object FourierLogic {
     }
 
     data class ComplexCoeff(val freq: Int, val amp: Float, val phase: Float)
+
+    data class SymmetryResult(val evenPercent: Float, val oddPercent: Float)
+
+    fun detectSymmetry(samples: List<Float>): SymmetryResult {
+        if (samples.isEmpty()) return SymmetryResult(0f, 0f)
+        val n = samples.size
+        
+        // Remove DC offset for better symmetry detection
+        val dc = samples.average().toFloat()
+        val normalized = samples.map { it - dc }
+        
+        var evenSum = 0f
+        var oddSum = 0f
+        var totalPower = 0f
+        
+        for (i in 0 until n) {
+            val f1 = normalized[i]
+            // f(-x) corresponds to f(n-i) in periodic discrete samples
+            val f2 = normalized[(n - i) % n]
+            
+            val evenPart = (f1 + f2) / 2f
+            val oddPart = (f1 - f2) / 2f
+            
+            evenSum += evenPart * evenPart
+            oddSum += oddPart * oddPart
+            totalPower += f1 * f1
+        }
+        
+        if (totalPower < 1e-6f) return SymmetryResult(100f, 0f) // Constant function is perfectly even
+        
+        return SymmetryResult(
+            (evenSum / totalPower * 100f).coerceIn(0f, 100f),
+            (oddSum / totalPower * 100f).coerceIn(0f, 100f)
+        )
+    }
 
     /**
      * Extracts points from SVG path data.

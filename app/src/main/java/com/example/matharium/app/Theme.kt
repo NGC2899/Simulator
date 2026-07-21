@@ -47,7 +47,7 @@ object AppDesign {
     val chipHeight = 32.dp
     val drawingAreaHeight = 200.dp
     val textFieldHeight = 56.dp
-    val canvasHeightSmall = 350.dp
+    val canvasHeightSmall = 300.dp
     val sidebarButtonSize = 42.dp
     val navBarHeight = 60.dp
     val welcomeHeaderHeight = 100.dp
