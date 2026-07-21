@@ -42,18 +42,27 @@ fun DoublePendulum() {
     var running by remember { mutableStateOf(false) }
     var hasStarted by remember { mutableStateOf(false) }
 
-    var frictionEnabled by remember { mutableStateOf(false) }
-    var frictionAmount by remember { mutableFloatStateOf(0.0002f) }
-    var gravityAmount by remember { mutableFloatStateOf(9.8f) }
-    var speedMultiplier by remember { mutableFloatStateOf(1f) }
+    var frictionEnabled by remember { mutableStateOf(prefs.pendulumFrictionEnabled) }
+    var frictionAmount by remember { mutableFloatStateOf(prefs.pendulumFrictionAmount) }
+    var gravityAmount by remember { mutableFloatStateOf(prefs.pendulumGravityAmount) }
+    var speedMultiplier by remember { mutableFloatStateOf(prefs.pendulumSpeedMultiplier) }
     var scale by remember { mutableFloatStateOf(prefs.pendulumScale) }
-    var colorByVelocity by remember { mutableStateOf(false) }
+    var colorByVelocity by remember { mutableStateOf(prefs.pendulumColorByVelocity) }
 
     var displayMode by remember { mutableStateOf(DisplayMode.SIMULATION) }
 
     // Save state when it changes
     LaunchedEffect(scale) { prefs.pendulumScale = scale }
-    LaunchedEffect(pendulums.toList()) { prefs.savePendulums(pendulums.toList()) }
+    LaunchedEffect(frictionEnabled) { prefs.pendulumFrictionEnabled = frictionEnabled }
+    LaunchedEffect(frictionAmount) { prefs.pendulumFrictionAmount = frictionAmount }
+    LaunchedEffect(gravityAmount) { prefs.pendulumGravityAmount = gravityAmount }
+    LaunchedEffect(speedMultiplier) { prefs.pendulumSpeedMultiplier = speedMultiplier }
+    LaunchedEffect(colorByVelocity) { prefs.pendulumColorByVelocity = colorByVelocity }
+
+    // Save initial configuration when list size changes or when items are modified (via startT1/startT2)
+    LaunchedEffect(pendulums.toList().map { Triple(it.id, it.startT1, Triple(it.startT2, it.l1, it.l2)) }) {
+        prefs.savePendulums(pendulums.toList())
+    }
 
     // Main Simulation Loop - Optimized for cross-device consistency
     LaunchedEffect(running, speedMultiplier, gravityAmount, frictionAmount, frictionEnabled) {
@@ -86,7 +95,7 @@ fun DoublePendulum() {
                         p.logic.setGravity(gravityAmount.toDouble())
                         p.logic.setFriction(frictionAmount.toDouble())
                         p.logic.setFrictionEnabled(frictionEnabled)
-                        p.logic.update()
+                        p.logic.update(fixedDeltaTime)
 
                         val coords = p.logic.currentCoords
                         newPoints[i].add(Offset(coords.x2.toFloat(), coords.y2.toFloat()))

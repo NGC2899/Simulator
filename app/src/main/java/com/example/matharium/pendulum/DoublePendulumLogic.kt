@@ -61,18 +61,28 @@ class DoublePendulumLogic {
     /**
      * RK4 Integration for superior stability.
      */
-    fun update(): Coordinates {
+    fun update(dt: Double): Coordinates {
         val s = State(thetaOne, thetaTwo, omegaOne, omegaTwo)
 
         val k1 = derivative(s)
-        val k2 = derivative(add(s, k1, DT / 2))
-        val k3 = derivative(add(s, k2, DT / 2))
-        val k4 = derivative(add(s, k3, DT))
+        val k2 = derivative(add(s, k1, dt / 2))
+        val k3 = derivative(add(s, k2, dt / 2))
+        val k4 = derivative(add(s, k3, dt))
 
-        thetaOne += (DT / 6.0) * (k1.t1 + 2 * k2.t1 + 2 * k3.t1 + k4.t1)
-        thetaTwo += (DT / 6.0) * (k1.t2 + 2 * k2.t2 + 2 * k3.t2 + k4.t2)
-        omegaOne += (DT / 6.0) * (k1.w1 + 2 * k2.w1 + 2 * k3.w1 + k4.w1)
-        omegaTwo += (DT / 6.0) * (k1.w2 + 2 * k2.w2 + 2 * k3.w2 + k4.w2)
+        thetaOne += (dt / 6.0) * (k1.t1 + 2 * k2.t1 + 2 * k3.t1 + k4.t1)
+        thetaTwo += (dt / 6.0) * (k1.t2 + 2 * k2.t2 + 2 * k3.t2 + k4.t2)
+        omegaOne += (dt / 6.0) * (k1.w1 + 2 * k2.w1 + 2 * k3.w1 + k4.w1)
+        omegaTwo += (dt / 6.0) * (k1.w2 + 2 * k2.w2 + 2 * k3.w2 + k4.w2)
+
+        // Safety check for numerical instability (NaN or Infinity)
+        if (thetaOne.isNaN() || thetaTwo.isNaN() || omegaOne.isNaN() || omegaTwo.isNaN() ||
+            thetaOne.isInfinite() || thetaTwo.isInfinite() || omegaOne.isInfinite() || omegaTwo.isInfinite()) {
+            // Reset to a safe state if instability occurs
+            thetaOne = 0.0
+            thetaTwo = 0.0
+            omegaOne = 0.0
+            omegaTwo = 0.0
+        }
 
         // Apply friction
         if (frictionEnabled) {
@@ -100,14 +110,20 @@ class DoublePendulumLogic {
         currentCoords.kineticEnergy = 0.5 * massOne * (v1x * v1x + v1y * v1y) + 0.5 * massTwo * (v2x * v2x + v2y * v2y)
         currentCoords.potentialEnergy = -massOne * gravity * lengthOne * cos(thetaOne) - massTwo * gravity * (lengthOne * cos(thetaOne) + lengthTwo * cos(thetaTwo))
 
+        // Final safety check for positions
+        if (currentCoords.x1.isNaN() || currentCoords.y1.isNaN() || currentCoords.x2.isNaN() || currentCoords.y2.isNaN()) {
+            currentCoords.x1 = 0.0; currentCoords.y1 = 0.0
+            currentCoords.x2 = 0.0; currentCoords.y2 = 0.0
+        }
+
         return currentCoords
     }
 
     private fun derivative(s: State): State {
-        val safeLengthOne = if (lengthOne <= 0) 1.0 else lengthOne
-        val safeLengthTwo = if (lengthTwo <= 0) 1.0 else lengthTwo
-        val safeMassOne = if (massOne <= 0) 1.0 else massOne
-        val safeMassTwo = if (massTwo <= 0) 1.0 else massTwo
+        val safeLengthOne = if (lengthOne <= 1e-6) 1e-6 else lengthOne
+        val safeLengthTwo = if (lengthTwo <= 1e-6) 1e-6 else lengthTwo
+        val safeMassOne = if (massOne <= 1e-6) 1e-6 else massOne
+        val safeMassTwo = if (massTwo <= 1e-6) 1e-6 else massTwo
 
         val delta = s.t1 - s.t2
         var den = 2 * safeMassOne + safeMassTwo - safeMassTwo * cos(2 * delta)
@@ -131,6 +147,6 @@ class DoublePendulumLogic {
     }
 
     companion object {
-        const val DT = 0.004
+        // Logic no longer needs a fixed DT constant as it is passed from the simulation loop
     }
 }

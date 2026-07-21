@@ -38,6 +38,11 @@ class PendulumInstance(
         val t2v = (t2.toDoubleOrNull() ?: 0.0) * PI / 180.0
         val l1v = l1.toDoubleOrNull() ?: 1.0
         val l2v = l2.toDoubleOrNull() ?: 1.0
+        
+        // Update start values so they are persisted as the initial state
+        startT1 = t1
+        startT2 = t2
+
         logic.initialize(t1v, t2v, 0.0, 0.0, l1v, l2v, 1.0, 1.0)
         val coords = logic.currentCoords
         bob1 = Offset(coords.x1.toFloat(), coords.y1.toFloat())

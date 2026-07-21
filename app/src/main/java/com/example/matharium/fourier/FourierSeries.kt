@@ -56,7 +56,7 @@ fun FourierSeries() {
             }
         )
     }
-    var windingFrequency by remember { mutableFloatStateOf(1.0f) }
+    var windingFrequency by remember { mutableFloatStateOf(prefs.fourierWindingFrequency) }
 
     var formulaString by remember { mutableStateOf(prefs.fourierFormula) }
     var formulaCoefficients by remember { mutableStateOf<List<Pair<Float, Float>>>(emptyList()) }
@@ -231,6 +231,7 @@ fun FourierSeries() {
     // Save state when it changes
     LaunchedEffect(nTerms) { prefs.fourierNTerms = nTerms }
     LaunchedEffect(speed) { prefs.fourierSpeed = speed }
+    LaunchedEffect(windingFrequency) { prefs.fourierWindingFrequency = windingFrequency }
     LaunchedEffect(displayMode) { prefs.fourierDisplayMode = displayMode.name }
     LaunchedEffect(formulaString, waveType) { 
         prefs.fourierFormula = formulaString

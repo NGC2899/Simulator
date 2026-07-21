@@ -4,7 +4,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 object DoublePendulumConstants {
-    const val PHYSICS_DT = 0.006
+    const val PHYSICS_DT = 0.008
     const val MAX_ELAPSED_TIME = 0.1
     const val MAX_PHYSICS_STEPS = 10
 

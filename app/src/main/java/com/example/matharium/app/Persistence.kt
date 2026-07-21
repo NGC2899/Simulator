@@ -36,6 +36,10 @@ class AppPreferences(context: Context) {
         get() = prefs.getString("fourier_formula", "abs(sin(x))") ?: "abs(sin(x))"
         set(value) = prefs.edit().putString("fourier_formula", value).apply()
 
+    var fourierWindingFrequency: Float
+        get() = prefs.getFloat("fourier_winding_frequency", 1.0f)
+        set(value) = prefs.edit().putFloat("fourier_winding_frequency", value).apply()
+
     var drawingPoints: List<Float>
         get() = prefs.getString("drawing_points", "")?.split(",")?.filter { it.isNotEmpty() }?.mapNotNull { it.toFloatOrNull() } ?: emptyList()
         set(value) = prefs.edit().putString("drawing_points", value.joinToString(",")).apply()
@@ -85,15 +89,35 @@ class AppPreferences(context: Context) {
         get() = prefs.getFloat("pendulum_scale", 100f)
         set(value) = prefs.edit().putFloat("pendulum_scale", value).apply()
 
+    var pendulumFrictionEnabled: Boolean
+        get() = prefs.getBoolean("pendulum_friction_enabled", false)
+        set(value) = prefs.edit().putBoolean("pendulum_friction_enabled", value).apply()
+
+    var pendulumFrictionAmount: Float
+        get() = prefs.getFloat("pendulum_friction_amount", 0.0002f)
+        set(value) = prefs.edit().putFloat("pendulum_friction_amount", value).apply()
+
+    var pendulumGravityAmount: Float
+        get() = prefs.getFloat("pendulum_gravity_amount", 9.8f)
+        set(value) = prefs.edit().putFloat("pendulum_gravity_amount", value).apply()
+
+    var pendulumSpeedMultiplier: Float
+        get() = prefs.getFloat("pendulum_speed_multiplier", 1f)
+        set(value) = prefs.edit().putFloat("pendulum_speed_multiplier", value).apply()
+
+    var pendulumColorByVelocity: Boolean
+        get() = prefs.getBoolean("pendulum_color_by_velocity", false)
+        set(value) = prefs.edit().putBoolean("pendulum_color_by_velocity", value).apply()
+
     fun savePendulums(pendulums: List<PendulumInstance>) {
         val serialized = pendulums.joinToString(";") {
-            "${it.id}|${it.baseColor.toArgb()}|${escape(it.t1)}|${escape(it.t2)}|${escape(it.l1)}|${escape(it.l2)}"
+            "${it.id}|${it.baseColor.toArgb()}|${escape(it.startT1)}|${escape(it.startT2)}|${escape(it.l1)}|${escape(it.l2)}"
         }
         prefs.edit().putString("pendulums", serialized).apply()
     }
 
     fun loadPendulums(accentColor: Color): List<PendulumInstance> {
-        val data = prefs.getString("pendulums", null) ?: return listOf(PendulumInstance(0, accentColor))
+        val data = prefs.getString("pendulums", null) ?: return listOf(PendulumInstance(0, accentColor).apply { updatePositions() })
         return try {
             data.split(";").filter { it.isNotEmpty() }.map {
                 val parts = it.split("|")
@@ -105,10 +129,11 @@ class AppPreferences(context: Context) {
                 ).apply {
                     l1 = unescape(parts.getOrNull(4) ?: "1.0")
                     l2 = unescape(parts.getOrNull(5) ?: "1.0")
+                    updatePositions()
                 }
             }
         } catch (e: Exception) {
-            listOf(PendulumInstance(0, accentColor))
+            listOf(PendulumInstance(0, accentColor).apply { updatePositions() })
         }
     }
 }
