@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.lerp as lerpColor
 import androidx.compose.ui.layout.Measurable
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.res.painterResource
@@ -35,7 +36,9 @@ fun FourierVisualizerBox(
     nTerms: Int,
     onNTermsChange: (Int) -> Unit,
     time: Float,
-    path: MutableList<Offset>,
+    path: List<PathPoint>,
+    showErrorGradient: Boolean,
+    errorSensitivity: Float,
     onClearPath: () -> Unit,
     windingFrequency: Float,
     customCoefficients: List<Pair<Float, Float>>,
@@ -53,6 +56,14 @@ fun FourierVisualizerBox(
     val radiusBasePx = with(density) { 100.dp.toPx() }
     val gridStepPx = with(density) { 60.dp.toPx() }
     val pathStepPx = with(density) { 0.8f.dp.toPx() }
+    
+    // Density-aware constants for drawing
+    val labelOffsetX = with(density) { 25.dp.toPx() }
+    val labelOffsetY = with(density) { 8.dp.toPx() }
+    val labelOffsetAxis = with(density) { 8.dp.toPx() }
+    val labelOffsetWrappingX = with(density) { 20.dp.toPx() }
+    val waveStartX = with(density) { 180.dp.toPx() }
+    val indicatorSize = with(density) { AppDesign.spacingExtraSmall.toPx() }
 
     Box(
         modifier = Modifier
@@ -84,29 +95,29 @@ fun FourierVisualizerBox(
 
                     var gx = 0f
                     while (gx <= right) {
-                        drawLine(gridColor, Offset(gx, top), Offset(gx, bottom), AppDesign.strokeThin)
+                        drawLine(gridColor, Offset(gx, top), Offset(gx, bottom), AppDesign.strokeThin.toPx())
                         gx += step
                     }
                     gx = -step
                     while (gx >= left) {
-                        drawLine(gridColor, Offset(gx, top), Offset(gx, bottom), AppDesign.strokeThin)
+                        drawLine(gridColor, Offset(gx, top), Offset(gx, bottom), AppDesign.strokeThin.toPx())
                         gx -= step
                     }
                     var gy = 0f
                     while (gy <= bottom) {
-                        drawLine(gridColor, Offset(left, gy), Offset(right, gy), AppDesign.strokeThin)
+                        drawLine(gridColor, Offset(left, gy), Offset(right, gy), AppDesign.strokeThin.toPx())
                         gy += step
                     }
                     gy = -step
                     while (gy >= top) {
-                        drawLine(gridColor, Offset(left, gy), Offset(right, gy), AppDesign.strokeThin)
+                        drawLine(gridColor, Offset(left, gy), Offset(right, gy), AppDesign.strokeThin.toPx())
                         gy -= step
                     }
 
                     // Main Axes
                     val axisColor = colors.textSecondary.copy(alpha = AppDesign.opacityLow + AppDesign.opacitySubtle)
-                    drawLine(axisColor, Offset(left, 0f), Offset(right, 0f), AppDesign.strokeThin)
-                    drawLine(axisColor, Offset(0f, top), Offset(0f, bottom), AppDesign.strokeThin)
+                    drawLine(axisColor, Offset(left, 0f), Offset(right, 0f), AppDesign.strokeThin.toPx())
+                    drawLine(axisColor, Offset(0f, top), Offset(0f, bottom), AppDesign.strokeThin.toPx())
 
                     // Labels
                     val labelColor = colors.textSecondary.copy(alpha = 0.4f).toArgb()
@@ -123,7 +134,7 @@ fun FourierVisualizerBox(
                         drawIntoCanvas {
                             // Display values based on dp logic (60dp steps)
                             val labelValue = (lx / step * 60).toInt()
-                            it.nativeCanvas.drawText(labelValue.toString(), lx, 25f, paint)
+                            it.nativeCanvas.drawText(labelValue.toString(), lx, labelOffsetX, paint)
                         }
                         lx += step
                     }
@@ -131,7 +142,7 @@ fun FourierVisualizerBox(
                     while (lx >= left) {
                         drawIntoCanvas {
                             val labelValue = (lx / step * 60).toInt()
-                            it.nativeCanvas.drawText(labelValue.toString(), lx, 25f, paint)
+                            it.nativeCanvas.drawText(labelValue.toString(), lx, labelOffsetX, paint)
                         }
                         lx -= step
                     }
@@ -142,7 +153,7 @@ fun FourierVisualizerBox(
                     while (ly <= bottom) {
                         drawIntoCanvas {
                             val labelValue = (-ly / step * 60).toInt()
-                            it.nativeCanvas.drawText(labelValue.toString(), -8f, ly + 8f, paint)
+                            it.nativeCanvas.drawText(labelValue.toString(), -labelOffsetAxis, ly + labelOffsetY, paint)
                         }
                         ly += step
                     }
@@ -150,7 +161,7 @@ fun FourierVisualizerBox(
                     while (ly >= top) {
                         drawIntoCanvas {
                             val labelValue = (-ly / step * 60).toInt()
-                            it.nativeCanvas.drawText(labelValue.toString(), -8f, ly + 8f, paint)
+                            it.nativeCanvas.drawText(labelValue.toString(), -labelOffsetAxis, ly + labelOffsetY, paint)
                         }
                         ly -= step
                     }
@@ -215,7 +226,9 @@ fun FourierVisualizerBox(
                             WaveType.MY_SIGNAL_2D -> if (i < customCoefficients2D.size) (customCoefficients2D[i].amp to customCoefficients2D[i].phase) else (0f to 0f)
                             WaveType.SVG -> if (i < svgCoefficients.size) (svgCoefficients[i].amp to svgCoefficients[i].phase) else (0f to 0f)
                             WaveType.PURE_SIGNAL -> if (i < customFunctionSignals.size) {
-                                val amp = (customFunctionSignals[i].amp.toFloatOrNull() ?: 0f) * -1f
+                                // Convert DP input to pixels for drawing
+                                val ampInput = harmonicAmplitudes[i] ?: (customFunctionSignals[i].amp.toFloatOrNull() ?: 0f)
+                                val amp = ampInput * density.density * -1f
                                 val phase = PI.toFloat() / 2f
                                 amp to phase
                             } else (0f to 0f)
@@ -236,7 +249,7 @@ fun FourierVisualizerBox(
                             color = (if (waveType == WaveType.PURE_SIGNAL && i < customFunctionSignals.size) customFunctionSignals[i].color else colors.accentCyan).copy(alpha = AppDesign.opacityLow * 2f),
                             radius = kotlin.math.abs(amp),
                             center = Offset(prevX, prevY),
-                            style = Stroke(width = AppDesign.strokeThin)
+                            style = Stroke(width = AppDesign.strokeThin.toPx())
                         )
                         x = nextX
                         y = nextY
@@ -249,44 +262,80 @@ fun FourierVisualizerBox(
                         )
                     }
 
-                    drawCircle(colors.accentViolet, AppDesign.spacingExtraSmall.toPx(), Offset(x, y))
+                    drawCircle(colors.accentViolet, indicatorSize, Offset(x, y))
 
                     if (displayMode == FourierDisplayMode.CIRCULAR) {
                         drawLine(
                             color = colors.textSecondary.copy(alpha = AppDesign.opacityLow + AppDesign.opacitySubtle),
                             start = Offset(x, y),
-                            end = Offset(180f, y),
-                            strokeWidth = AppDesign.strokeThin
+                            end = Offset(waveStartX, y),
+                            strokeWidth = AppDesign.strokeThin.toPx()
                         )
 
-                        val wavePath = Path()
-                        if (path.isNotEmpty()) {
-                            wavePath.moveTo(180f, path[0].y)
-                            // Performance optimization: higher step for drawing the wave
-                            for (i in 1 until path.size step 4) {
-                                wavePath.lineTo(180f + i * pathStepPx, path[i].y)
+                        if (showErrorGradient && path.isNotEmpty()) {
+                            // Max error for full violet color (scaled to be meaningful)
+                            // Using inverted dynamic sensitivity threshold (Higher value = Higher sensitivity)
+                            val maxErr = (101f - errorSensitivity).coerceAtLeast(1f)
+                            for (i in 0 until path.size - 1 step 4) {
+                                val p1 = path[i]
+                                val p2 = path[(i + 4).coerceAtMost(path.size - 1)]
+                                val lerp = (p1.error / maxErr).coerceIn(0f, 1f)
+                                val segmentColor = lerpColor(colors.accentCyan, colors.accentViolet, lerp)
+                                drawLine(
+                                    color = segmentColor,
+                                    start = Offset(waveStartX + i * pathStepPx, p1.offset.y),
+                                    end = Offset(waveStartX + (i + 4) * pathStepPx, p2.offset.y),
+                                    strokeWidth = AppDesign.strokeThick.toPx(),
+                                    cap = StrokeCap.Round
+                                )
                             }
-                        }
+                        } else {
+                            val wavePath = Path()
+                            if (path.isNotEmpty()) {
+                                wavePath.moveTo(waveStartX, path[0].offset.y)
+                                // Performance optimization: higher step for drawing the wave
+                                for (i in 1 until path.size step 4) {
+                                    wavePath.lineTo(waveStartX + i * pathStepPx, path[i].offset.y)
+                                }
+                            }
 
-                        drawPath(
-                            path = wavePath,
-                            color = colors.accentCyan,
-                            style = Stroke(width = AppDesign.strokeThick, cap = StrokeCap.Round)
-                        )
+                            drawPath(
+                                path = wavePath,
+                                color = colors.accentCyan,
+                                style = Stroke(width = AppDesign.strokeThick.toPx(), cap = StrokeCap.Round)
+                            )
+                        }
                     } else {
-                        val tracePath = Path()
-                        if (path.isNotEmpty()) {
-                            tracePath.moveTo(path[0].x, path[0].y)
-                            // Performance optimization: higher step for 2D tracing
-                            for (i in 1 until path.size step 2) {
-                                tracePath.lineTo(path[i].x, path[i].y)
+                        if (showErrorGradient && path.isNotEmpty()) {
+                            val maxErr = (101f - errorSensitivity).coerceAtLeast(1f)
+                            for (i in 0 until path.size - 1 step 2) {
+                                val p1 = path[i]
+                                val p2 = path[(i + 2).coerceAtMost(path.size - 1)]
+                                val lerp = (p1.error / maxErr).coerceIn(0f, 1f)
+                                val segmentColor = lerpColor(colors.accentCyan, colors.accentViolet, lerp)
+                                drawLine(
+                                    color = segmentColor,
+                                    start = p1.offset,
+                                    end = p2.offset,
+                                    strokeWidth = AppDesign.strokeStandard.toPx(),
+                                    cap = StrokeCap.Round
+                                )
                             }
+                        } else {
+                            val tracePath = Path()
+                            if (path.isNotEmpty()) {
+                                tracePath.moveTo(path[0].offset.x, path[0].offset.y)
+                                // Performance optimization: higher step for 2D tracing
+                                for (i in 1 until path.size step 2) {
+                                    tracePath.lineTo(path[i].offset.x, path[i].offset.y)
+                                }
+                            }
+                            drawPath(
+                                path = tracePath,
+                                color = colors.accentCyan,
+                                style = Stroke(width = AppDesign.strokeStandard.toPx(), cap = StrokeCap.Round)
+                            )
                         }
-                        drawPath(
-                            path = tracePath,
-                            color = colors.accentCyan,
-                            style = Stroke(width = AppDesign.strokeStandard, cap = StrokeCap.Round)
-                        )
                     }
                 }
             } else if (displayMode == FourierDisplayMode.WRAPPING) {
@@ -300,21 +349,21 @@ fun FourierVisualizerBox(
                     // Draw Grid Lines
                     var gx = 0f
                     while (gx <= halfWidth) {
-                        drawLine(gridColor, Offset(gx, -halfHeight), Offset(gx, halfHeight), AppDesign.strokeThin)
-                        if (gx > 0) drawLine(gridColor, Offset(-gx, -halfHeight), Offset(-gx, halfHeight), AppDesign.strokeThin)
+                        drawLine(gridColor, Offset(gx, -halfHeight), Offset(gx, halfHeight), AppDesign.strokeThin.toPx())
+                        if (gx > 0) drawLine(gridColor, Offset(-gx, -halfHeight), Offset(-gx, halfHeight), AppDesign.strokeThin.toPx())
                         gx += step
                     }
                     var gy = 0f
                     while (gy <= halfHeight) {
-                        drawLine(gridColor, Offset(-halfWidth, gy), Offset(halfWidth, gy), AppDesign.strokeThin)
-                        if (gy > 0) drawLine(gridColor, Offset(-halfWidth, -gy), Offset(halfWidth, -gy), AppDesign.strokeThin)
+                        drawLine(gridColor, Offset(-halfWidth, gy), Offset(halfWidth, gy), AppDesign.strokeThin.toPx())
+                        if (gy > 0) drawLine(gridColor, Offset(-halfWidth, -gy), Offset(-halfWidth, -gy), AppDesign.strokeThin.toPx())
                         gy += step
                     }
 
                     // Main Axes
                     val axisColor = colors.textSecondary.copy(alpha = AppDesign.opacityLow + AppDesign.opacitySubtle)
-                    drawLine(axisColor, Offset(-halfWidth, 0f), Offset(halfWidth, 0f), AppDesign.strokeThin)
-                    drawLine(axisColor, Offset(0f, -halfHeight), Offset(0f, halfHeight), AppDesign.strokeThin)
+                    drawLine(axisColor, Offset(-halfWidth, 0f), Offset(halfWidth, 0f), AppDesign.strokeThin.toPx())
+                    drawLine(axisColor, Offset(0f, -halfHeight), Offset(0f, halfHeight), AppDesign.strokeThin.toPx())
 
                     // Labels
                     val labelColor = colors.textSecondary.copy(alpha = 0.4f).toArgb()
@@ -330,7 +379,7 @@ fun FourierVisualizerBox(
                     while (lx <= halfWidth) {
                         drawIntoCanvas {
                             val labelValue = (lx / step * 60).toInt()
-                            it.nativeCanvas.drawText(labelValue.toString(), lx, 20f, paint)
+                            it.nativeCanvas.drawText(labelValue.toString(), lx, labelOffsetWrappingX, paint)
                         }
                         lx += step
                     }
@@ -338,7 +387,7 @@ fun FourierVisualizerBox(
                     while (lx >= -halfWidth) {
                         drawIntoCanvas {
                             val labelValue = (lx / step * 60).toInt()
-                            it.nativeCanvas.drawText(labelValue.toString(), lx, 20f, paint)
+                            it.nativeCanvas.drawText(labelValue.toString(), lx, labelOffsetWrappingX, paint)
                         }
                         lx -= step
                     }
@@ -349,7 +398,7 @@ fun FourierVisualizerBox(
                     while (ly <= halfHeight) {
                         drawIntoCanvas {
                             val labelValue = (-ly / step * 60).toInt()
-                            it.nativeCanvas.drawText(labelValue.toString(), -8f, ly + 8f, paint)
+                            it.nativeCanvas.drawText(labelValue.toString(), -labelOffsetAxis, ly + labelOffsetY, paint)
                         }
                         ly += step
                     }
@@ -357,7 +406,7 @@ fun FourierVisualizerBox(
                     while (ly >= -halfHeight) {
                         drawIntoCanvas {
                             val labelValue = (-ly / step * 60).toInt()
-                            it.nativeCanvas.drawText(labelValue.toString(), -8f, ly + 8f, paint)
+                            it.nativeCanvas.drawText(labelValue.toString(), -labelOffsetAxis, ly + labelOffsetY, paint)
                         }
                         ly -= step
                     }
@@ -372,7 +421,7 @@ fun FourierVisualizerBox(
                         // Use step 2 to match physics substeps, ensuring sampling consistency
                         // and eliminating the "orbital jitter" caused by index shifting.
                         for (i in path.indices step 2) {
-                            val point = path[i]
+                            val point = path[i].offset
                             val t = point.x
                             val amplitude = point.y + baseRadius
                             val angle = -2 * PI.toFloat() * windingFrequency * t
@@ -391,18 +440,18 @@ fun FourierVisualizerBox(
                         drawPath(
                             path = wrappedPath,
                             color = colors.accentCyan.copy(alpha = AppDesign.opacityTrace),
-                            style = Stroke(width = AppDesign.strokeStandard, cap = StrokeCap.Round)
+                            style = Stroke(width = 2f, cap = StrokeCap.Round)
                         )
 
                         val avgX = if (processedCount > 0) sumX / processedCount else 0f
                         val avgY = if (processedCount > 0) sumY / processedCount else 0f
-                        drawCircle(colors.accentHell, AppDesign.spacingExtraSmall.toPx() + 1f, Offset(avgX, avgY))
+                        drawCircle(colors.accentHell, indicatorSize + 1f, Offset(avgX, avgY))
 
                         drawLine(
                             colors.textSecondary.copy(alpha = AppDesign.opacityMedium),
                             Offset.Zero,
                             Offset(avgX, avgY),
-                            AppDesign.strokeThin
+                            AppDesign.strokeThin.toPx()
                         )
                     }
                 }
@@ -482,12 +531,16 @@ fun FourierVisualizerBox(
                     verticalArrangement = Arrangement.SpaceBetween,
                     modifier = Modifier.fillMaxHeight()
                 ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.add_outline),
-                        null,
-                        tint = colors.accentCyan,
+                    IconButton(
+                        onClick = { if (nTerms < 250) onNTermsChange(nTerms + 1) },
                         modifier = Modifier.size(AppDesign.iconSmallMedium)
-                    )
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.add_outline),
+                            null,
+                            tint = colors.accentCyan,
+                        )
+                    }
 
                     Slider(
                         value = nTerms.toFloat(),
@@ -520,12 +573,16 @@ fun FourierVisualizerBox(
                         )
                     )
 
-                    Icon(
-                        painter = painterResource(id = R.drawable.remove),
-                        null,
-                        tint = colors.accentCyan,
+                    IconButton(
+                        onClick = { if (nTerms > 1) onNTermsChange(nTerms - 1) },
                         modifier = Modifier.size(AppDesign.iconSmallMedium)
-                    )
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.remove),
+                            null,
+                            tint = colors.accentCyan,
+                        )
+                    }
 
                     Text(
                         text = nTerms.toString(),

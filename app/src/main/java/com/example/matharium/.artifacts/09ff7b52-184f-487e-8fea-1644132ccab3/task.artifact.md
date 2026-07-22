@@ -1,0 +1,5 @@
+- [ ] Update `FourierModels.kt` with `PathPoint`
+- [ ] Update `FourierSeries.kt` with state and error calculation
+- [ ] Update `FourierSettings.kt` with the checkbox UI
+- [ ] Update `FourierVisualizer.kt` with gradient rendering
+- [ ] Verify implementation with different wave types

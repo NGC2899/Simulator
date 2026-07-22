@@ -158,14 +158,14 @@ fun DoublePendulumVisualizer(
                                 p.currentColor,
                                 Offset.Zero,
                                 p.bob1 * scale,
-                                AppDesign.strokeThick,
+                                AppDesign.strokeThick.toPx(),
                                 StrokeCap.Round
                             )
                             drawLine(
                                 p.currentColor,
                                 p.bob1 * scale,
                                 p.bob2 * scale,
-                                AppDesign.strokeThick,
+                                AppDesign.strokeThick.toPx(),
                                 StrokeCap.Round
                             )
                             drawCircle(
@@ -201,7 +201,7 @@ fun DoublePendulumVisualizer(
                                         v1x.toFloat(),
                                         v1y.toFloat()
                                     ) * vectorLineScalePx,
-                                    AppDesign.strokeStandard,
+                                    AppDesign.strokeStandard.toPx(),
                                     StrokeCap.Round
                                 )
                                 drawLine(
@@ -211,7 +211,7 @@ fun DoublePendulumVisualizer(
                                         v2x.toFloat(),
                                         v2y.toFloat()
                                     ) * vectorLineScalePx,
-                                    AppDesign.strokeStandard,
+                                    AppDesign.strokeStandard.toPx(),
                                     StrokeCap.Round
                                 )
                             }
@@ -232,13 +232,13 @@ fun DoublePendulumVisualizer(
                             axisColor,
                             Offset(-size.width / 2, 0f),
                             Offset(size.width / 2, 0f),
-                            AppDesign.strokeThin
+                            AppDesign.strokeThin.toPx()
                         )
                         drawLine(
                             axisColor,
                             Offset(0f, -size.height / 2),
                             Offset(0f, size.height / 2),
-                            AppDesign.strokeThin
+                            AppDesign.strokeThin.toPx()
                         )
 
                         val graphScale = scale * DoublePendulumConstants.GRAPH_RENDER_SCALE
@@ -258,7 +258,7 @@ fun DoublePendulumVisualizer(
                                 drawPath(
                                     path = path,
                                     color = p.currentColor.copy(AppDesign.opacityMedium),
-                                    style = Stroke(width = AppDesign.strokeStandard, cap = StrokeCap.Round)
+                                    style = Stroke(width = AppDesign.strokeStandard.toPx(), cap = StrokeCap.Round)
                                 )
                             }
 
@@ -346,12 +346,16 @@ fun DoublePendulumVisualizer(
                     verticalArrangement = Arrangement.SpaceBetween,
                     modifier = Modifier.fillMaxHeight()
                 ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.add_outline),
-                        null,
-                        tint = colors.accentCyan,
+                    IconButton(
+                        onClick = { if (scale < DoublePendulumConstants.ZOOM_RANGE_END) onScaleChange(scale + DoublePendulumConstants.ZOOM_DISPLAY_DIVISOR) },
                         modifier = Modifier.size(AppDesign.iconSmallMedium)
-                    )
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.add_outline),
+                            null,
+                            tint = colors.accentCyan,
+                        )
+                    }
 
                     Slider(
                         value = scale,
@@ -384,12 +388,16 @@ fun DoublePendulumVisualizer(
                         )
                     )
 
-                    Icon(
-                        Icons.Default.Remove,
-                        null,
-                        tint = colors.accentCyan,
+                    IconButton(
+                        onClick = { if (scale > DoublePendulumConstants.ZOOM_RANGE_START) onScaleChange(scale - DoublePendulumConstants.ZOOM_DISPLAY_DIVISOR) },
                         modifier = Modifier.size(AppDesign.iconSmallMedium)
-                    )
+                    ) {
+                        Icon(
+                            Icons.Default.Remove,
+                            null,
+                            tint = colors.accentCyan,
+                        )
+                    }
 
                     Text(
                         "${(scale / DoublePendulumConstants.ZOOM_DISPLAY_DIVISOR).toInt()}%",

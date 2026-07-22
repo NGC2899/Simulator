@@ -199,7 +199,7 @@ fun DrawScope.drawChaosTrail(trail: List<Offset>, color: Color, scale: Float) {
             color.copy(alpha = alpha),
             trail[i] * scale,
             trail[i + step] * scale,
-            AppDesign.strokeThick,
+            AppDesign.strokeThick.toPx(),
             StrokeCap.Round
         )
     }

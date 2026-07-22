@@ -1,0 +1,11 @@
+- [x] Fix Fourier Series Formula Terms and Accuracy
+    - [x] Synchronize $x$ mapping in `FourierSeries.kt`
+    - [x] Respect `nTerms` in `FourierComponents.kt` (Harmonic lists)
+    - [x] Verify accuracy coloring in `FourierVisualizer.kt`
+- [x] Verify changes with `2^(-x^2)` formula
+- [x] Dynamic Error Sensitivity Control
+    - [x] Add `fourierErrorSensitivity` to `AppPreferences`
+    - [x] Add state management in `FourierSeries.kt`
+    - [x] Add slider to `FourierSettings.kt`
+    - [x] Update `FourierVisualizer.kt` to use dynamic value
+- [x] Create walkthrough artifact

@@ -54,6 +54,7 @@ object AppDesign {
     val welcomeSectionSpacing = 25.dp
     val welcomeGridSpacing = 60.dp
     val termsBoxHeight = 280.dp
+    val errorGradientThreshold = 20f
 
     val iconTiny = 10.dp
     val iconSmall = 16.dp
@@ -74,9 +75,9 @@ object AppDesign {
     val borderNone = 0.dp
     val borderThin = 1.dp
     val borderStandard = 2.dp
-    val strokeThin = 1f
-    val strokeStandard = 2f
-    val strokeThick = 2.5f
+    val strokeThin = 1.dp
+    val strokeStandard = 2.dp
+    val strokeThick = 2.5.dp
 
     val opacitySubtle = 0.05f
     val opacityLow = 0.15f

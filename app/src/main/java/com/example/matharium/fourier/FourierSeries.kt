@@ -58,13 +58,16 @@ fun FourierSeries() {
     }
     var windingFrequency by remember { mutableFloatStateOf(prefs.fourierWindingFrequency) }
 
+    var showErrorGradient by remember { mutableStateOf(false) }
+    var errorSensitivity by remember { mutableFloatStateOf(prefs.fourierErrorSensitivity) }
+
     var formulaString by remember { mutableStateOf(prefs.fourierFormula) }
     var formulaCoefficients by remember { mutableStateOf<List<Pair<Float, Float>>>(emptyList()) }
     var baseFormulaCoefficients by remember { mutableStateOf<List<Pair<Float, Float>>>(emptyList()) }
     var symmetryResult by remember { mutableStateOf<FourierLogic.SymmetryResult?>(null) }
 
     var time by remember { mutableFloatStateOf(0f) }
-    val path = remember { mutableStateListOf<Offset>() }
+    val path = remember { mutableStateListOf<PathPoint>() }
 
     // --- Draw a Wave State ---
     val samplesCount = 1000
@@ -123,12 +126,12 @@ fun FourierSeries() {
             val samples = if (waveType == WaveType.FORMULA) {
                 val list = mutableListOf<Float>()
                 for (i in 0 until samplesCount) {
-                    var x = (i.toDouble() / samplesCount) * 2 * kotlin.math.PI
-                    if (x > kotlin.math.PI) x -= 2 * kotlin.math.PI
+                    val x = (i.toDouble() / samplesCount) * 2 * kotlin.math.PI - kotlin.math.PI
                     
                     // Formula gives value around 0, let's scale it slightly for better default visualization
+                    // We'll treat 1.0 in math as 100 units (DP) on our grid.
                     val value = -FourierExpressionEvaluator.evaluate(formulaString, x).toFloat()
-                    list.add(value * 80f)
+                    list.add(value * radiusBasePx)
                 }
                 list
             } else {
@@ -239,6 +242,7 @@ fun FourierSeries() {
     LaunchedEffect(nTerms) { prefs.fourierNTerms = nTerms }
     LaunchedEffect(speed) { prefs.fourierSpeed = speed }
     LaunchedEffect(windingFrequency) { prefs.fourierWindingFrequency = windingFrequency }
+    LaunchedEffect(errorSensitivity) { prefs.fourierErrorSensitivity = errorSensitivity }
     LaunchedEffect(displayMode) { prefs.fourierDisplayMode = displayMode.name }
     LaunchedEffect(formulaString, waveType) { 
         prefs.fourierFormula = formulaString
@@ -266,7 +270,7 @@ fun FourierSeries() {
                 lastTime = frameTime
                 val substeps = 2
                 val subDt = elapsedSeconds / substeps
-                val newPoints = mutableListOf<Offset>()
+                val newPoints = mutableListOf<PathPoint>()
 
                 repeat(substeps) {
                     time += subDt * speed
@@ -283,7 +287,9 @@ fun FourierSeries() {
                             val signal = customFunctionSignals[i]
                             if (signal.isPaused) continue
                             val freq = harmonicFrequencies[i] ?: signal.freq.toFloatOrNull() ?: 0f
-                            val amp = (harmonicAmplitudes[i] ?: signal.amp.toFloatOrNull() ?: 0f) * -1f
+                            // Convert DP input to pixels for the simulation
+                            val ampInput = harmonicAmplitudes[i] ?: signal.amp.toFloatOrNull() ?: 0f
+                            val amp = ampInput * density.density * -1f
                             val phase = kotlin.math.PI.toFloat() / 2f
                             val angle = 2 * kotlin.math.PI.toFloat() * freq * time
                             currentY += amp * kotlin.math.cos((angle - phase).toDouble()).toFloat()
@@ -371,9 +377,30 @@ fun FourierSeries() {
                     }
 
                     if (displayMode == FourierDisplayMode.COMPLEX) {
-                        newPoints.add(0, Offset(currentX, currentY))
+                        val approx = Offset(currentX, currentY)
+                        val target = getIdealValue(time, waveType, radiusBase, displayMode, drawingPoints, drawingPoints2D, svgPoints, formulaString, customFunctionSignals, density.density)
+                        
+                        val error = if (showErrorGradient) {
+                            // For standard 1D signals in complex mode, we only care about approximating the Y component.
+                            // The 2D path traced by a one-sided Fourier series doesn't naturally converge to a 1D line.
+                            val isExplicitly2D = waveType == WaveType.MY_SIGNAL_2D || 
+                                                 waveType == WaveType.SVG || 
+                                                 waveType == WaveType.SINE || 
+                                                 waveType == WaveType.PURE_SIGNAL
+                            
+                            if (isExplicitly2D) {
+                                (approx - target).getDistance()
+                            } else {
+                                kotlin.math.abs(approx.y - target.y)
+                            }
+                        } else 0f
+                        
+                        newPoints.add(0, PathPoint(approx, error))
                     } else {
-                        newPoints.add(0, Offset(time, currentY))
+                        val approxY = currentY
+                        val targetY = getIdealValue(time, waveType, radiusBase, displayMode, drawingPoints, drawingPoints2D, svgPoints, formulaString, customFunctionSignals, density.density).y
+                        val error = if (showErrorGradient) kotlin.math.abs(approxY - targetY) else 0f
+                        newPoints.add(0, PathPoint(Offset(time, approxY), error))
                     }
                 }
 
@@ -410,6 +437,8 @@ fun FourierSeries() {
             onNTermsChange = { nTerms = it },
             time = time,
             path = path,
+            showErrorGradient = showErrorGradient,
+            errorSensitivity = errorSensitivity,
             onClearPath = { path.clear() },
             windingFrequency = windingFrequency,
             customCoefficients = customCoefficients,
@@ -452,6 +481,10 @@ fun FourierSeries() {
                 onRunningChange = { running = it },
                 speed = speed,
                 onSpeedChange = { speed = it },
+                showErrorGradient = showErrorGradient,
+                onShowErrorGradientChange = { showErrorGradient = it },
+                errorSensitivity = errorSensitivity,
+                onErrorSensitivityChange = { errorSensitivity = it },
                 windingFrequency = windingFrequency,
                 onWindingFrequencyChange = { windingFrequency = it },
                 displayMode = displayMode,
@@ -496,43 +529,12 @@ fun FourierSeries() {
             )
 
             val handleRemoveHarmonic: (Int) -> Unit = { index ->
-                when (waveType) {
-                    WaveType.MY_SIGNAL -> {
-                        val newList = customCoefficients.toMutableList()
-                        if (index < newList.size) {
-                            newList[index] = 0f to 0f
-                            customCoefficients = newList
-                        }
+                if (waveType == WaveType.PURE_SIGNAL) {
+                    if (index < customFunctionSignals.size) {
+                        customFunctionSignals.removeAt(index)
                     }
-                    WaveType.FORMULA -> {
-                        val newList = formulaCoefficients.toMutableList()
-                        if (index < newList.size) {
-                            newList[index] = 0f to 0f
-                            formulaCoefficients = newList
-                        }
-                    }
-                    WaveType.MY_SIGNAL_2D -> {
-                        val newList = customCoefficients2D.toMutableList()
-                        if (index < newList.size) {
-                            newList.removeAt(index)
-                            customCoefficients2D = newList
-                        }
-                    }
-                    WaveType.SVG -> {
-                        val newList = svgCoefficients.toMutableList()
-                        if (index < newList.size) {
-                            newList.removeAt(index)
-                            svgCoefficients = newList
-                        }
-                    }
-                    WaveType.PURE_SIGNAL -> {
-                        if (index < customFunctionSignals.size) {
-                            customFunctionSignals.removeAt(index)
-                        }
-                    }
-                    else -> {
-                        removedHarmonics[index] = true
-                    }
+                } else {
+                    removedHarmonics[index] = true
                 }
                 path.clear()
                 time = 0f
@@ -752,5 +754,85 @@ fun FourierSeries() {
                 }
             }
         }
+    }
+}
+
+private fun getIdealValue(
+    time: Float,
+    waveType: WaveType,
+    radiusBase: Float,
+    displayMode: FourierDisplayMode,
+    drawingPoints: List<Float>,
+    drawingPoints2D: List<Offset>,
+    svgPoints: List<Offset>,
+    formulaString: String,
+    customFunctionSignals: List<SignalInstance>,
+    density: Float
+): Offset {
+    val t = (time % 1f + 1f) % 1f
+    return when (waveType) {
+        WaveType.SINE -> {
+            val y = -radiusBase * kotlin.math.sin(2 * kotlin.math.PI * t).toFloat()
+            if (displayMode == FourierDisplayMode.COMPLEX) {
+                Offset(radiusBase * kotlin.math.cos(2 * kotlin.math.PI * t).toFloat(), y)
+            } else Offset(time, y)
+        }
+        WaveType.SQUARE -> {
+            val y = if (t < 0.5f) -radiusBase else radiusBase
+            if (displayMode == FourierDisplayMode.COMPLEX) Offset(0f, y) else Offset(time, y)
+        }
+        WaveType.SAWTOOTH -> {
+            // Analytical sawtooth: 2 * (t - floor(t + 0.5))
+            // Negated to match Fourier reconstruction (Y-up is negative)
+            val y = -radiusBase * 2 * (t - kotlin.math.floor(t + 0.5f).toFloat())
+            if (displayMode == FourierDisplayMode.COMPLEX) Offset(0f, y) else Offset(time, y)
+        }
+        WaveType.TRIANGLE -> {
+            // Analytical triangle: Match the phase of the Fourier series (0 at t=0, -radiusBase at t=0.25)
+            // This formula produces a triangle oscillating between -1 and 1 with the correct phase.
+            val fraction = (t + 0.25f) % 1f
+            val y = radiusBase * (kotlin.math.abs(fraction - 0.5f) * 4f - 1f)
+            if (displayMode == FourierDisplayMode.COMPLEX) Offset(0f, y) else Offset(time, y)
+        }
+        WaveType.PURE_SIGNAL -> {
+            var sumX = 0f
+            var sumY = 0f
+            for (signal in customFunctionSignals) {
+                if (signal.isPaused) continue
+                val freq = signal.freq.toFloatOrNull() ?: 0f
+                val amp = (signal.amp.toFloatOrNull() ?: 0f) * density * -1f
+                val phase = kotlin.math.PI.toFloat() / 2f
+                val angle = 2 * kotlin.math.PI.toFloat() * freq * time
+                sumY += amp * kotlin.math.cos((angle - phase).toDouble()).toFloat()
+                sumX += amp * kotlin.math.sin((angle - phase).toDouble()).toFloat()
+            }
+            if (displayMode == FourierDisplayMode.COMPLEX) Offset(sumX, sumY) else Offset(time, sumY)
+        }
+        WaveType.MY_SIGNAL -> {
+            val y = if (drawingPoints.isNotEmpty()) {
+                val idx = (t * (drawingPoints.size - 1)).toInt()
+                drawingPoints[idx]
+            } else 0f
+            if (displayMode == FourierDisplayMode.COMPLEX) Offset(0f, y) else Offset(time, y)
+        }
+        WaveType.FORMULA -> {
+            val x = t * 2 * kotlin.math.PI.toFloat() - kotlin.math.PI.toFloat()
+            // We treat 1.0 in math as radiusBase units (100 DP) on our grid.
+            val y = -FourierExpressionEvaluator.evaluate(formulaString, x.toDouble()).toFloat() * radiusBase
+            if (displayMode == FourierDisplayMode.COMPLEX) Offset(0f, y) else Offset(time, y)
+        }
+        WaveType.MY_SIGNAL_2D -> {
+            if (drawingPoints2D.isNotEmpty()) {
+                val idx = (t * (drawingPoints2D.size - 1)).toInt()
+                drawingPoints2D[idx]
+            } else Offset(0f, 0f)
+        }
+        WaveType.SVG -> {
+            if (svgPoints.isNotEmpty()) {
+                val idx = (t * (svgPoints.size - 1)).toInt()
+                svgPoints[idx]
+            } else Offset(0f, 0f)
+        }
+        else -> Offset(0f, 0f)
     }
 }

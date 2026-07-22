@@ -44,6 +44,10 @@ class AppPreferences(context: Context) {
         get() = prefs.getFloat("fourier_winding_frequency", 1.0f)
         set(value) = prefs.edit().putFloat("fourier_winding_frequency", value).apply()
 
+    var fourierErrorSensitivity: Float
+        get() = prefs.getFloat("fourier_error_sensitivity", 20.0f)
+        set(value) = prefs.edit().putFloat("fourier_error_sensitivity", value).apply()
+
     var drawingPoints: List<Float>
         get() = prefs.getString("drawing_points", "")?.split(",")?.filter { it.isNotEmpty() }?.mapNotNull { it.toFloatOrNull() } ?: emptyList()
         set(value) = prefs.edit().putString("drawing_points", value.joinToString(",")).apply()

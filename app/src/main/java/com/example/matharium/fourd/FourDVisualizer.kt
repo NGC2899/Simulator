@@ -98,7 +98,7 @@ fun FourDVisualizer(
                     centerX + p2[0].toFloat() * scale,
                     centerY + p2[1].toFloat() * scale
                 ),
-                strokeWidth = AppDesign.strokeStandard,
+                strokeWidth = AppDesign.strokeStandard.toPx(),
                 cap = StrokeCap.Round
             )
         }
@@ -126,7 +126,7 @@ fun FourDVisualizer(
                             centerX + p2[0].toFloat() * scale,
                             centerY + p2[1].toFloat() * scale
                         ),
-                        strokeWidth = AppDesign.strokeThin,
+                        strokeWidth = AppDesign.strokeThin.toPx(),
                         cap = StrokeCap.Round
                     )
                 }

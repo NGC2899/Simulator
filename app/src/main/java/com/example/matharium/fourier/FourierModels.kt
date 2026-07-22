@@ -1,6 +1,7 @@
 package com.example.matharium.fourier
 
 import androidx.compose.runtime.*
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 
 enum class WaveType {
@@ -22,3 +23,5 @@ class SignalInstance(
     var isExpanded by mutableStateOf(false)
     var isPaused by mutableStateOf(false)
 }
+
+data class PathPoint(val offset: Offset, val error: Float)

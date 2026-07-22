@@ -1,0 +1,3 @@
+- [x] Fix ideal value amplitudes and logic in `FourierSeries.kt`
+- [x] Adjust error threshold in `FourierVisualizer.kt`
+- [x] Verify fix with Square Wave convergence

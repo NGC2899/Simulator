@@ -55,9 +55,9 @@ fun HarmonicComponents(
     var isExpanded by remember { mutableStateOf(false) }
     val maxTerms = when (waveType) {
         WaveType.PURE_SIGNAL -> customFunctionSignals.size
-        WaveType.MY_SIGNAL_2D -> customCoefficients2D.size
-        WaveType.FORMULA -> formulaCoefficients.size
-        WaveType.SVG -> svgCoefficients.size
+        WaveType.MY_SIGNAL_2D -> nTerms.coerceAtMost(customCoefficients2D.size)
+        WaveType.FORMULA -> nTerms.coerceAtMost(formulaCoefficients.size)
+        WaveType.SVG -> nTerms.coerceAtMost(svgCoefficients.size)
         else -> nTerms
     }
 
@@ -150,7 +150,8 @@ fun HarmonicComponents(
                     val n = getHarmonicFrequency(i, defaultN)
                     val isPaused = isHarmonicPaused(i)
 
-                    val radiusBase = 30f
+                    val density = androidx.compose.ui.platform.LocalDensity.current
+                    val radiusBase = with(density) { 30.dp.toPx() }
 
                     val baseN = when (waveType) {
                         WaveType.SINE -> 1.0f
@@ -229,7 +230,7 @@ fun HarmonicComponents(
                             drawPath(
                                 path = path,
                                 color = colors.accentCyan.copy(alpha = 0.6f),
-                                style = Stroke(width = 2f, cap = StrokeCap.Round)
+                                style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round)
                             )
 
                             // Axes
@@ -238,13 +239,13 @@ fun HarmonicComponents(
                                 color = subAxisColor,
                                 start = Offset(0f, centerY),
                                 end = Offset(size.width, centerY),
-                                strokeWidth = 1f
+                                strokeWidth = 1.dp.toPx()
                             )
                             drawLine(
                                 color = subAxisColor,
                                 start = Offset(0f, 0f),
                                 end = Offset(0f, size.height),
-                                strokeWidth = 1f
+                                strokeWidth = 1.dp.toPx()
                             )
                         }
 
@@ -395,10 +396,11 @@ fun HarmonicComponents(
 
 @Composable
 fun CenterOfMassGraph(
-    path: List<Offset>,
+    path: List<PathPoint>,
     colors: AppColors,
     currentWindingFreq: Float
 ) {
+    val density = androidx.compose.ui.platform.LocalDensity.current
     var isExpanded by remember { mutableStateOf(false) }
     GlassCard(colors = colors) {
         Column(
@@ -427,13 +429,13 @@ fun CenterOfMassGraph(
 
                 // Draw Axes
                 val axisColor = colors.textSecondary.copy(0.3f)
-                drawLine(axisColor, Offset(0f, centerY), Offset(width, centerY), 2f)
-                drawLine(axisColor, Offset(0f, 0f), Offset(0f, height), 2f)
+                drawLine(axisColor, Offset(0f, centerY), Offset(width, centerY), 2.dp.toPx())
+                drawLine(axisColor, Offset(0f, 0f), Offset(0f, height), 2.dp.toPx())
 
                 // Labels
                 for (f in 0..5) {
                     val x = f * freqScale
-                    drawLine(axisColor, Offset(x, centerY - 5f), Offset(x, centerY + 5f), 1f)
+                    drawLine(axisColor, Offset(x, centerY - 5.dp.toPx()), Offset(x, centerY + 5.dp.toPx()), 1.dp.toPx())
                 }
 
                 if (path.isEmpty()) return@Canvas
@@ -450,7 +452,7 @@ fun CenterOfMassGraph(
                     var processedCount = 0
                     // Increased sampling density (step 5) for better accuracy at low speeds
                     for (i in path.indices step 5) {
-                        val point = path[i]
+                        val point = path[i].offset
                         val t = point.x
                         val ft = point.y
                         sumX += ft * cos(2 * PI.toFloat() * freq * t)
@@ -460,10 +462,13 @@ fun CenterOfMassGraph(
 
                     val avgX = if (processedCount > 0) sumX / processedCount else 0f
                     val avgY = if (processedCount > 0) sumY / processedCount else 0f
-                    val magnitude = sqrt(avgX * avgX + avgY * avgY)
+                    val magnitudePx = sqrt(avgX * avgX + avgY * avgY)
                     
+                    // Convert magnitude to density-independent scale for drawing on the graph
+                    // A magnitude of 100 DP will be drawn as 90 DP height
+                    val magnitudeDp = magnitudePx / density.density
                     val x = freq * freqScale
-                    val y = centerY - magnitude * 0.9f
+                    val y = centerY - magnitudeDp * density.density * 0.9f
 
                     if (s == 0) graphPath.moveTo(x, y)
                     else graphPath.lineTo(x, y)
@@ -472,7 +477,7 @@ fun CenterOfMassGraph(
                 drawPath(
                     path = graphPath,
                     color = colors.accentHell,
-                    style = Stroke(width = 2.5f, cap = StrokeCap.Round)
+                    style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round)
                 )
 
                 // Current Frequency Marker
@@ -483,32 +488,33 @@ fun CenterOfMassGraph(
                 var currentSumY = 0f
                 var currentCount = 0
                 for (i in path.indices step 5) {
-                    val point = path[i]
+                    val point = path[i].offset
                     currentSumX += point.y * cos(2 * PI.toFloat() * currentWindingFreq * point.x)
                     currentSumY += point.y * sin(2 * PI.toFloat() * currentWindingFreq * point.x)
                     currentCount++
                 }
                 val currentAvgX = if (currentCount > 0) currentSumX / currentCount else 0f
                 val currentAvgY = if (currentCount > 0) currentSumY / currentCount else 0f
-                val currentMagnitude = sqrt(currentAvgX * currentAvgX + currentAvgY * currentAvgY)
-                val currentYOnGraph = centerY - currentMagnitude * 0.9f
+                val currentMagnitudePx = sqrt(currentAvgX * currentAvgX + currentAvgY * currentAvgY)
+                val currentMagnitudeDp = currentMagnitudePx / density.density
+                val currentYOnGraph = centerY - currentMagnitudeDp * density.density * 0.9f
 
                 drawLine(
                     colors.accentCyan.copy(0.4f),
                     Offset(currentX, 0f),
                     Offset(currentX, height),
-                    1f,
+                    1.dp.toPx(),
                     pathEffect = PathEffect.dashPathEffect(
                         floatArrayOf(
-                            10f,
-                            10f
+                            10.dp.toPx(),
+                            10.dp.toPx()
                         )
                     )
                 )
 
                 drawCircle(
                     colors.accentCyan,
-                    6f,
+                    6.dp.toPx(),
                     Offset(currentX, currentYOnGraph)
                 )
             }
@@ -598,9 +604,9 @@ fun ComplexHarmonicComponents(
     var isExpanded by remember { mutableStateOf(false) }
     val maxTerms = when (waveType) {
         WaveType.PURE_SIGNAL -> customFunctionSignals.size
-        WaveType.MY_SIGNAL_2D -> customCoefficients2D.size
-        WaveType.FORMULA -> formulaCoefficients.size
-        WaveType.SVG -> svgCoefficients.size
+        WaveType.MY_SIGNAL_2D -> nTerms.coerceAtMost(customCoefficients2D.size)
+        WaveType.FORMULA -> nTerms.coerceAtMost(formulaCoefficients.size)
+        WaveType.SVG -> nTerms.coerceAtMost(svgCoefficients.size)
         else -> nTerms
     }
 
@@ -693,7 +699,8 @@ fun ComplexHarmonicComponents(
                     val n = getHarmonicFrequency(i, defaultN)
                     val isPaused = isHarmonicPaused(i)
 
-                    val radiusBase = 40f
+                    val density = androidx.compose.ui.platform.LocalDensity.current
+                    val radiusBase = with(density) { 40.dp.toPx() }
                     val baseN = when (waveType) {
                         WaveType.SINE -> 1.0f
                         WaveType.SQUARE -> (i * 2 + 1).toFloat()
@@ -758,21 +765,21 @@ fun ComplexHarmonicComponents(
                                 color = colors.accentCyan.copy(alpha = 0.1f),
                                 radius = radius,
                                 center = center,
-                                style = Stroke(width = 1f)
+                                style = Stroke(width = 1.dp.toPx())
                             )
 
                             // Draw axes
                             drawLine(
                                 colors.textSecondary.copy(alpha = 0.1f),
-                                Offset(center.x - radius - 10f, center.y),
-                                Offset(center.x + radius + 10f, center.y),
-                                1f
+                                Offset(center.x - radius - 10.dp.toPx(), center.y),
+                                Offset(center.x + radius + 10.dp.toPx(), center.y),
+                                1.dp.toPx()
                             )
                             drawLine(
                                 colors.textSecondary.copy(alpha = 0.1f),
-                                Offset(center.x, center.y - radius - 10f),
-                                Offset(center.x, center.y + radius + 10f),
-                                1f
+                                Offset(center.x, center.y - radius - 10.dp.toPx()),
+                                Offset(center.x, center.y + radius + 10.dp.toPx()),
+                                1.dp.toPx()
                             )
 
                             // Draw rotating vector
@@ -786,13 +793,13 @@ fun ComplexHarmonicComponents(
                                 color = colors.accentCyan,
                                 start = center,
                                 end = end,
-                                strokeWidth = 2f,
+                                strokeWidth = 2.dp.toPx(),
                                 cap = StrokeCap.Round
                             )
 
                             drawCircle(
                                 color = colors.accentCyan,
-                                radius = 3f,
+                                radius = 3.dp.toPx(),
                                 center = end
                             )
                         }

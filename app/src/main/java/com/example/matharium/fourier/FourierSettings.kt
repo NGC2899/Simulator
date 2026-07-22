@@ -40,6 +40,10 @@ fun FourierSettingsCard(
     onRunningChange: (Boolean) -> Unit,
     speed: Float,
     onSpeedChange: (Float) -> Unit,
+    showErrorGradient: Boolean,
+    onShowErrorGradientChange: (Boolean) -> Unit,
+    errorSensitivity: Float,
+    onErrorSensitivityChange: (Float) -> Unit,
     windingFrequency: Float,
     onWindingFrequencyChange: (Float) -> Unit,
     displayMode: FourierDisplayMode,
@@ -342,7 +346,7 @@ fun FourierSettingsCard(
                                                     colors.textSecondary.copy(alpha = 0.2f),
                                                     Offset(0f, h / 2),
                                                     Offset(w, h / 2),
-                                                    AppDesign.strokeThin
+                                                    AppDesign.strokeThin.toPx()
                                                 )
 
                                                 if (drawingPoints.size == samplesCount) {
@@ -360,8 +364,8 @@ fun FourierSettingsCard(
                                                 }
                                             } else {
                                                 val gridColor = colors.textSecondary.copy(alpha = 0.1f)
-                                                drawLine(gridColor, Offset(w / 2, 0f), Offset(w / 2, h), 1f)
-                                                drawLine(gridColor, Offset(0f, h / 2), Offset(w, h / 2), 1f)
+                                                drawLine(gridColor, Offset(w / 2, 0f), Offset(w / 2, h), 1.dp.toPx())
+                                                drawLine(gridColor, Offset(0f, h / 2), Offset(w, h / 2), 1.dp.toPx())
 
                                                 if (drawingPoints2D.isNotEmpty()) {
                                                     val p = Path()
@@ -736,6 +740,31 @@ fun FourierSettingsCard(
                         range = 0.1f..3f,
                         colors = colors
                     ) { onSpeedChange(it) }
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = AppDesign.spacingSmall),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        ToggleRow(
+                            label = "Enable error gradient",
+                            checked = showErrorGradient,
+                            onCheckedChange = { onShowErrorGradientChange(it) },
+                            colors = colors
+                        )
+                    }
+
+                    AnimatedVisibility(visible = showErrorGradient) {
+                        LabeledSlider(
+                            label = "Error Sensitivity",
+                            valueDisplay = String.format(Locale.US, "%.0f%%", errorSensitivity),
+                            value = errorSensitivity,
+                            range = 1f..100f,
+                            colors = colors
+                        ) { onErrorSensitivityChange(it) }
+                    }
 
                     AnimatedVisibility(visible = displayMode == FourierDisplayMode.WRAPPING) {
                         LabeledSlider(
