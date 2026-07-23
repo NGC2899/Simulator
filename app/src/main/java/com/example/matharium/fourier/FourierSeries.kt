@@ -58,7 +58,7 @@ fun FourierSeries() {
     }
     var windingFrequency by remember { mutableFloatStateOf(prefs.fourierWindingFrequency) }
 
-    var showErrorGradient by remember { mutableStateOf(false) }
+    var showErrorGradient by remember { mutableStateOf(prefs.fourierShowErrorGradient) }
     var errorSensitivity by remember { mutableFloatStateOf(prefs.fourierErrorSensitivity) }
 
     var formulaString by remember { mutableStateOf(prefs.fourierFormula) }
@@ -95,7 +95,12 @@ fun FourierSeries() {
     var baseCustomCoefficients2D by remember { mutableStateOf<List<FourierLogic.ComplexCoeff>>(emptyList()) }
 
     // --- SVG State ---
-    val svgPoints = remember { mutableStateListOf<Offset>() }
+    val svgPoints = remember { 
+        val saved = prefs.fourierSvgPoints
+        val list = mutableStateListOf<Offset>()
+        list.addAll(saved)
+        list
+    }
     var svgCoefficients by remember { mutableStateOf<List<FourierLogic.ComplexCoeff>>(emptyList()) }
     var baseSvgCoefficients by remember { mutableStateOf<List<FourierLogic.ComplexCoeff>>(emptyList()) }
 
@@ -208,6 +213,7 @@ fun FourierSeries() {
                         withContext(Dispatchers.Main) {
                             svgPoints.clear()
                             svgPoints.addAll(points)
+                            prefs.fourierSvgPoints = points
                             calculateSVGDFT()
                             path.clear()
                             time = 0f
@@ -233,6 +239,9 @@ fun FourierSeries() {
         if (drawingPoints2D.isNotEmpty()) {
             calculateDFT2D()
         }
+        if (svgPoints.isNotEmpty()) {
+            calculateSVGDFT()
+        }
         onDispose {
             dftJob?.cancel()
         }
@@ -242,6 +251,7 @@ fun FourierSeries() {
     LaunchedEffect(nTerms) { prefs.fourierNTerms = nTerms }
     LaunchedEffect(speed) { prefs.fourierSpeed = speed }
     LaunchedEffect(windingFrequency) { prefs.fourierWindingFrequency = windingFrequency }
+    LaunchedEffect(showErrorGradient) { prefs.fourierShowErrorGradient = showErrorGradient }
     LaunchedEffect(errorSensitivity) { prefs.fourierErrorSensitivity = errorSensitivity }
     LaunchedEffect(displayMode) { prefs.fourierDisplayMode = displayMode.name }
     LaunchedEffect(formulaString, waveType) { 

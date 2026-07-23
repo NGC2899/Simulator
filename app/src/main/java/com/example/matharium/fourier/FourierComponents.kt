@@ -5,7 +5,9 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -17,18 +19,18 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.matharium.app.*
 import com.example.matharium.R
+import com.example.matharium.app.*
 import java.util.Locale
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
-import kotlin.math.sqrt
 
 @Composable
 fun HarmonicComponents(
@@ -113,7 +115,6 @@ fun HarmonicComponents(
             Spacer(Modifier.height(AppDesign.radiusLarge))
 
             if (activeTermsIndices.isNotEmpty()) {
-                // Result Indicator
                 Text(
                     "Signal",
                     color = colors.accentCyan,
@@ -127,7 +128,6 @@ fun HarmonicComponents(
                     tint = colors.textSecondary.copy(0.5f),
                     modifier = Modifier.size(AppDesign.radiusLarge)
                 )
-
                 Spacer(Modifier.height(AppDesign.radiusSmall))
             }
 
@@ -161,6 +161,30 @@ fun HarmonicComponents(
                         else -> 1f
                     }
 
+                    val (defaultAmp, phase) = when (waveType) {
+                        WaveType.SINE -> Pair(-1.0f, PI.toFloat() / 2f)
+                        WaveType.SQUARE -> Pair(-1.0f * (4f / (baseN * PI.toFloat())), PI.toFloat() / 2f)
+                        WaveType.SAWTOOTH -> {
+                            val sign = if (baseN.toInt() % 2 == 0) -1f else 1f
+                            Pair(-1.0f * (2f / (baseN * PI.toFloat())) * sign, PI.toFloat() / 2f)
+                        }
+                        WaveType.TRIANGLE -> {
+                            val sign = if (((baseN.toInt() - 1) / 2) % 2 != 0) -1f else 1f
+                            Pair(-1.0f * (8f / (baseN * baseN * PI.toFloat() * PI.toFloat())) * sign, PI.toFloat() / 2f)
+                        }
+                        WaveType.MY_SIGNAL -> if (i < customCoefficients.size) (customCoefficients[i].first to customCoefficients[i].second) else (0f to 0f)
+                        WaveType.FORMULA -> if (i < formulaCoefficients.size) (formulaCoefficients[i].first to formulaCoefficients[i].second) else (0f to 0f)
+                        WaveType.MY_SIGNAL_2D -> if (i < customCoefficients2D.size) (customCoefficients2D[i].amp to customCoefficients2D[i].phase) else (0f to 0f)
+                        WaveType.SVG -> if (i < svgCoefficients.size) (svgCoefficients[i].amp to svgCoefficients[i].phase) else (0f to 0f)
+                        WaveType.PURE_SIGNAL -> {
+                            val ampValue = (customFunctionSignals[i].amp.toFloatOrNull() ?: 0f) * -1f
+                            val phaseValue = PI.toFloat() / 2f
+                            ampValue to phaseValue
+                        }
+                        else -> (0f to 0f)
+                    }
+                    val amp = getHarmonicAmplitude(i, defaultAmp)
+
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -186,31 +210,6 @@ fun HarmonicComponents(
                                 .fillMaxHeight()
                         ) {
                             val centerY = size.height / 2
-                            val (defaultAmp, phase) = when (waveType) {
-                                WaveType.SINE -> Pair(-radiusBase, PI.toFloat() / 2f)
-                                WaveType.SQUARE -> Pair(-radiusBase * (4f / (baseN * PI.toFloat())), PI.toFloat() / 2f)
-                                WaveType.SAWTOOTH -> {
-                                    val sign = if (baseN.toInt() % 2 == 0) -1f else 1f
-                                    Pair(-radiusBase * (2f / (baseN * PI.toFloat())) * sign, PI.toFloat() / 2f)
-                                }
-                                WaveType.TRIANGLE -> {
-                                    val sign = if (((baseN.toInt() - 1) / 2) % 2 != 0) -1f else 1f
-                                    Pair(-radiusBase * (8f / (baseN * baseN * PI.toFloat() * PI.toFloat())) * sign, PI.toFloat() / 2f)
-                                }
-                                WaveType.MY_SIGNAL -> if (i < customCoefficients.size) (customCoefficients[i].first * (radiusBase / 100f) to customCoefficients[i].second) else (0f to 0f)
-                                WaveType.FORMULA -> if (i < formulaCoefficients.size) (formulaCoefficients[i].first * (radiusBase / 100f) to formulaCoefficients[i].second) else (0f to 0f)
-                                WaveType.MY_SIGNAL_2D -> if (i < customCoefficients2D.size) (customCoefficients2D[i].amp * (radiusBase / 100f) to customCoefficients2D[i].phase) else (0f to 0f)
-                                WaveType.SVG -> if (i < svgCoefficients.size) (svgCoefficients[i].amp * (radiusBase / 100f) to svgCoefficients[i].phase) else (0f to 0f)
-                                WaveType.PURE_SIGNAL -> {
-                                    val amp = (customFunctionSignals[i].amp.toFloatOrNull() ?: 0f) * (radiusBase / 100f) * -1f
-                                    val phase = PI.toFloat() / 2f
-                                    amp to phase
-                                }
-                                else -> (0f to 0f)
-                            }
-                            
-                            val amp = getHarmonicAmplitude(i, defaultAmp)
-
                             val path = Path()
                             val samples = 150
                             for (s in 0..samples) {
@@ -218,9 +217,9 @@ fun HarmonicComponents(
                                 val waveT = if (isPaused) 0f else time - (1f - s.toFloat() / samples) * 2f
                                 val angle = 2 * PI.toFloat() * n * waveT
                                 val y = if (waveType == WaveType.MY_SIGNAL_2D || waveType == WaveType.SVG) {
-                                    centerY + amp * sin(angle + phase)
+                                    centerY + (amp * radiusBase) * sin(angle + phase)
                                 } else {
-                                    centerY + amp * cos(angle - phase)
+                                    centerY + (amp * radiusBase) * cos(angle - phase)
                                 }
 
                                 if (s == 0) path.moveTo(x, y)
@@ -233,7 +232,6 @@ fun HarmonicComponents(
                                 style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round)
                             )
 
-                            // Axes
                             val subAxisColor = colors.textSecondary.copy(alpha = 0.2f)
                             drawLine(
                                 color = subAxisColor,
@@ -250,11 +248,11 @@ fun HarmonicComponents(
                         }
 
                         // Edit Menu
-                        Box () {
+                        Box {
                             var menuExpanded by remember { mutableStateOf(false) }
                             IconButton(
                                 onClick = { menuExpanded = true },
-                                modifier = Modifier.size(AppDesign.iconSmall)
+                                modifier = Modifier.size(24.dp)
                             ) {
                                 Icon(
                                     Icons.Default.MoreVert,
@@ -263,104 +261,128 @@ fun HarmonicComponents(
                                     modifier = Modifier.size(16.dp)
                                 )
                             }
-                            DropdownMenu(
-                                expanded = menuExpanded,
-                                onDismissRequest = { menuExpanded = false },
-                                modifier = Modifier
-                                    .width(200.dp)
-                                    .clip(RoundedCornerShape(AppDesign.radiusCard))
-                                    .background(colors.cardSurface.copy(alpha = AppDesign.opacityGlass))
-                                    .border(
-                                        AppDesign.borderThin,
-                                        colors.cardBorder.copy(alpha = AppDesign.opacityGlassBorder),
-                                        RoundedCornerShape(AppDesign.radiusCard)
+                            CompositionLocalProvider(LocalAbsoluteTonalElevation provides 0.dp) {
+                                MaterialTheme(
+                                    colorScheme = MaterialTheme.colorScheme.copy(
+                                        surface = Color.Transparent,
+                                        surfaceVariant = Color.Transparent,
+                                        onSurface = colors.textPrimary
                                     )
-                                    .padding(8.dp),
-                            ) {
-                                val isPaused = isHarmonicPaused(i)
-                                DropdownMenuItem(
-                                    text = { Text(if (isPaused) "Resume" else "Pause") },
-                                    onClick = {
-                                        onTogglePause(i)
-                                        menuExpanded = false
-                                    },
-                                    leadingIcon = {
-                                        Icon(
-                                            if (isPaused) painterResource( id = R.drawable.pause_outline) else painterResource( id = R.drawable.caret_forward_outline),
-                                            contentDescription = null,
-                                            modifier = Modifier.size(AppDesign.iconSmall),
-                                            tint = colors.accentCyan
+                                ) {
+                                    DropdownMenu(
+                                        expanded = menuExpanded,
+                                        onDismissRequest = { menuExpanded = false },
+                                        modifier = Modifier
+                                            .width(220.dp)
+                                            .clip(RoundedCornerShape(AppDesign.radiusCard))
+                                            .background(colors.cardSurface.copy(alpha = 0.98f))
+                                            .border(
+                                                AppDesign.borderThin,
+                                                colors.cardBorder.copy(alpha = AppDesign.opacityGlassBorder),
+                                                RoundedCornerShape(AppDesign.radiusCard)
+                                            )
+                                            .padding(8.dp),
+                                    ) {
+                                        val isHarmonicPausedVal = isHarmonicPaused(i)
+                                        DropdownMenuItem(
+                                            text = { Text(if (isHarmonicPausedVal) "Resume" else "Pause", fontWeight = FontWeight.Bold, fontSize = 13.sp) },
+                                            onClick = {
+                                                onTogglePause(i)
+                                                menuExpanded = false
+                                            },
+                                            leadingIcon = {
+                                                Icon(
+                                                    painter = if (isHarmonicPausedVal) painterResource(id = R.drawable.caret_forward_outline) else painterResource(id = R.drawable.pause_outline),
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(18.dp),
+                                                    tint = colors.accentCyan
+                                                )
+                                            }
+                                        )
+
+                                        HorizontalDivider(
+                                            color = colors.cardBorder.copy(alpha = 0.1f),
+                                            modifier = Modifier.padding(vertical = 4.dp)
+                                        )
+
+                                        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween
+                                            ) {
+                                                Text("Frequency", fontSize = 11.sp, color = colors.textSecondary, fontWeight = FontWeight.SemiBold)
+                                                Text(String.format(Locale.US, "%.1f Hz", n), fontSize = 11.sp, color = colors.accentCyan, fontWeight = FontWeight.Bold)
+                                            }
+                                            Slider(
+                                                value = n,
+                                                onValueChange = { onFrequencyChange(i, it) },
+                                                valueRange = -20f..20f,
+                                                colors = SliderDefaults.colors(
+                                                    thumbColor = colors.accentCyan,
+                                                    activeTrackColor = colors.accentCyan,
+                                                    inactiveTrackColor = colors.fieldBorder.copy(0.2f)
+                                                )
+                                            )
+                                        }
+
+                                        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween
+                                            ) {
+                                                Text("Amplitude", fontSize = 11.sp, color = colors.textSecondary, fontWeight = FontWeight.SemiBold)
+                                                Text(String.format(Locale.US, "%.1f", amp), fontSize = 11.sp, color = colors.accentViolet, fontWeight = FontWeight.Bold)
+                                            }
+                                            Slider(
+                                                value = amp,
+                                                onValueChange = { onAmplitudeChange(i, it) },
+                                                valueRange = -2.0f..2.0f,
+                                                colors = SliderDefaults.colors(
+                                                    thumbColor = colors.accentViolet,
+                                                    activeTrackColor = colors.accentViolet,
+                                                    inactiveTrackColor = colors.fieldBorder.copy(0.2f)
+                                                )
+                                            )
+                                        }
+
+                                        HorizontalDivider(
+                                            color = colors.cardBorder.copy(alpha = 0.1f),
+                                            modifier = Modifier.padding(vertical = 4.dp)
+                                        )
+
+                                        DropdownMenuItem(
+                                            text = { Text("Reset to Default", fontSize = 13.sp) },
+                                            onClick = {
+                                                onResetHarmonic(i)
+                                                menuExpanded = false
+                                            },
+                                            leadingIcon = {
+                                                Icon(
+                                                    Icons.Default.Refresh,
+                                                    contentDescription = null,
+                                                    tint = colors.textSecondary,
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                            }
+                                        )
+
+                                        DropdownMenuItem(
+                                            text = { Text("Remove", color = colors.accentHell, fontWeight = FontWeight.Bold, fontSize = 13.sp) },
+                                            onClick = {
+                                                onRemoveHarmonic(i)
+                                                menuExpanded = false
+                                            },
+                                            leadingIcon = {
+                                                Icon(
+                                                    painter = painterResource(id = R.drawable.trash_outline),
+                                                    contentDescription = null,
+                                                    tint = colors.accentHell,
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                            }
                                         )
                                     }
-                                )
-                                
-                                Spacer(Modifier.height(AppDesign.spacingSmall))
-                                Text(
-                                    "Frequency",
-                                    fontSize = 10.sp,
-                                    color = colors.textSecondary,
-                                    modifier = Modifier.padding(horizontal = 12.dp)
-                                )
-                                Slider(
-                                    value = getHarmonicFrequency(i, n),
-                                    onValueChange = { onFrequencyChange(i, it) },
-                                    valueRange = -20f..20f,
-                                    modifier = Modifier.padding(horizontal = 12.dp),
-                                    colors = SliderDefaults.colors(
-                                        thumbColor = colors.accentCyan,
-                                        activeTrackColor = colors.accentCyan
-                                    )
-                                )
-
-                                Spacer(Modifier.height(8.dp))
-                                Text(
-                                    "Amplitude",
-                                    fontSize = 10.sp,
-                                    color = colors.textSecondary,
-                                    modifier = Modifier.padding(horizontal = 12.dp)
-                                )
-                                Slider(
-                                    value = getHarmonicAmplitude(i, 0f), // Fallback
-                                    onValueChange = { onAmplitudeChange(i, it) },
-                                    valueRange = -50f..50f,
-                                    modifier = Modifier.padding(horizontal = 12.dp),
-                                    colors = SliderDefaults.colors(
-                                        thumbColor = colors.accentCyan,
-                                        activeTrackColor = colors.accentCyan
-                                    )
-                                )
-
-                                DropdownMenuItem(
-                                    text = { Text("Reset to Default") },
-                                    onClick = {
-                                        onResetHarmonic(i)
-                                        menuExpanded = false
-                                    },
-                                    leadingIcon = {
-                                        Icon(
-                                            Icons.Default.Refresh,
-                                            contentDescription = null,
-                                            tint = colors.accentCyan,
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                    }
-                                )
-
-                                DropdownMenuItem(
-                                    text = { Text("Remove", color = MaterialTheme.colorScheme.error) },
-                                    onClick = {
-                                        onRemoveHarmonic(i)
-                                        menuExpanded = false
-                                    },
-                                    leadingIcon = {
-                                        Icon(
-                                            painter = painterResource( id = R.drawable.trash_outline),
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.error,
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                    }
-                                )
+                                }
                             }
                         }
                     }
@@ -401,179 +423,73 @@ fun CenterOfMassGraph(
     currentWindingFreq: Float
 ) {
     val density = androidx.compose.ui.platform.LocalDensity.current
-    var isExpanded by remember { mutableStateOf(false) }
-    GlassCard(colors = colors) {
-        Column(
-            modifier = Modifier
-                .padding(AppDesign.radiusLarge)
-                .animateContentSize(animationSpec = tween(AppDesign.animDurationStandard))
-        ) {
-            Text(
-                "Frequency Domain (Real-time Center of Mass)",
-                color = colors.textPrimary,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold
+    val radiusBasePx = with(density) { 100.dp.toPx() }
+
+    Canvas(modifier = Modifier.fillMaxSize()) {
+        val center = Offset(size.width / 2, size.height / 2)
+        val gridColor = colors.textSecondary.copy(alpha = 0.1f)
+        
+        drawCircle(
+            color = gridColor,
+            radius = radiusBasePx,
+            center = center,
+            style = Stroke(width = 1.dp.toPx())
+        )
+        drawLine(
+            gridColor,
+            Offset(0f, center.y),
+            Offset(size.width, center.y),
+            1.dp.toPx()
+        )
+        drawLine(
+            gridColor,
+            Offset(center.x, 0f),
+            Offset(center.x, size.height),
+            1.dp.toPx()
+        )
+
+        if (path.isNotEmpty()) {
+            val wrappedPath = Path()
+            var sumX = 0f
+            var sumY = 0f
+            var processedCount = 0
+            
+            val baseRadius = radiusBasePx * 0.8f
+
+            for (i in path.indices step 2) {
+                val point = path[i].offset
+                val t = point.x
+                val amplitude = point.y + baseRadius
+                val angle = -2 * PI.toFloat() * currentWindingFreq * t
+
+                val wx = amplitude * cos(angle)
+                val wy = amplitude * sin(angle)
+
+                if (i == 0) wrappedPath.moveTo(wx + center.x, wy + center.y)
+                else wrappedPath.lineTo(wx + center.x, wy + center.y)
+
+                sumX += wx
+                sumY += wy
+                processedCount++
+            }
+            
+            drawPath(
+                path = wrappedPath,
+                color = colors.accentCyan.copy(alpha = 0.6f),
+                style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round)
             )
-            Spacer(Modifier.height(AppDesign.radiusLarge))
 
-            Canvas(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(if (isExpanded) 250.dp else 180.dp)
-            ) {
-                val width = size.width
-                val height = size.height
-                val centerY = height * 0.7f
-                val maxFreq = 5.0f
-                val freqScale = width / maxFreq
-
-                // Draw Axes
-                val axisColor = colors.textSecondary.copy(0.3f)
-                drawLine(axisColor, Offset(0f, centerY), Offset(width, centerY), 2.dp.toPx())
-                drawLine(axisColor, Offset(0f, 0f), Offset(0f, height), 2.dp.toPx())
-
-                // Labels
-                for (f in 0..5) {
-                    val x = f * freqScale
-                    drawLine(axisColor, Offset(x, centerY - 5.dp.toPx()), Offset(x, centerY + 5.dp.toPx()), 1.dp.toPx())
-                }
-
-                if (path.isEmpty()) return@Canvas
-
-                // Calculate COM Graph using the ACTUAL data points from the simulation
-                val graphPath = Path()
-                val freqSteps = 120
-
-                for (s in 0..freqSteps) {
-                    val freq = (s.toFloat() / freqSteps) * maxFreq
-
-                    var sumX = 0f
-                    var sumY = 0f
-                    var processedCount = 0
-                    // Increased sampling density (step 5) for better accuracy at low speeds
-                    for (i in path.indices step 5) {
-                        val point = path[i].offset
-                        val t = point.x
-                        val ft = point.y
-                        sumX += ft * cos(2 * PI.toFloat() * freq * t)
-                        sumY += ft * sin(2 * PI.toFloat() * freq * t)
-                        processedCount++
-                    }
-
-                    val avgX = if (processedCount > 0) sumX / processedCount else 0f
-                    val avgY = if (processedCount > 0) sumY / processedCount else 0f
-                    val magnitudePx = sqrt(avgX * avgX + avgY * avgY)
-                    
-                    // Convert magnitude to density-independent scale for drawing on the graph
-                    // A magnitude of 100 DP will be drawn as 90 DP height
-                    val magnitudeDp = magnitudePx / density.density
-                    val x = freq * freqScale
-                    val y = centerY - magnitudeDp * density.density * 0.9f
-
-                    if (s == 0) graphPath.moveTo(x, y)
-                    else graphPath.lineTo(x, y)
-                }
-
-                drawPath(
-                    path = graphPath,
-                    color = colors.accentHell,
-                    style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round)
-                )
-
-                // Current Frequency Marker
-                val currentX = currentWindingFreq * freqScale
-
-                // Highlight the point on the graph corresponding to the current winding freq
-                var currentSumX = 0f
-                var currentSumY = 0f
-                var currentCount = 0
-                for (i in path.indices step 5) {
-                    val point = path[i].offset
-                    currentSumX += point.y * cos(2 * PI.toFloat() * currentWindingFreq * point.x)
-                    currentSumY += point.y * sin(2 * PI.toFloat() * currentWindingFreq * point.x)
-                    currentCount++
-                }
-                val currentAvgX = if (currentCount > 0) currentSumX / currentCount else 0f
-                val currentAvgY = if (currentCount > 0) currentSumY / currentCount else 0f
-                val currentMagnitudePx = sqrt(currentAvgX * currentAvgX + currentAvgY * currentAvgY)
-                val currentMagnitudeDp = currentMagnitudePx / density.density
-                val currentYOnGraph = centerY - currentMagnitudeDp * density.density * 0.9f
-
+            if (processedCount > 0) {
+                val avgX = sumX / processedCount
+                val avgY = sumY / processedCount
+                drawCircle(colors.accentHell, 4.dp.toPx(), Offset(avgX + center.x, avgY + center.y))
+                
                 drawLine(
-                    colors.accentCyan.copy(0.4f),
-                    Offset(currentX, 0f),
-                    Offset(currentX, height),
-                    1.dp.toPx(),
-                    pathEffect = PathEffect.dashPathEffect(
-                        floatArrayOf(
-                            10.dp.toPx(),
-                            10.dp.toPx()
-                        )
-                    )
+                    colors.textSecondary.copy(alpha = 0.3f),
+                    center,
+                    Offset(avgX + center.x, avgY + center.y),
+                    1.dp.toPx()
                 )
-
-                drawCircle(
-                    colors.accentCyan,
-                    6.dp.toPx(),
-                    Offset(currentX, currentYOnGraph)
-                )
-            }
-
-            Spacer(Modifier.height(8.dp))
-            Text(
-                "Peaks indicate the frequencies present in the signal. When the winding frequency matches a component, the center of mass moves away from the origin.",
-                color = colors.textSecondary,
-                fontSize = 11.sp,
-                lineHeight = 16.sp
-            )
-
-            AnimatedVisibility(
-                visible = isExpanded,
-                enter = expandVertically(animationSpec = tween(AppDesign.animDurationStandard)) + fadeIn(
-                    animationSpec = tween(AppDesign.animDurationStandard)
-                ),
-                exit = shrinkVertically(animationSpec = tween(AppDesign.animDurationStandard)) + fadeOut(
-                    animationSpec = tween(AppDesign.animDurationStandard)
-                )
-            ) {
-                Column(modifier = Modifier.padding(top = 8.dp)) {
-                    HorizontalDivider(color = colors.cardBorder.copy(alpha = 0.2f))
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        "Technical Insight:",
-                        color = colors.accentCyan,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        "This graph performs a real-time integration of your signal against a rotating phasor. The magnitude shown is the average 'pull' of the signal in the complex plane. Higher peaks correspond to stronger harmonics.",
-                        color = colors.textSecondary,
-                        fontSize = 11.sp,
-                        lineHeight = 16.sp
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(4.dp))
-            TextButton(
-                onClick = { isExpanded = !isExpanded },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        if (isExpanded) "Show Less" else "Technical Details",
-                        color = colors.accentCyan,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 12.sp
-                    )
-                    Spacer(Modifier.width(4.dp))
-                    Icon(
-                        if (isExpanded) painterResource(id = R.drawable.chevron_up_outline) else painterResource(id = R.drawable.chevron_down_outline),
-                        null,
-                        tint = colors.accentCyan,
-                        modifier = Modifier.size(AppDesign.iconTiny)
-                    )
-                }
             }
         }
     }
@@ -662,7 +578,6 @@ fun ComplexHarmonicComponents(
             Spacer(Modifier.height(AppDesign.radiusLarge))
 
             if (activeTermsIndices.isNotEmpty()) {
-                // Result Indicator
                 Text(
                     "Signal",
                     color = colors.accentCyan,
@@ -676,7 +591,6 @@ fun ComplexHarmonicComponents(
                     tint = colors.textSecondary.copy(0.5f),
                     modifier = Modifier.size(AppDesign.radiusLarge)
                 )
-
                 Spacer(Modifier.height(AppDesign.radiusSmall))
             }
 
@@ -710,15 +624,15 @@ fun ComplexHarmonicComponents(
                     }
 
                     val defaultRadius = when (waveType) {
-                        WaveType.SINE -> -radiusBase
-                        WaveType.SQUARE -> -radiusBase * (4f / (baseN * PI.toFloat()))
-                        WaveType.SAWTOOTH -> -radiusBase * (2f / (baseN * PI.toFloat()))
-                        WaveType.TRIANGLE -> -radiusBase * (8f / (baseN * baseN * PI.toFloat() * PI.toFloat()))
-                        WaveType.MY_SIGNAL -> if (i < customCoefficients.size) customCoefficients[i].first * (radiusBase / 100f) else 0f
-                        WaveType.FORMULA -> if (i < formulaCoefficients.size) formulaCoefficients[i].first * (radiusBase / 100f) else 0f
-                        WaveType.MY_SIGNAL_2D -> if (i < customCoefficients2D.size) customCoefficients2D[i].amp * (radiusBase / 100f) else 0f
-                        WaveType.SVG -> if (i < svgCoefficients.size) svgCoefficients[i].amp * (radiusBase / 100f) else 0f
-                        WaveType.PURE_SIGNAL -> (customFunctionSignals[i].amp.toFloatOrNull() ?: 0f) * (radiusBase / 100f)
+                        WaveType.SINE -> -1.0f
+                        WaveType.SQUARE -> -1.0f * (4f / (baseN * PI.toFloat()))
+                        WaveType.SAWTOOTH -> -1.0f * (2f / (baseN * PI.toFloat()))
+                        WaveType.TRIANGLE -> -1.0f * (8f / (baseN * baseN * PI.toFloat() * PI.toFloat()))
+                        WaveType.MY_SIGNAL -> if (i < customCoefficients.size) customCoefficients[i].first else 0f
+                        WaveType.FORMULA -> if (i < formulaCoefficients.size) formulaCoefficients[i].first else 0f
+                        WaveType.MY_SIGNAL_2D -> if (i < customCoefficients2D.size) customCoefficients2D[i].amp else 0f
+                        WaveType.SVG -> if (i < svgCoefficients.size) svgCoefficients[i].amp else 0f
+                        WaveType.PURE_SIGNAL -> (customFunctionSignals[i].amp.toFloatOrNull() ?: 0f)
                         else -> 0f
                     }
                     
@@ -760,33 +674,30 @@ fun ComplexHarmonicComponents(
                                 else -> 0f
                             }
 
-                            // Draw circle
                             drawCircle(
                                 color = colors.accentCyan.copy(alpha = 0.1f),
-                                radius = radius,
+                                radius = radius * radiusBase,
                                 center = center,
                                 style = Stroke(width = 1.dp.toPx())
                             )
 
-                            // Draw axes
                             drawLine(
                                 colors.textSecondary.copy(alpha = 0.1f),
-                                Offset(center.x - radius - 10.dp.toPx(), center.y),
-                                Offset(center.x + radius + 10.dp.toPx(), center.y),
+                                Offset(center.x - (radius * radiusBase) - 10.dp.toPx(), center.y),
+                                Offset(center.x + (radius * radiusBase) + 10.dp.toPx(), center.y),
                                 1.dp.toPx()
                             )
                             drawLine(
                                 colors.textSecondary.copy(alpha = 0.1f),
-                                Offset(center.x, center.y - radius - 10.dp.toPx()),
-                                Offset(center.x, center.y + radius + 10.dp.toPx()),
+                                Offset(center.x, center.y - (radius * radiusBase) - 10.dp.toPx()),
+                                Offset(center.x, center.y + (radius * radiusBase) + 10.dp.toPx()),
                                 1.dp.toPx()
                             )
 
-                            // Draw rotating vector
                             val angle = if (isPaused) 0f else 2 * PI.toFloat() * n * time + phase
                             val end = Offset(
-                                center.x + radius * cos(angle),
-                                center.y + radius * sin(angle)
+                                center.x + (radius * radiusBase) * cos(angle),
+                                center.y + (radius * radiusBase) * sin(angle)
                             )
 
                             drawLine(
@@ -835,101 +746,128 @@ fun ComplexHarmonicComponents(
                                     modifier = Modifier.size(18.dp)
                                 )
                             }
-                            DropdownMenu(
-                                expanded = menuExpanded,
-                                onDismissRequest = { menuExpanded = false },
-                                modifier = Modifier
-                                    .width(200.dp)
-                                    .background(colors.cardSurface)
-                                    .padding(8.dp)
-                            ) {
-                                val isPaused = isHarmonicPaused(i)
-                                DropdownMenuItem(
-                                    text = { Text(if (isPaused) "Resume" else "Pause") },
-                                    onClick = {
-                                        onTogglePause(i)
-                                        menuExpanded = false
-                                    },
-                                    leadingIcon = {
-                                        Icon(
-                                            if (isPaused) Icons.Default.PlayArrow else Icons.Default.Pause,
-                                            contentDescription = null,
-                                            tint = colors.accentCyan
-                                        )
-                                    }
-                                )
-
-                                Spacer(Modifier.height(8.dp))
-                                Text(
-                                    "Frequency",
-                                    fontSize = 10.sp,
-                                    color = colors.textSecondary,
-                                    modifier = Modifier.padding(horizontal = 12.dp)
-                                )
-                                Slider(
-                                    value = getHarmonicFrequency(i, n),
-                                    onValueChange = { onFrequencyChange(i, it) },
-                                    valueRange = -20f..20f,
-                                    modifier = Modifier.padding(horizontal = 12.dp),
-                                    colors = SliderDefaults.colors(
-                                        thumbColor = colors.accentCyan,
-                                        activeTrackColor = colors.accentCyan
+                            CompositionLocalProvider(LocalAbsoluteTonalElevation provides 0.dp) {
+                                MaterialTheme(
+                                    colorScheme = MaterialTheme.colorScheme.copy(
+                                        surface = Color.Transparent,
+                                        surfaceVariant = Color.Transparent,
+                                        onSurface = colors.textPrimary
                                     )
-                                )
+                                ) {
+                                    DropdownMenu(
+                                        expanded = menuExpanded,
+                                        onDismissRequest = { menuExpanded = false },
+                                        modifier = Modifier
+                                            .width(220.dp)
+                                            .clip(RoundedCornerShape(AppDesign.radiusCard))
+                                            .background(colors.cardSurface.copy(alpha = 0.98f))
+                                            .border(
+                                                AppDesign.borderThin,
+                                                colors.cardBorder.copy(alpha = AppDesign.opacityGlassBorder),
+                                                RoundedCornerShape(AppDesign.radiusCard)
+                                            )
+                                            .padding(8.dp),
+                                    ) {
+                                        val isHarmonicPausedVal = isHarmonicPaused(i)
+                                        DropdownMenuItem(
+                                            text = { Text(if (isHarmonicPausedVal) "Resume" else "Pause", fontWeight = FontWeight.Bold, fontSize = 13.sp) },
+                                            onClick = {
+                                                onTogglePause(i)
+                                                menuExpanded = false
+                                            },
+                                            leadingIcon = {
+                                                Icon(
+                                                    painter = if (isHarmonicPausedVal) painterResource(id = R.drawable.caret_forward_outline) else painterResource(id = R.drawable.pause_outline),
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(18.dp),
+                                                    tint = colors.accentCyan
+                                                )
+                                            }
+                                        )
 
-                                Spacer(Modifier.height(8.dp))
-                                Text(
-                                    "Amplitude",
-                                    fontSize = 10.sp,
-                                    color = colors.textSecondary,
-                                    modifier = Modifier.padding(horizontal = 12.dp)
-                                )
-                                Slider(
-                                    value = getHarmonicAmplitude(i, radius),
-                                    onValueChange = { onAmplitudeChange(i, it) },
-                                    valueRange = -200f..200f,
-                                    modifier = Modifier.padding(horizontal = 12.dp),
-                                    colors = SliderDefaults.colors(
-                                        thumbColor = colors.accentViolet,
-                                        activeTrackColor = colors.accentViolet
-                                    )
-                                )
+                                        HorizontalDivider(
+                                            color = colors.cardBorder.copy(alpha = 0.1f),
+                                            modifier = Modifier.padding(vertical = 4.dp)
+                                        )
 
-                                HorizontalDivider(color = colors.cardBorder.copy(alpha = 0.1f), modifier = Modifier.padding(vertical = 4.dp))
+                                        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween
+                                            ) {
+                                                Text("Frequency", fontSize = 11.sp, color = colors.textSecondary, fontWeight = FontWeight.SemiBold)
+                                                Text(String.format(Locale.US, "%.1f Hz", n), fontSize = 11.sp, color = colors.accentCyan, fontWeight = FontWeight.Bold)
+                                            }
+                                            Slider(
+                                                value = n,
+                                                onValueChange = { onFrequencyChange(i, it) },
+                                                valueRange = -20f..20f,
+                                                colors = SliderDefaults.colors(
+                                                    thumbColor = colors.accentCyan,
+                                                    activeTrackColor = colors.accentCyan,
+                                                    inactiveTrackColor = colors.fieldBorder.copy(0.2f)
+                                                )
+                                            )
+                                        }
 
-                                DropdownMenuItem(
-                                    text = { Text("Reset to Default") },
-                                    onClick = {
-                                        onResetHarmonic(i)
-                                        menuExpanded = false
-                                    },
-                                    leadingIcon = {
-                                        Icon(
-                                            Icons.Default.Refresh,
-                                            contentDescription = null,
-                                            tint = colors.accentCyan,
-                                            modifier = Modifier.size(18.dp)
+                                        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween
+                                            ) {
+                                                Text("Amplitude", fontSize = 11.sp, color = colors.textSecondary, fontWeight = FontWeight.SemiBold)
+                                                Text(String.format(Locale.US, "%.1f", radius), fontSize = 11.sp, color = colors.accentViolet, fontWeight = FontWeight.Bold)
+                                            }
+                                            Slider(
+                                                value = radius,
+                                                onValueChange = { onAmplitudeChange(i, it) },
+                                                valueRange = -2.0f..2.0f,
+                                                colors = SliderDefaults.colors(
+                                                    thumbColor = colors.accentViolet,
+                                                    activeTrackColor = colors.accentViolet,
+                                                    inactiveTrackColor = colors.fieldBorder.copy(0.2f)
+                                                )
+                                            )
+                                        }
+
+                                        HorizontalDivider(
+                                            color = colors.cardBorder.copy(alpha = 0.1f),
+                                            modifier = Modifier.padding(vertical = 4.dp)
+                                        )
+
+                                        DropdownMenuItem(
+                                            text = { Text("Reset to Default", fontSize = 13.sp) },
+                                            onClick = {
+                                                onResetHarmonic(i)
+                                                menuExpanded = false
+                                            },
+                                            leadingIcon = {
+                                                Icon(
+                                                    Icons.Default.Refresh,
+                                                    contentDescription = null,
+                                                    tint = colors.textSecondary,
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                            }
+                                        )
+
+                                        DropdownMenuItem(
+                                            text = { Text("Remove", color = colors.accentHell, fontWeight = FontWeight.Bold, fontSize = 13.sp) },
+                                            onClick = {
+                                                onRemoveHarmonic(i)
+                                                menuExpanded = false
+                                            },
+                                            leadingIcon = {
+                                                Icon(
+                                                    painter = painterResource(id = R.drawable.trash_outline),
+                                                    contentDescription = null,
+                                                    tint = colors.accentHell,
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                            }
                                         )
                                     }
-                                )
-
-                                HorizontalDivider(color = colors.cardBorder.copy(alpha = 0.1f), modifier = Modifier.padding(vertical = 4.dp))
-
-                                DropdownMenuItem(
-                                    text = { Text("Remove", color = MaterialTheme.colorScheme.error) },
-                                    onClick = {
-                                        onRemoveHarmonic(i)
-                                        menuExpanded = false
-                                    },
-                                    leadingIcon = {
-                                        Icon(
-                                            Icons.Default.Delete,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.error,
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                    }
-                                )
+                                }
                             }
                         }
                     }

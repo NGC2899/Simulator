@@ -48,6 +48,10 @@ class AppPreferences(context: Context) {
         get() = prefs.getFloat("fourier_error_sensitivity", 20.0f)
         set(value) = prefs.edit().putFloat("fourier_error_sensitivity", value).apply()
 
+    var fourierShowErrorGradient: Boolean
+        get() = prefs.getBoolean("fourier_show_error_gradient", false)
+        set(value) = prefs.edit().putBoolean("fourier_show_error_gradient", value).apply()
+
     var drawingPoints: List<Float>
         get() = prefs.getString("drawing_points", "")?.split(",")?.filter { it.isNotEmpty() }?.mapNotNull { it.toFloatOrNull() } ?: emptyList()
         set(value) = prefs.edit().putString("drawing_points", value.joinToString(",")).apply()
@@ -66,6 +70,21 @@ class AppPreferences(context: Context) {
             }
         }
         set(value) = prefs.edit().putString("drawing_points_2d", value.joinToString(";") { "${it.x},${it.y}" }).apply()
+
+    var fourierSvgPoints: List<Offset>
+        get() {
+            val data = prefs.getString("fourier_svg_points", "") ?: ""
+            if (data.isEmpty()) return emptyList()
+            return data.split(";").filter { it.isNotEmpty() }.mapNotNull {
+                val parts = it.split(",")
+                if (parts.size == 2) {
+                    val x = parts[0].toFloatOrNull()
+                    val y = parts[1].toFloatOrNull()
+                    if (x != null && y != null) Offset(x, y) else null
+                } else null
+            }
+        }
+        set(value) = prefs.edit().putString("fourier_svg_points", value.joinToString(";") { "${it.x},${it.y}" }).apply()
 
     private fun escape(s: String) = s.replace("%", "%25").replace("|", "%7C").replace(";", "%3B")
     private fun unescape(s: String) = s.replace("%7C", "|").replace("%3B", ";").replace("%25", "%")

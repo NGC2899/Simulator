@@ -64,7 +64,7 @@ fun SettingsScreen(
         
         GlassCard(colors = colors) {
             Column(
-                modifier = Modifier.padding(AppDesign.spacingLarge)
+                modifier = Modifier.padding(AppDesign.spacingLarge).fillMaxSize(),
             ) {
                 Text(
                     text = "About",

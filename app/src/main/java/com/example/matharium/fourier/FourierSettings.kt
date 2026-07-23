@@ -12,6 +12,7 @@ import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.*
@@ -22,6 +23,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
@@ -224,8 +226,6 @@ fun FourierSettingsCard(
                                     }
 
                                     Spacer(Modifier.height(AppDesign.spacingMedium))
-
-                                    SymmetryMessage(result = symmetryResult, colors = colors)
 
                                     Text(
                                         "Draw your wave below",
@@ -491,30 +491,20 @@ fun FourierSettingsCard(
                                         Spacer(Modifier.height(AppDesign.radiusSmall))
 
                                         Row(
-                                            modifier = Modifier.fillMaxWidth()
-                                                .height(AppDesign.chipHeight + 8.dp),
-                                            horizontalArrangement = Arrangement.spacedBy(AppDesign.spacingSmall),
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(AppDesign.buttonHeightSmall),
+                                            horizontalArrangement = Arrangement.spacedBy(AppDesign.spacingMedium),
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            Box(
+                                            Surface(
                                                 modifier = Modifier
                                                     .weight(1f)
-                                                    .height(AppDesign.buttonHeightSmall)
-                                                    .clip(RoundedCornerShape(AppDesign.radiusButton))
-                                                    .background(colors.cardSurface.copy(AppDesign.opacityLow))
-                                                    .border(
-                                                        BorderStroke(
-                                                            AppDesign.borderStandard,
-                                                            Brush.linearGradient(
-                                                                listOf(colors.accentCyan, colors.accentViolet)
-                                                            )
-                                                        ),
-                                                        RoundedCornerShape(AppDesign.radiusButton)
-                                                    )
+                                                    .fillMaxHeight()
                                                     .clickable {
                                                         val last = customFunctionSignals.lastOrNull()
                                                         val nextFreq = last?.freq ?: "1.0"
-                                                        val nextAmp = last?.amp ?: "50.0"
+                                                        val nextAmp = last?.amp ?: "0.5"
                                                         val color = Color.hsv(
                                                             kotlin.random.Random.nextFloat() * 360f,
                                                             0.7f,
@@ -530,36 +520,39 @@ fun FourierSettingsCard(
                                                         )
                                                         onNextSignalIdChange(nextSignalId + 1)
                                                     },
-                                                contentAlignment = Alignment.Center
+                                                shape = RoundedCornerShape(AppDesign.radiusButton),
+                                                color = colors.accentCyan.copy(alpha = 0.1f),
+                                                border = BorderStroke(
+                                                    1.dp,
+                                                    Brush.linearGradient(
+                                                        listOf(colors.accentCyan, colors.accentViolet)
+                                                    )
+                                                )
                                             ) {
-                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.Center
+                                                ) {
                                                     Icon(
                                                         painter = painterResource(id = R.drawable.add_outline),
                                                         null,
                                                         modifier = Modifier.size(AppDesign.iconSmall),
-                                                        tint = colors.textPrimary
+                                                        tint = colors.accentCyan
                                                     )
-                                                    Spacer(Modifier.width(4.dp))
+                                                    Spacer(Modifier.width(AppDesign.spacingSmall))
                                                     Text(
-                                                        "Add",
-                                                        fontSize = AppDesign.textSmall,
+                                                        "Add Component",
+                                                        fontSize = 12.sp,
                                                         color = colors.textPrimary,
                                                         fontWeight = FontWeight.Bold
                                                     )
                                                 }
                                             }
 
-                                            Box(
+                                            Surface(
                                                 modifier = Modifier
-                                                    .weight(1f)
-                                                    .height(AppDesign.buttonHeightSmall)
-                                                    .clip(RoundedCornerShape(AppDesign.radiusButton))
-                                                    .background(colors.accentHell.copy(AppDesign.opacityLow))
-                                                    .border(
-                                                        AppDesign.borderStandard,
-                                                        colors.accentHell.copy(AppDesign.opacityMedium),
-                                                        RoundedCornerShape(AppDesign.radiusButton)
-                                                    )
+                                                    .weight(0.5f)
+                                                    .fillMaxHeight()
                                                     .clickable {
                                                         customFunctionSignals.clear()
                                                         onNextSignalIdChange(0)
@@ -567,9 +560,17 @@ fun FourierSettingsCard(
                                                         onResetHasStarted()
                                                         onClearPath()
                                                     },
-                                                contentAlignment = Alignment.Center
+                                                shape = RoundedCornerShape(AppDesign.radiusButton),
+                                                color = colors.accentHell.copy(alpha = 0.1f),
+                                                border = BorderStroke(
+                                                    1.dp,
+                                                    colors.accentHell.copy(alpha = 0.3f)
+                                                )
                                             ) {
-                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.Center
+                                                ) {
                                                     Icon(
                                                         painter = painterResource(id = R.drawable.trash_outline),
                                                         null,
@@ -579,7 +580,7 @@ fun FourierSettingsCard(
                                                     Spacer(Modifier.width(4.dp))
                                                     Text(
                                                         "Clear",
-                                                        fontSize = AppDesign.textSmall,
+                                                        fontSize = 12.sp,
                                                         color = colors.accentHell,
                                                         fontWeight = FontWeight.Bold
                                                     )
@@ -616,23 +617,32 @@ fun FourierSettingsCard(
                                                 }
 
                                                 if (customFunctionSignals.size > 5) {
-                                                    TextButton(
+                                                    Surface(
                                                         onClick = { onSignalsExpandedChange(!isSignalsExpanded) },
-                                                        modifier = Modifier.fillMaxWidth()
+                                                        modifier = Modifier
+                                                            .fillMaxWidth()
+                                                            .padding(top = AppDesign.spacingSmall),
+                                                        shape = RoundedCornerShape(AppDesign.radiusSmall),
+                                                        color = colors.accentCyan.copy(alpha = 0.05f),
+                                                        border = BorderStroke(1.dp, colors.accentCyan.copy(alpha = 0.1f))
                                                     ) {
-                                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                                        Row(
+                                                            modifier = Modifier.padding(vertical = 8.dp),
+                                                            verticalAlignment = Alignment.CenterVertically,
+                                                            horizontalArrangement = Arrangement.Center
+                                                        ) {
                                                             Text(
                                                                 if (isSignalsExpanded) "Show Less" else "Show All Components (${customFunctionSignals.size})",
                                                                 color = colors.accentCyan,
                                                                 fontWeight = FontWeight.Bold,
                                                                 fontSize = 12.sp
                                                             )
-                                                            Spacer(Modifier.width(4.dp))
+                                                            Spacer(Modifier.width(AppDesign.spacingSmall))
                                                             Icon(
                                                                 if (isSignalsExpanded) painterResource(id = R.drawable.chevron_up_outline) else painterResource(id = R.drawable.chevron_down_outline),
                                                                 null,
                                                                 tint = colors.accentCyan,
-                                                                modifier = Modifier.size(AppDesign.iconTiny)
+                                                                modifier = Modifier.size(14.dp)
                                                             )
                                                         }
                                                     }
@@ -686,44 +696,93 @@ fun FourierSettingsCard(
                             }
                             else -> {
                                 if (waveType == WaveType.SVG) {
-                                    Box(
-                                        modifier = Modifier
-                                            .padding(top = AppDesign.radiusLarge)
-                                            .height(AppDesign.buttonHeightSmall)
-                                            .clip(RoundedCornerShape(AppDesign.radiusButton))
-                                            .background(colors.accentHell.copy(alpha = AppDesign.opacityLow))
-                                            .border(
-                                                AppDesign.borderThin,
-                                                colors.accentHell.copy(alpha = AppDesign.opacityMedium),
-                                                RoundedCornerShape(AppDesign.radiusButton)
-                                            )
-                                            .clickable {
-                                                svgPoints.clear()
-                                                onClearSVGCoefficients()
-                                                onClearPath()
-                                                onResetTime()
-                                                onRunningChange(false)
-                                                onResetHasStarted()
-                                            },
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            modifier = Modifier.padding(horizontal = AppDesign.spacingMedium)
+                                    Column(modifier = Modifier.padding(top = AppDesign.radiusLarge)) {
+                                        Text(
+                                            "SVG Path Preview",
+                                            color = colors.accentCyan,
+                                            fontSize = AppDesign.textBody,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                        Spacer(Modifier.height(AppDesign.radiusSmall))
+
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(AppDesign.drawingAreaHeight)
+                                                .background(
+                                                    colors.cardSurface.copy(alpha = 0.2f),
+                                                    RoundedCornerShape(AppDesign.radiusSmall)
+                                                )
+                                                .border(
+                                                    AppDesign.borderThin,
+                                                    colors.cardBorder.copy(alpha = 0.3f),
+                                                    RoundedCornerShape(AppDesign.radiusSmall)
+                                                )
                                         ) {
-                                            Icon(
-                                                painter = painterResource(id = R.drawable.trash_outline),
-                                                null,
-                                                tint = colors.accentHell,
-                                                modifier = Modifier.size(AppDesign.iconSmall)
-                                            )
-                                            Spacer(Modifier.width(AppDesign.spacingSmall))
-                                            Text(
-                                                "Clear SVG",
-                                                fontSize = AppDesign.textSmall,
-                                                color = colors.accentHell,
-                                                fontWeight = FontWeight.Bold
-                                            )
+                                            Canvas(modifier = Modifier.fillMaxSize()) {
+                                                val w = size.width
+                                                val h = size.height
+                                                val gridColor = colors.textSecondary.copy(alpha = 0.1f)
+                                                drawLine(gridColor, Offset(w / 2, 0f), Offset(w / 2, h), 1.dp.toPx())
+                                                drawLine(gridColor, Offset(0f, h / 2), Offset(w, h / 2), 1.dp.toPx())
+
+                                                if (svgPoints.isNotEmpty()) {
+                                                    val p = Path()
+                                                    val center = Offset(w / 2f, h / 2f)
+                                                    p.moveTo(svgPoints[0].x + center.x, svgPoints[0].y + center.y)
+                                                    for (i in 1 until svgPoints.size) {
+                                                        p.lineTo(svgPoints[i].x + center.x, svgPoints[i].y + center.y)
+                                                    }
+                                                    drawPath(
+                                                        p,
+                                                        colors.accentCyan,
+                                                        style = Stroke(AppDesign.borderStandard.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
+                                                    )
+                                                }
+                                            }
+                                        }
+
+                                        Spacer(Modifier.height(AppDesign.spacingMedium))
+
+                                        Box(
+                                            modifier = Modifier
+                                                .height(AppDesign.buttonHeightSmall)
+                                                .clip(RoundedCornerShape(AppDesign.radiusButton))
+                                                .background(colors.accentHell.copy(alpha = AppDesign.opacityLow))
+                                                .border(
+                                                    AppDesign.borderThin,
+                                                    colors.accentHell.copy(alpha = AppDesign.opacityMedium),
+                                                    RoundedCornerShape(AppDesign.radiusButton)
+                                                )
+                                                .clickable {
+                                                    svgPoints.clear()
+                                                    prefs.fourierSvgPoints = emptyList()
+                                                    onClearSVGCoefficients()
+                                                    onClearPath()
+                                                    onResetTime()
+                                                    onRunningChange(false)
+                                                    onResetHasStarted()
+                                                },
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                modifier = Modifier.padding(horizontal = AppDesign.spacingMedium)
+                                            ) {
+                                                Icon(
+                                                    painter = painterResource(id = R.drawable.trash_outline),
+                                                    null,
+                                                    tint = colors.accentHell,
+                                                    modifier = Modifier.size(AppDesign.iconSmall)
+                                                )
+                                                Spacer(Modifier.width(AppDesign.spacingSmall))
+                                                Text(
+                                                    "Clear SVG",
+                                                    fontSize = AppDesign.textSmall,
+                                                    color = colors.accentHell,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                            }
                                         }
                                     }
                                 }
@@ -837,75 +896,96 @@ fun SignalSettingsCard(
     onParameterChange: () -> Unit,
     onDel: () -> Unit
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth().border(
-            AppDesign.borderThin,
-            colors.cardBorder.copy(alpha = AppDesign.opacityGlassBorder),
-            RoundedCornerShape(AppDesign.radiusCard)
-        ),
-        shape = RoundedCornerShape(AppDesign.radiusCard),
-        colors = CardDefaults.cardColors(containerColor = colors.cardSurface.copy(alpha = 0.3f)),
-//        border = BorderStroke(AppDesign.borderThin, colors.cardBorder.copy(alpha = 0.1f))
+    GlassCard(
+        colors = colors,
+        modifier = Modifier.fillMaxWidth()
     ) {
-        Column(modifier = Modifier.padding(AppDesign.spacingMedium)) {
+        Column(
+            modifier = Modifier
+                .padding(AppDesign.spacingMedium)
+                .animateContentSize()
+        ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { signal.isExpanded = !signal.isExpanded },
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
                     Box(
                         modifier = Modifier
                             .size(AppDesign.coloredIndicator)
-                            .background(signal.color,
-                            RoundedCornerShape(100.dp)),
+                            .background(
+                                signal.color,
+                                CircleShape
+                            )
+                            .border(1.dp, signal.color.copy(alpha = 0.4f), CircleShape)
                     )
                     Spacer(Modifier.width(AppDesign.spacingSmall))
                     Text(
                         "Component #${signal.id}",
                         color = colors.textPrimary,
-                        fontSize = 12.sp,
+                        fontSize = AppDesign.textHeadline,
                         fontWeight = FontWeight.Bold
                     )
                 }
 
-                Row {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(
+                        onClick = { signal.isPaused = !signal.isPaused; onParameterChange() },
+                        modifier = Modifier.size(28.dp)
+                    ) {
+                        Icon(
+                            painter = if (signal.isPaused) painterResource(id = R.drawable.caret_forward_outline) else painterResource(id = R.drawable.pause_outline),
+                            contentDescription = if (signal.isPaused) "Resume" else "Pause",
+                            tint = if (signal.isPaused) colors.accentCyan else colors.textSecondary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+
                     if (showDel) {
+                        Spacer(Modifier.width(AppDesign.spacingExtraSmall))
                         IconButton(
                             onClick = onDel,
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(28.dp)
                         ) {
                             Icon(
                                 painterResource(id = R.drawable.trash_outline),
                                 null,
-                                tint = colors.accentHell.copy(alpha = 0.7f),
-                                modifier = Modifier.size(16.dp)
+                                tint = colors.accentHell.copy(alpha = 0.8f),
+                                modifier = Modifier.size(18.dp)
                             )
                         }
                     }
-                    Spacer( modifier = Modifier.width(AppDesign.spacingSmall))
-                    IconButton(
-                        onClick = { signal.isExpanded = !signal.isExpanded },
-                        modifier = Modifier.size(24.dp)
-                    ) {
-                        Icon(
-                            if (signal.isExpanded) painterResource(id = R.drawable.chevron_up_outline) else painterResource(id = R.drawable.chevron_down_outline),
-                            null,
-                            tint = colors.textSecondary,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
+                    
+                    Spacer(Modifier.width(AppDesign.spacingExtraSmall))
+                    Icon(
+                        if (signal.isExpanded) painterResource(id = R.drawable.chevron_up_outline) else painterResource(id = R.drawable.chevron_down_outline),
+                        null,
+                        tint = colors.textSecondary.copy(alpha = 0.6f),
+                        modifier = Modifier.size(16.dp)
+                    )
                 }
             }
 
-            AnimatedVisibility(visible = signal.isExpanded) {
-                Column(modifier = Modifier.padding(top = AppDesign.spacingSmall)) {
+            AnimatedVisibility(
+                visible = signal.isExpanded,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
+                Column(modifier = Modifier.padding(top = AppDesign.spacingMedium)) {
                     Row(
-                        modifier = Modifier.fillMaxWidth().height(AppDesign.chipHeight + 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(AppDesign.spacingSmall)
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(AppDesign.spacingMedium)
                     ) {
                         SignalField(
-                            label = "Freq (Hz)",
+                            label = "Freq",
+                            unit = "Hz",
+                            icon = painterResource(id = R.drawable.caret_forward_outline),
                             value = signal.freq,
                             colors = colors,
                             onValueChange = {
@@ -914,7 +994,9 @@ fun SignalSettingsCard(
                             }
                         )
                         SignalField(
-                            label = "Amp (px)",
+                            label = "Amp",
+                            unit = "",
+                            icon = painterResource(id = R.drawable.add_outline),
                             value = signal.amp,
                             colors = colors,
                             onValueChange = {
@@ -932,27 +1014,47 @@ fun SignalSettingsCard(
 @Composable
 fun RowScope.SignalField(
     label: String,
+    unit: String,
+    icon: Painter,
     value: String,
     colors: AppColors,
     onValueChange: (String) -> Unit
 ) {
     Column(modifier = Modifier.weight(1f)) {
-        Text(label, color = colors.textSecondary, fontSize = AppDesign.textOverline)
-        Spacer( modifier = Modifier.height( AppDesign.spacingSmall))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                painter = icon,
+                contentDescription = null,
+                tint = colors.textSecondary,
+                modifier = Modifier.size(10.dp)
+            )
+            Spacer(Modifier.width(4.dp))
+            Text(
+                "$label ($unit)",
+                color = colors.textSecondary,
+                fontSize = AppDesign.textOverline,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+        Spacer(modifier = Modifier.height(AppDesign.spacingSmall))
         BasicTextField(
             value = value,
             onValueChange = onValueChange,
             textStyle = TextStyle(
                 color = colors.textPrimary,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Medium
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold
             ),
             cursorBrush = SolidColor(colors.accentCyan),
             modifier = Modifier
                 .fillMaxWidth()
-                .background(colors.cardSurface.copy(alpha = 0.2f), RoundedCornerShape(AppDesign.radiusCard))
-                .border(AppDesign.borderThin, colors.cardBorder.copy(alpha = 0.1f), RoundedCornerShape(AppDesign.radiusCard))
-                .padding(horizontal = 8.dp, vertical = 6.dp)
+                .background(colors.cardSurface.copy(alpha = 0.15f), RoundedCornerShape(AppDesign.radiusSmall))
+                .border(
+                    AppDesign.borderThin,
+                    colors.cardBorder.copy(alpha = 0.2f),
+                    RoundedCornerShape(AppDesign.radiusSmall)
+                )
+                .padding(horizontal = AppDesign.spacingSmall, vertical = 10.dp)
         )
     }
 }
