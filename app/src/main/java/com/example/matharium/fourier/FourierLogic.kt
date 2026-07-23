@@ -7,32 +7,34 @@ import kotlin.math.*
 object FourierLogic {
 
     fun performDFT(drawingPoints: List<Float>, samplesCount: Int): List<Pair<Float, Float>> {
+        // Fast path for 1D signals using FFT
+        // Find next power of 2
+        var n = 1
+        while (n < samplesCount) n = n shl 1
+        
+        val padded = FloatArray(n)
+        for (i in 0 until samplesCount) {
+            padded[i] = drawingPoints[i]
+        }
+        
+        val fftResult = fft(padded)
         val coeffs = mutableListOf<Pair<Float, Float>>()
         
-        // n=0 (DC offset / constant term)
-        var re0 = 0f
-        for (i in 0 until samplesCount) {
-            re0 += drawingPoints[i]
-        }
-        re0 /= samplesCount
-        // DC offset has 0 phase. Amplitude is the actual mean value.
-        coeffs.add(re0 to 0f)
-
+        // n=0 (DC offset)
+        coeffs.add((fftResult[0].re / samplesCount).toFloat() to 0f)
+        
         // Calculate Harmonics up to 250
-        for (n in 1..250) {
-            var re = 0f
-            var im = 0f
-            val angleFactor = 2 * PI.toFloat() * n / samplesCount
-            for (i in 0 until samplesCount) {
-                val angle = angleFactor * i
-                re += drawingPoints[i] * cos(angle)
-                im += drawingPoints[i] * sin(angle)
+        for (k in 1..250) {
+            if (k >= n / 2) {
+                coeffs.add(0f to 0f)
+                continue
             }
-            re /= (samplesCount / 2f)
-            im /= (samplesCount / 2f)
-
-            val amp = sqrt(re * re + im * im)
-            val phase = atan2(im, re)
+            // In DFT, the amplitude of harmonic k is 2/N * |X[k]|
+            val re = fftResult[k].re / (samplesCount / 2.0)
+            val im = fftResult[k].im / (samplesCount / 2.0)
+            
+            val amp = sqrt(re * re + im * im).toFloat()
+            val phase = atan2(im, re).toFloat()
             coeffs.add(amp to phase)
         }
         return coeffs
@@ -302,7 +304,7 @@ object FourierLogic {
             val width = maxX - minX
             val height = maxY - minY
             val maxDim = max(width, height).coerceAtLeast(1f)
-            val scale = 250f / maxDim
+            val scale = 2.5f / maxDim
             val avgX = (minX + maxX) / 2f
             val avgY = (minY + maxY) / 2f
             

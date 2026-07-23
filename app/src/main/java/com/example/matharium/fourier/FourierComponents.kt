@@ -151,7 +151,8 @@ fun HarmonicComponents(
                     val isPaused = isHarmonicPaused(i)
 
                     val density = androidx.compose.ui.platform.LocalDensity.current
-                    val radiusBase = with(density) { 30.dp.toPx() }
+                    val radiusBase = with(density) { 12.dp.toPx() } 
+                    val pixelsPerTimeUnit = with(density) { 60.dp.toPx() }
 
                     val baseN = when (waveType) {
                         WaveType.SINE -> 1.0f
@@ -212,9 +213,10 @@ fun HarmonicComponents(
                             val centerY = size.height / 2
                             val path = Path()
                             val samples = 150
+                            val timeRange = size.width / pixelsPerTimeUnit
                             for (s in 0..samples) {
                                 val x = (s.toFloat() / samples) * size.width
-                                val waveT = if (isPaused) 0f else time - (1f - s.toFloat() / samples) * 2f
+                                val waveT = if (isPaused) 0f else time - (s.toFloat() / samples) * timeRange
                                 val angle = 2 * PI.toFloat() * n * waveT
                                 val y = if (waveType == WaveType.MY_SIGNAL_2D || waveType == WaveType.SVG) {
                                     centerY + (amp * radiusBase) * sin(angle + phase)
@@ -266,12 +268,16 @@ fun HarmonicComponents(
                                     colorScheme = MaterialTheme.colorScheme.copy(
                                         surface = Color.Transparent,
                                         surfaceVariant = Color.Transparent,
-                                        onSurface = colors.textPrimary
+                                        onSurface = colors.textPrimary,
+                                        primary = colors.accentCyan
                                     )
                                 ) {
                                     DropdownMenu(
                                         expanded = menuExpanded,
                                         onDismissRequest = { menuExpanded = false },
+                                        containerColor = Color.Transparent,
+                                        tonalElevation = 0.dp,
+                                        shadowElevation = 8.dp,
                                         modifier = Modifier
                                             .width(220.dp)
                                             .clip(RoundedCornerShape(AppDesign.radiusCard))
@@ -614,7 +620,7 @@ fun ComplexHarmonicComponents(
                     val isPaused = isHarmonicPaused(i)
 
                     val density = androidx.compose.ui.platform.LocalDensity.current
-                    val radiusBase = with(density) { 40.dp.toPx() }
+                    val radiusBase = with(density) { 20.dp.toPx() }
                     val baseN = when (waveType) {
                         WaveType.SINE -> 1.0f
                         WaveType.SQUARE -> (i * 2 + 1).toFloat()
@@ -751,12 +757,16 @@ fun ComplexHarmonicComponents(
                                     colorScheme = MaterialTheme.colorScheme.copy(
                                         surface = Color.Transparent,
                                         surfaceVariant = Color.Transparent,
-                                        onSurface = colors.textPrimary
+                                        onSurface = colors.textPrimary,
+                                        primary = colors.accentCyan
                                     )
                                 ) {
                                     DropdownMenu(
                                         expanded = menuExpanded,
                                         onDismissRequest = { menuExpanded = false },
+                                        containerColor = Color.Transparent,
+                                        tonalElevation = 0.dp,
+                                        shadowElevation = 8.dp,
                                         modifier = Modifier
                                             .width(220.dp)
                                             .clip(RoundedCornerShape(AppDesign.radiusCard))

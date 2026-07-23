@@ -198,14 +198,48 @@ fun AppTheme(
     content: @Composable () -> Unit
 ) {
     val colors = if (darkTheme) DarkColors else LightColors
-    CompositionLocalProvider(LocalAppColors provides colors) {
-        val style = TextStyle(
-            color = colors.textPrimary,
-            fontSize = AppDesign.textBodyLarge,
-            fontWeight = FontWeight.Normal
+    val colorScheme = if (darkTheme) {
+        androidx.compose.material3.darkColorScheme(
+            primary = colors.accentCyan,
+            secondary = colors.accentViolet,
+            tertiary = colors.accentHell,
+            surface = colors.bgTop,
+            background = colors.bgTop,
+            onSurface = colors.textPrimary,
+            onBackground = colors.textPrimary,
+            surfaceVariant = colors.cardSurface,
+            onSurfaceVariant = colors.textSecondary,
+            outline = colors.cardBorder,
+            error = colors.accentHell
         )
-        ProvideTextStyle(value = style) {
-            content()
+    } else {
+        androidx.compose.material3.lightColorScheme(
+            primary = colors.accentCyan,
+            secondary = colors.accentViolet,
+            tertiary = colors.accentHell,
+            surface = colors.bgTop,
+            background = colors.bgTop,
+            onSurface = colors.textPrimary,
+            onBackground = colors.textPrimary,
+            surfaceVariant = colors.cardSurface,
+            onSurfaceVariant = colors.textSecondary,
+            outline = colors.cardBorder,
+            error = colors.accentHell
+        )
+    }
+
+    CompositionLocalProvider(LocalAppColors provides colors) {
+        androidx.compose.material3.MaterialTheme(
+            colorScheme = colorScheme
+        ) {
+            val style = TextStyle(
+                color = colors.textPrimary,
+                fontSize = AppDesign.textBodyLarge,
+                fontWeight = FontWeight.Normal
+            )
+            ProvideTextStyle(value = style) {
+                content()
+            }
         }
     }
 }

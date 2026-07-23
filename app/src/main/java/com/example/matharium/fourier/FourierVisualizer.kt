@@ -56,7 +56,7 @@ fun FourierVisualizerBox(
     val radiusBasePx = with(density) { 100.dp.toPx() }
     val unitScale = radiusBasePx
     val gridStepPx = unitScale / 2f
-    val pathStepPx = with(density) { 0.8f.dp.toPx() }
+    val pixelsPerTimeUnit = with(density) { 60.dp.toPx() }
     
     // Density-aware constants for drawing
     val labelOffsetX = with(density) { 25.dp.toPx() }
@@ -252,14 +252,14 @@ fun FourierVisualizerBox(
 
                         val angle = 2 * PI.toFloat() * n * time
                         val (nextX, nextY) = if (waveType == WaveType.MY_SIGNAL_2D || waveType == WaveType.SVG) {
-                            Pair(x + amp * cos(angle + phase), y + amp * sin(angle + phase))
+                            Pair(x + (amp * radiusBase) * cos(angle + phase), y + (amp * radiusBase) * sin(angle + phase))
                         } else {
-                            Pair(x + amp * sin(angle - phase), y + amp * cos(angle - phase))
+                            Pair(x + (amp * radiusBase) * sin(angle - phase), y + (amp * radiusBase) * cos(angle - phase))
                         }
 
                         drawCircle(
                             color = (if (waveType == WaveType.PURE_SIGNAL && i < customFunctionSignals.size) customFunctionSignals[i].color else colors.accentCyan).copy(alpha = AppDesign.opacityLow * 2f),
-                            radius = kotlin.math.abs(amp),
+                            radius = kotlin.math.abs(amp * radiusBase),
                             center = Offset(prevX, prevY),
                             style = Stroke(width = AppDesign.strokeThin.toPx())
                         )
@@ -295,8 +295,8 @@ fun FourierVisualizerBox(
                                 val segmentColor = lerpColor(colors.accentCyan, colors.accentViolet, lerp)
                                 drawLine(
                                     color = segmentColor,
-                                    start = Offset(waveStartX + i * pathStepPx, p1.offset.y),
-                                    end = Offset(waveStartX + (i + 4) * pathStepPx, p2.offset.y),
+                                    start = Offset(waveStartX + (time - p1.offset.x) * pixelsPerTimeUnit, p1.offset.y),
+                                    end = Offset(waveStartX + (time - p2.offset.x) * pixelsPerTimeUnit, p2.offset.y),
                                     strokeWidth = AppDesign.strokeStandard.toPx(),
                                     cap = StrokeCap.Round
                                 )
@@ -307,7 +307,7 @@ fun FourierVisualizerBox(
                                 wavePath.moveTo(waveStartX, path[0].offset.y)
                                 // Performance optimization: higher step for drawing the wave
                                 for (i in 1 until path.size step 4) {
-                                    wavePath.lineTo(waveStartX + i * pathStepPx, path[i].offset.y)
+                                    wavePath.lineTo(waveStartX + (time - path[i].offset.x) * pixelsPerTimeUnit, path[i].offset.y)
                                 }
                             }
 
