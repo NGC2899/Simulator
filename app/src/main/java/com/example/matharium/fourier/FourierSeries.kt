@@ -297,12 +297,13 @@ fun FourierSeries() {
                             val signal = customFunctionSignals[i]
                             if (signal.isPaused) continue
                             val freq = harmonicFrequencies[i] ?: signal.cachedFreq
-                            // Convert Unit input to pixels for the simulation
-                            val amp = (harmonicAmplitudes[i] ?: signal.cachedAmp) * radiusBase * -1f
-                            val phase = kotlin.math.PI.toFloat() / 2f
+                            val ampValue = (harmonicAmplitudes[i] ?: signal.cachedAmp) * radiusBase
+                            
                             val angle = 2 * kotlin.math.PI.toFloat() * freq * time
-                            currentY += amp * kotlin.math.cos((angle - phase).toDouble()).toFloat()
-                            currentX += amp * kotlin.math.sin((angle - phase).toDouble()).toFloat()
+                            // Standard convention: Real part on X (cos), Imaginary on Y (sin)
+                            // We use -sin for Y because coordinate system Y is down.
+                            currentY += -ampValue * kotlin.math.sin(angle.toDouble()).toFloat()
+                            currentX += ampValue * kotlin.math.cos(angle.toDouble()).toFloat()
                         }
                     } else {
                         for (i in 0 until animationTerms) {
@@ -363,25 +364,21 @@ fun FourierSeries() {
                                 else -> 1f
                             }
 
-                            val phase = kotlin.math.PI.toFloat() / 2f
                             val defaultAmp = when (waveType) {
-                                WaveType.SINE -> -radiusBase
-                                WaveType.SQUARE -> -radiusBase * (4f / (baseN * kotlin.math.PI.toFloat()))
-                                WaveType.SAWTOOTH -> {
-                                    val sign = if (baseN.toInt() % 2 == 0) -1f else 1f
-                                    -radiusBase * (2f / (baseN * kotlin.math.PI.toFloat())) * sign
-                                }
-                                WaveType.TRIANGLE -> {
-                                    val sign = if (((baseN.toInt() - 1) / 2) % 2 != 0) -1f else 1f
-                                    -radiusBase * (8f / (baseN * baseN * kotlin.math.PI.toFloat() * kotlin.math.PI.toFloat())) * sign
-                                }
+                                WaveType.SINE -> 1.0f
+                                WaveType.SQUARE -> 4f / (baseN * kotlin.math.PI.toFloat())
+                                WaveType.SAWTOOTH -> (2f / (baseN * kotlin.math.PI.toFloat())) * (if (baseN.toInt() % 2 == 0) -1f else 1f)
+                                WaveType.TRIANGLE -> (8f / (baseN * baseN * kotlin.math.PI.toFloat() * kotlin.math.PI.toFloat())) * (if (((baseN.toInt() - 1) / 2) % 2 != 0) -1f else 1f)
                                 else -> 0f
                             }
                             
                             val amp = harmonicAmplitudes[i] ?: defaultAmp
                             val angle = 2 * kotlin.math.PI.toFloat() * n * time
-                            currentY += amp * kotlin.math.cos((angle - phase).toDouble()).toFloat()
-                            currentX += amp * kotlin.math.sin((angle - phase).toDouble()).toFloat()
+                            
+                            // For these analytical waves, the Fourier expansion is typically sine-based.
+                            // y(t) = sum(amp_n * sin(n * w * t))
+                            currentY += -(amp * radiusBase) * kotlin.math.sin(angle.toDouble()).toFloat()
+                            currentX += (amp * radiusBase) * kotlin.math.cos(angle.toDouble()).toFloat()
                         }
                     }
 
@@ -782,28 +779,30 @@ private fun getIdealValue(
     customFunctionSignals: List<SignalInstance>
 ): Offset {
     val t = (time % 1f + 1f) % 1f
+    val angle = 2 * kotlin.math.PI.toFloat() * t
     return when (waveType) {
         WaveType.SINE -> {
-            val y = -radiusBase * kotlin.math.sin(2 * kotlin.math.PI * t).toFloat()
+            val y = -radiusBase * kotlin.math.sin(angle.toDouble()).toFloat()
             if (displayMode == FourierDisplayMode.COMPLEX) {
-                Offset(radiusBase * kotlin.math.cos(2 * kotlin.math.PI * t).toFloat(), y)
+                Offset(radiusBase * kotlin.math.cos(angle.toDouble()).toFloat(), y)
             } else Offset(time, y)
         }
         WaveType.SQUARE -> {
-            val y = if (t < 0.5f) -radiusBase else radiusBase
+            val y = if (t % 1f < 0.5f) -radiusBase else radiusBase
             if (displayMode == FourierDisplayMode.COMPLEX) Offset(0f, y) else Offset(time, y)
         }
         WaveType.SAWTOOTH -> {
-            // Analytical sawtooth: 2 * (t - floor(t + 0.5))
-            // Negated to match Fourier reconstruction (Y-up is negative)
-            val y = -radiusBase * 2 * (t - kotlin.math.floor(t + 0.5f).toFloat())
+            // Fourier series: 2/pi * sum((-1)^(n+1) * sin(nwt)/n)
+            // Starts at 0, goes up to 1, then jumps to -1.
+            // Normalized t goes from 0 to 1.
+            val fraction = (t + 0.5f) % 1f
+            val y = radiusBase * (2f * fraction - 1f)
             if (displayMode == FourierDisplayMode.COMPLEX) Offset(0f, y) else Offset(time, y)
         }
         WaveType.TRIANGLE -> {
-            // Analytical triangle: Match the phase of the Fourier series (0 at t=0, -radiusBase at t=0.25)
-            // This formula produces a triangle oscillating between -1 and 1 with the correct phase.
-            val fraction = (t + 0.25f) % 1f
-            val y = radiusBase * (kotlin.math.abs(fraction - 0.5f) * 4f - 1f)
+            // Fourier series: sum(sin terms). Peaks at t=0.25 and t=0.75
+            val fraction = (t + 0.75f) % 1f
+            val y = radiusBase * (if (fraction < 0.5f) (4f * fraction - 1f) else (3f - 4f * fraction))
             if (displayMode == FourierDisplayMode.COMPLEX) Offset(0f, y) else Offset(time, y)
         }
         WaveType.PURE_SIGNAL -> {
@@ -812,11 +811,10 @@ private fun getIdealValue(
             for (signal in customFunctionSignals) {
                 if (signal.isPaused) continue
                 val freq = signal.freq.toFloatOrNull() ?: 0f
-                val amp = (signal.amp.toFloatOrNull() ?: 0f) * radiusBase * -1f
-                val phase = kotlin.math.PI.toFloat() / 2f
-                val angle = 2 * kotlin.math.PI.toFloat() * freq * time
-                sumY += amp * kotlin.math.cos((angle - phase).toDouble()).toFloat()
-                sumX += amp * kotlin.math.sin((angle - phase).toDouble()).toFloat()
+                val amp = (signal.amp.toFloatOrNull() ?: 0f) * radiusBase
+                val angleVal = 2 * kotlin.math.PI.toFloat() * freq * time
+                sumY += -amp * kotlin.math.sin(angleVal.toDouble()).toFloat()
+                sumX += amp * kotlin.math.cos(angleVal.toDouble()).toFloat()
             }
             if (displayMode == FourierDisplayMode.COMPLEX) Offset(sumX, sumY) else Offset(time, sumY)
         }

@@ -729,9 +729,10 @@ fun FourierSettingsCard(
                                                 if (svgPoints.isNotEmpty()) {
                                                     val p = Path()
                                                     val center = Offset(w / 2f, h / 2f)
-                                                    p.moveTo(svgPoints[0].x + center.x, svgPoints[0].y + center.y)
+                                                    val previewScale = with(density) { 60.dp.toPx() }
+                                                    p.moveTo(svgPoints[0].x * previewScale + center.x, svgPoints[0].y * previewScale + center.y)
                                                     for (i in 1 until svgPoints.size) {
-                                                        p.lineTo(svgPoints[i].x + center.x, svgPoints[i].y + center.y)
+                                                        p.lineTo(svgPoints[i].x * previewScale + center.x, svgPoints[i].y * previewScale + center.y)
                                                     }
                                                     drawPath(
                                                         p,
@@ -990,6 +991,7 @@ fun SignalSettingsCard(
                             colors = colors,
                             onValueChange = {
                                 signal.freq = it
+                                signal.updateCache()
                                 onParameterChange()
                             }
                         )
@@ -1001,6 +1003,7 @@ fun SignalSettingsCard(
                             colors = colors,
                             onValueChange = {
                                 signal.amp = it
+                                signal.updateCache()
                                 onParameterChange()
                             }
                         )

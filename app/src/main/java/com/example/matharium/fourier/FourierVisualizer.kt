@@ -56,14 +56,14 @@ fun FourierVisualizerBox(
     val radiusBasePx = with(density) { 100.dp.toPx() }
     val unitScale = radiusBasePx
     val gridStepPx = unitScale / 2f
-    val pixelsPerTimeUnit = with(density) { 60.dp.toPx() }
+    val pixelsPerTimeUnit = with(density) { 45.dp.toPx() }
     
     // Density-aware constants for drawing
     val labelOffsetX = with(density) { 25.dp.toPx() }
     val labelOffsetY = with(density) { 8.dp.toPx() }
     val labelOffsetAxis = with(density) { 8.dp.toPx() }
     val labelOffsetWrappingX = with(density) { 20.dp.toPx() }
-    val waveStartX = with(density) { 150.dp.toPx() }
+    val waveStartX = with(density) { 140.dp.toPx() }
     val indicatorSize = with(density) { AppDesign.spacingExtraSmall.toPx() }
 
     Box(
@@ -79,7 +79,7 @@ fun FourierVisualizerBox(
             )
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
-            val centerX = size.width * 0.25f
+            val centerX = size.width * 0.15f
             val centerY = size.height * 0.5f
             val radiusBase = radiusBasePx
 
@@ -221,26 +221,25 @@ fun FourierVisualizerBox(
                         }
 
                         val (defaultAmp, phase) = when (waveType) {
-                            WaveType.SINE -> Pair(-radiusBase, PI.toFloat() / 2f)
+                            WaveType.SINE -> Pair(-1f, PI.toFloat() / 2f)
                             WaveType.SQUARE -> {
-                                Pair(-radiusBase * (4f / (baseN * PI.toFloat())), PI.toFloat() / 2f)
+                                Pair(-1f * (4f / (baseN * PI.toFloat())), PI.toFloat() / 2f)
                             }
                             WaveType.SAWTOOTH -> {
                                 val sign = if (baseN.toInt() % 2 == 0) -1f else 1f
-                                Pair(-radiusBase * (2f / (baseN * PI.toFloat())) * sign, PI.toFloat() / 2f)
+                                Pair(-1f * (2f / (baseN * PI.toFloat())) * sign, PI.toFloat() / 2f)
                             }
                             WaveType.TRIANGLE -> {
                                 val sign = if (((baseN.toInt() - 1) / 2) % 2 != 0) -1f else 1f
-                                Pair(-radiusBase * (8f / (baseN * baseN * PI.toFloat() * PI.toFloat())) * sign, PI.toFloat() / 2f)
+                                Pair(-1f * (8f / (baseN * baseN * PI.toFloat() * PI.toFloat())) * sign, PI.toFloat() / 2f)
                             }
                             WaveType.MY_SIGNAL -> if (i < customCoefficients.size) customCoefficients[i] else (0f to 0f)
                             WaveType.FORMULA -> if (i < formulaCoefficients.size) formulaCoefficients[i] else (0f to 0f)
                             WaveType.MY_SIGNAL_2D -> if (i < customCoefficients2D.size) (customCoefficients2D[i].amp to customCoefficients2D[i].phase) else (0f to 0f)
                             WaveType.SVG -> if (i < svgCoefficients.size) (svgCoefficients[i].amp to svgCoefficients[i].phase) else (0f to 0f)
                             WaveType.PURE_SIGNAL -> if (i < customFunctionSignals.size) {
-                                // Convert DP input to pixels for drawing
                                 val ampInput = harmonicAmplitudes[i] ?: (customFunctionSignals[i].amp.toFloatOrNull() ?: 0f)
-                                val amp = ampInput * density.density * -1f
+                                val amp = ampInput * -1f
                                 val phase = PI.toFloat() / 2f
                                 amp to phase
                             } else (0f to 0f)
@@ -248,7 +247,7 @@ fun FourierVisualizerBox(
 
                         val amp = harmonicAmplitudes[i] ?: defaultAmp
 
-                        if (kotlin.math.abs(amp) < 0.5f && i > 0) continue
+                        if (kotlin.math.abs(amp) < 0.005f && i > 0) continue
 
                         val angle = 2 * PI.toFloat() * n * time
                         val (nextX, nextY) = if (waveType == WaveType.MY_SIGNAL_2D || waveType == WaveType.SVG) {
