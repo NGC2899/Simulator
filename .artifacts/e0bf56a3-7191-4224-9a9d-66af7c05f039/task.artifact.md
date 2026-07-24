@@ -3,8 +3,7 @@
 - [x] Stretch Fourier Circular Visualization
 - [x] Fix Formula Domain to $[-\pi, \pi]$
 - [x] Add Wave Stretch Handler
-    - [x] Add `fourierWaveStretch` to `Persistence.kt`
-    - [x] Add `waveStretch` state to `FourierSeries.kt`
-    - [x] Update `FourierVisualizer.kt` to use `waveStretch`
-    - [x] Add slider to `FourierSettings.kt`
+- [x] Synchronize Phasors and Graphs (Phase Alignment)
+    - [x] Fix analytical wave phases in `FourierVisualizer.kt`
+    - [x] Fix phasor phases in `FourierComponents.kt`
 - [x] Verify Results

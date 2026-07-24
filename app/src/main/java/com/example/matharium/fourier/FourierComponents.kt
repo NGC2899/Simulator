@@ -684,10 +684,9 @@ fun ComplexHarmonicComponents(
                                 .fillMaxHeight()
                         ) {
                             val center = Offset(size.width / 2, size.height / 2)
-                            val phase = when (waveType) {
-                                WaveType.TRIANGLE -> if (i % 2 != 0) PI.toFloat() else 0f
-                                WaveType.MY_SIGNAL -> if (i < customCoefficients.size) customCoefficients[i].second else 0f
-                                WaveType.FORMULA -> if (i < formulaCoefficients.size) formulaCoefficients[i].second else 0f
+                            val phasorPhase = when (waveType) {
+                                WaveType.MY_SIGNAL -> if (i < customCoefficients.size) (PI.toFloat() / 2f - customCoefficients[i].second) else 0f
+                                WaveType.FORMULA -> if (i < formulaCoefficients.size) (PI.toFloat() / 2f - formulaCoefficients[i].second) else 0f
                                 WaveType.MY_SIGNAL_2D -> if (i < customCoefficients2D.size) customCoefficients2D[i].phase else 0f
                                 WaveType.SVG -> if (i < svgCoefficients.size) svgCoefficients[i].phase else 0f
                                 else -> 0f
@@ -714,7 +713,7 @@ fun ComplexHarmonicComponents(
                             )
 
                             // Draw rotating vector
-                            val totalAngle = if (isPaused) 0f else 2 * PI.toFloat() * n * time + phase
+                            val totalAngle = if (isPaused) 0f else 2 * PI.toFloat() * n * time + phasorPhase
                             val end = Offset(
                                 center.x + (radius * radiusBase) * cos(totalAngle),
                                 center.y - (radius * radiusBase) * sin(totalAngle)

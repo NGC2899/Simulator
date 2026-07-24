@@ -221,17 +221,17 @@ fun FourierVisualizerBox(
                         }
 
                         val (defaultAmp, phase) = when (waveType) {
-                            WaveType.SINE -> Pair(1f, PI.toFloat() / 2f)
+                            WaveType.SINE -> Pair(1f, 0f)
                             WaveType.SQUARE -> {
-                                Pair(4f / (baseN * PI.toFloat()), PI.toFloat() / 2f)
+                                Pair(4f / (baseN * PI.toFloat()), 0f)
                             }
                             WaveType.SAWTOOTH -> {
                                 val sign = if (baseN.toInt() % 2 == 0) -1f else 1f
-                                Pair((2f / (baseN * PI.toFloat())) * sign, PI.toFloat() / 2f)
+                                Pair((2f / (baseN * PI.toFloat())) * sign, 0f)
                             }
                             WaveType.TRIANGLE -> {
                                 val sign = if (((baseN.toInt() - 1) / 2) % 2 != 0) -1f else 1f
-                                Pair((8f / (baseN * baseN * PI.toFloat() * PI.toFloat())) * sign, PI.toFloat() / 2f)
+                                Pair((8f / (baseN * baseN * PI.toFloat() * PI.toFloat())) * sign, 0f)
                             }
                             // alpha = pi/2 - phi
                             WaveType.MY_SIGNAL -> if (i < customCoefficients.size) (customCoefficients[i].first to (PI.toFloat() / 2f - customCoefficients[i].second)) else (0f to 0f)

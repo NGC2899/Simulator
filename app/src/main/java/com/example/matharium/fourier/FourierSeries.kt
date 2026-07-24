@@ -11,7 +11,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.matharium.app.*
 import kotlinx.coroutines.Dispatchers
@@ -127,7 +126,7 @@ fun FourierSeries() {
     var dftJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
     val context = androidx.compose.ui.platform.LocalContext.current
     val density = androidx.compose.ui.platform.LocalDensity.current
-    val radiusBasePx = with(density) { 100.dp.toPx() }
+    val radiusBasePx = with(density) { AppDesign.unitCircleRadius.toPx() }
 
     fun calculateDFT() {
         dftJob?.cancel()

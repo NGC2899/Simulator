@@ -35,4 +35,9 @@ I have completed the requested improvements to the Fourier Series simulator, foc
 render_diffs(file:///C:/Users/Yasin/AndroidStudioProjects/Matharium/app/src/main/java/com/example/matharium/fourier/FourierSettings.kt)
 render_diffs(file:///C:/Users/Yasin/AndroidStudioProjects/Matharium/app/src/main/java/com/example/matharium/fourier/FourierVisualizer.kt)
 render_diffs(file:///C:/Users/Yasin/AndroidStudioProjects/Matharium/app/src/main/java/com/example/matharium/fourier/FourierSeries.kt)
-render_diffs(file:///C:/Users/Yasin/AndroidStudioProjects/Matharium/app/src/main/java/com/example/matharium/app/Persistence.kt)
+### 6. Phase Synchronization
+- **Phasor Alignment**: Eliminated the `PI/2` phase offset that was incorrectly applied to built-in waves (`SINE`, `SQUARE`, etc.) in the visualization layer. The circles now perfectly trace the wave they are generating.
+- **Harmonic Preview Sync**: Updated the phasor decomposition list to use the same coordinate transformation as the main simulation, ensuring that the mini-phasors match the large phasors on the canvas.
+
+### 7. Amplitude Scaling Fix
+- **Global Scale Synchronization**: Fixed a mismatch where the simulation was using a hardcoded 100dp radius while the axis labels were using 110dp. All layers now use the central `AppDesign.unitCircleRadius` constant, ensuring that a square wave correctly reaches the $\pm 1.0$ marks on the scale.
