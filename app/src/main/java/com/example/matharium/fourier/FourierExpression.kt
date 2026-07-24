@@ -10,17 +10,17 @@ object FourierExpressionEvaluator {
 
     fun evaluate(expression: String, x: Double): Double {
         if (expression.isBlank()) return Double.NaN
+        val lowerExpr = expression.lowercase(java.util.Locale.US).replace(" ", "")
         return try {
             object : Any() {
                 var pos = -1
                 var ch = 0
 
                 fun nextChar() {
-                    ch = if (++pos < expression.length) expression[pos].code else -1
+                    ch = if (++pos < lowerExpr.length) lowerExpr[pos].code else -1
                 }
 
                 fun eat(charToEat: Int): Boolean {
-                    while (ch == ' '.code) nextChar()
                     if (ch == charToEat) {
                         nextChar()
                         return true
@@ -31,29 +31,29 @@ object FourierExpressionEvaluator {
                 fun parse(): Double {
                     nextChar()
                     val xVal = parseExpression()
-                    if (pos < expression.length) return Double.NaN
-                    return xVal
+                    if (pos < lowerExpr.length) return Double.NaN
+                    return if (xVal.isFinite()) xVal else 0.0
                 }
 
                 fun parseExpression(): Double {
-                    try {
-                        var xVal = parseTerm()
-                        while (true) {
-                            if (eat('+'.code)) xVal += parseTerm() // addition
-                            else if (eat('-'.code)) xVal -= parseTerm() // subtraction
-                            else return xVal
-                        }
-                    } catch (e: Exception) {
-                        return Double.NaN
+                    var xVal = parseTerm()
+                    while (true) {
+                        if (eat('+'.code)) xVal += parseTerm() // addition
+                        else if (eat('-'.code)) xVal -= parseTerm() // subtraction
+                        else return xVal
                     }
                 }
 
                 fun parseTerm(): Double {
                     var xVal = parseFactor()
                     while (true) {
-                        if (eat('*'.code)) xVal *= parseFactor() // multiplication
+                        if (eat('*'.code)) xVal *= parseFactor() // explicit multiplication
                         else if (eat('/'.code)) xVal /= parseFactor() // division
                         else if (eat('%'.code)) xVal %= parseFactor() // modulo
+                        // Implicit multiplication: if the next char is the start of a factor
+                        else if (ch == '('.code || (ch >= '0'.code && ch <= '9'.code) || ch == '.'.code || (ch >= 'a'.code && ch <= 'z'.code)) {
+                            xVal *= parseFactor()
+                        }
                         else return xVal
                     }
                 }
@@ -69,11 +69,11 @@ object FourierExpressionEvaluator {
                         eat(')'.code)
                     } else if (ch >= '0'.code && ch <= '9'.code || ch == '.'.code) { // numbers
                         while (ch >= '0'.code && ch <= '9'.code || ch == '.'.code) nextChar()
-                        xVal = expression.substring(startPos, pos).toDouble()
+                        xVal = lowerExpr.substring(startPos, pos).toDouble()
                     } else if (ch >= 'a'.code && ch <= 'z'.code) { // functions
                         while (ch >= 'a'.code && ch <= 'z'.code) nextChar()
-                        val func = expression.substring(startPos, pos)
-                        if (func == "x") {
+                        val func = lowerExpr.substring(startPos, pos)
+                        if (func == "x" || func == "t") {
                             xVal = x
                         } else if (func == "pi") {
                             xVal = PI
@@ -82,7 +82,7 @@ object FourierExpressionEvaluator {
                         } else {
                             if (eat('('.code)) {
                                 xVal = parseExpression()
-                                if (!eat(')'.code)) xVal = Double.NaN
+                                eat(')'.code)
                                 xVal = when (func) {
                                     "sqrt" -> sqrt(xVal)
                                     "sin" -> sin(xVal)
@@ -90,7 +90,7 @@ object FourierExpressionEvaluator {
                                     "tan" -> tan(xVal)
                                     "abs" -> abs(xVal)
                                     "exp" -> exp(xVal)
-                                    "log" -> ln(xVal)
+                                    "log", "ln" -> ln(xVal)
                                     "floor" -> floor(xVal)
                                     "ceil" -> ceil(xVal)
                                     else -> Double.NaN
@@ -100,7 +100,6 @@ object FourierExpressionEvaluator {
                             }
                         }
                     } else {
-                        // If we can't parse a factor, return NaN instead of throwing
                         return Double.NaN
                     }
 

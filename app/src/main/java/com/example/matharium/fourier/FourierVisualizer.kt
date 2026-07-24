@@ -39,6 +39,7 @@ fun FourierVisualizerBox(
     path: List<PathPoint>,
     showErrorGradient: Boolean,
     errorSensitivity: Float,
+    waveStretch: Float,
     onClearPath: () -> Unit,
     windingFrequency: Float,
     customCoefficients: List<Pair<Float, Float>>,
@@ -53,17 +54,17 @@ fun FourierVisualizerBox(
     harmonicAmplitudes: Map<Int, Float> = emptyMap()
 ) {
     val density = androidx.compose.ui.platform.LocalDensity.current
-    val radiusBasePx = with(density) { 100.dp.toPx() }
+    val radiusBasePx = with(density) { AppDesign.unitCircleRadius.toPx() }
     val unitScale = radiusBasePx
     val gridStepPx = unitScale / 2f
-    val pixelsPerTimeUnit = with(density) { 45.dp.toPx() }
+    val pixelsPerTimeUnit = with(density) { waveStretch.dp.toPx() }
     
     // Density-aware constants for drawing
     val labelOffsetX = with(density) { 25.dp.toPx() }
-    val labelOffsetY = with(density) { 8.dp.toPx() }
-    val labelOffsetAxis = with(density) { 8.dp.toPx() }
-    val labelOffsetWrappingX = with(density) { 20.dp.toPx() }
-    val waveStartX = with(density) { 140.dp.toPx() }
+    val labelOffsetY = with(density) { AppDesign.spacingSmall.toPx() }
+    val labelOffsetAxis = with(density) { AppDesign.spacingSmall.toPx() }
+    val labelOffsetWrappingX = with(density) { AppDesign.phasorRadiusBase.toPx() }
+    val waveStartX = with(density) { 180.dp.toPx() }
     val indicatorSize = with(density) { AppDesign.spacingExtraSmall.toPx() }
 
     Box(
@@ -73,15 +74,14 @@ fun FourierVisualizerBox(
             .clip(RoundedCornerShape(AppDesign.radiusCard))
             .background(colors.cardSurface.copy(alpha = 0.45f))
             .border(
-                1.dp,
+                AppDesign.borderThin,
                 colors.cardBorder.copy(alpha = 0.6f),
                 RoundedCornerShape(AppDesign.radiusCard)
             )
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
-            val centerX = size.width * 0.15f
+            val centerX = size.width * 0.20f
             val centerY = size.height * 0.5f
-            val radiusBase = radiusBasePx
 
             if ((displayMode == FourierDisplayMode.CIRCULAR) || (displayMode == FourierDisplayMode.COMPLEX)) {
                 val actualCenterX = if (displayMode == FourierDisplayMode.COMPLEX) size.width * 0.5f else centerX
@@ -121,10 +121,10 @@ fun FourierVisualizerBox(
                     drawLine(axisColor, Offset(0f, top), Offset(0f, bottom), AppDesign.strokeThin.toPx())
 
                     // Labels
-                    val labelColor = colors.textSecondary.copy(alpha = 0.4f).toArgb()
+                    val labelColor = colors.textSecondary.copy(alpha = AppDesign.opacityMedium).toArgb()
                     val paint = android.graphics.Paint().apply {
                         color = labelColor
-                        textSize = 9.sp.toPx()
+                        textSize = AppDesign.textCaption.toPx()
                         textAlign = android.graphics.Paint.Align.CENTER
                         isAntiAlias = true
                     }
@@ -221,27 +221,26 @@ fun FourierVisualizerBox(
                         }
 
                         val (defaultAmp, phase) = when (waveType) {
-                            WaveType.SINE -> Pair(-1f, PI.toFloat() / 2f)
+                            WaveType.SINE -> Pair(1f, PI.toFloat() / 2f)
                             WaveType.SQUARE -> {
-                                Pair(-1f * (4f / (baseN * PI.toFloat())), PI.toFloat() / 2f)
+                                Pair(4f / (baseN * PI.toFloat()), PI.toFloat() / 2f)
                             }
                             WaveType.SAWTOOTH -> {
                                 val sign = if (baseN.toInt() % 2 == 0) -1f else 1f
-                                Pair(-1f * (2f / (baseN * PI.toFloat())) * sign, PI.toFloat() / 2f)
+                                Pair((2f / (baseN * PI.toFloat())) * sign, PI.toFloat() / 2f)
                             }
                             WaveType.TRIANGLE -> {
                                 val sign = if (((baseN.toInt() - 1) / 2) % 2 != 0) -1f else 1f
-                                Pair(-1f * (8f / (baseN * baseN * PI.toFloat() * PI.toFloat())) * sign, PI.toFloat() / 2f)
+                                Pair((8f / (baseN * baseN * PI.toFloat() * PI.toFloat())) * sign, PI.toFloat() / 2f)
                             }
-                            WaveType.MY_SIGNAL -> if (i < customCoefficients.size) customCoefficients[i] else (0f to 0f)
-                            WaveType.FORMULA -> if (i < formulaCoefficients.size) formulaCoefficients[i] else (0f to 0f)
+                            // alpha = pi/2 - phi
+                            WaveType.MY_SIGNAL -> if (i < customCoefficients.size) (customCoefficients[i].first to (PI.toFloat() / 2f - customCoefficients[i].second)) else (0f to 0f)
+                            WaveType.FORMULA -> if (i < formulaCoefficients.size) (formulaCoefficients[i].first to (PI.toFloat() / 2f - formulaCoefficients[i].second)) else (0f to 0f)
                             WaveType.MY_SIGNAL_2D -> if (i < customCoefficients2D.size) (customCoefficients2D[i].amp to customCoefficients2D[i].phase) else (0f to 0f)
                             WaveType.SVG -> if (i < svgCoefficients.size) (svgCoefficients[i].amp to svgCoefficients[i].phase) else (0f to 0f)
                             WaveType.PURE_SIGNAL -> if (i < customFunctionSignals.size) {
                                 val ampInput = harmonicAmplitudes[i] ?: (customFunctionSignals[i].amp.toFloatOrNull() ?: 0f)
-                                val amp = ampInput * -1f
-                                val phase = PI.toFloat() / 2f
-                                amp to phase
+                                ampInput to 0f
                             } else (0f to 0f)
                         }
 
@@ -250,15 +249,13 @@ fun FourierVisualizerBox(
                         if (kotlin.math.abs(amp) < 0.005f && i > 0) continue
 
                         val angle = 2 * PI.toFloat() * n * time
-                        val (nextX, nextY) = if (waveType == WaveType.MY_SIGNAL_2D || waveType == WaveType.SVG) {
-                            Pair(x + (amp * radiusBase) * cos(angle + phase), y + (amp * radiusBase) * sin(angle + phase))
-                        } else {
-                            Pair(x + (amp * radiusBase) * sin(angle - phase), y + (amp * radiusBase) * cos(angle - phase))
-                        }
+                        val totalAngle = angle + phase
+                        val nextX = x + (amp * radiusBasePx) * cos(totalAngle)
+                        val nextY = y - (amp * radiusBasePx) * sin(totalAngle)
 
                         drawCircle(
                             color = (if (waveType == WaveType.PURE_SIGNAL && i < customFunctionSignals.size) customFunctionSignals[i].color else colors.accentCyan).copy(alpha = AppDesign.opacityLow * 2f),
-                            radius = kotlin.math.abs(amp * radiusBase),
+                            radius = kotlin.math.abs(amp * radiusBasePx),
                             center = Offset(prevX, prevY),
                             style = Stroke(width = AppDesign.strokeThin.toPx())
                         )
@@ -269,7 +266,7 @@ fun FourierVisualizerBox(
                             color = (if (waveType == WaveType.PURE_SIGNAL && i < customFunctionSignals.size) customFunctionSignals[i].color else colors.accentCyan).copy(alpha = AppDesign.opacityMedium),
                             start = Offset(prevX, prevY),
                             end = Offset(x, y),
-                            strokeWidth = 1.5f
+                            strokeWidth = AppDesign.strokeThin.toPx() + 0.5f // ~1.5dp for slightly thicker line
                         )
                     }
 
@@ -377,10 +374,10 @@ fun FourierVisualizerBox(
                     drawLine(axisColor, Offset(0f, -halfHeight), Offset(0f, halfHeight), AppDesign.strokeThin.toPx())
 
                     // Labels
-                    val labelColor = colors.textSecondary.copy(alpha = 0.4f).toArgb()
+                    val labelColor = colors.textSecondary.copy(alpha = AppDesign.opacityMedium).toArgb()
                     val paint = android.graphics.Paint().apply {
                         color = labelColor
-                        textSize = 9.sp.toPx()
+                        textSize = AppDesign.textCaption.toPx()
                         textAlign = android.graphics.Paint.Align.CENTER
                         isAntiAlias = true
                     }
@@ -429,7 +426,6 @@ fun FourierVisualizerBox(
                     val wrappedPath = Path()
                     var sumX = 0f
                     var sumY = 0f
-                    val baseRadius = radiusBasePx * 0.8f
 
                     if (path.isNotEmpty()) {
                         var processedCount = 0
@@ -438,7 +434,7 @@ fun FourierVisualizerBox(
                         for (i in path.indices step 2) {
                             val point = path[i].offset
                             val t = point.x
-                            val amplitude = point.y + baseRadius
+                            val amplitude = point.y // Pure wrapping: amplitude is exactly the signal value
                             val angle = -2 * PI.toFloat() * windingFrequency * t
 
                             val wx = amplitude * cos(angle)
@@ -447,8 +443,9 @@ fun FourierVisualizerBox(
                             if (i == 0) wrappedPath.moveTo(wx, wy)
                             else wrappedPath.lineTo(wx, wy)
 
-                            sumX += wx
-                            sumY += wy
+                            // Average only the signal part (point.y) to get true center of mass
+                            sumX += point.y * cos(angle)
+                            sumY += point.y * sin(angle)
                             processedCount++
                         }
 
@@ -604,7 +601,7 @@ fun FourierVisualizerBox(
                         color = colors.textPrimary,
                         fontSize = AppDesign.textCaption,
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(top = 2.dp)
+                        modifier = Modifier.padding(top = AppDesign.spacingTiny)
                     )
                 }
             }

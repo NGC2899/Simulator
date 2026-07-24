@@ -48,6 +48,10 @@ class AppPreferences(context: Context) {
         get() = prefs.getFloat("fourier_error_sensitivity", 20.0f)
         set(value) = prefs.edit().putFloat("fourier_error_sensitivity", value).apply()
 
+    var fourierWaveStretch: Float
+        get() = prefs.getFloat("fourier_wave_stretch", 120.0f)
+        set(value) = prefs.edit().putFloat("fourier_wave_stretch", value).apply()
+
     var fourierShowErrorGradient: Boolean
         get() = prefs.getBoolean("fourier_show_error_gradient", false)
         set(value) = prefs.edit().putBoolean("fourier_show_error_gradient", value).apply()
@@ -103,7 +107,7 @@ class AppPreferences(context: Context) {
                     id = parts.getOrNull(0)?.toIntOrNull() ?: 0,
                     color = Color(parts.getOrNull(1)?.toIntOrNull() ?: accentColor.toArgb()),
                     initialFreq = unescape(parts.getOrNull(2) ?: "1.0"),
-                    initialAmp = unescape(parts.getOrNull(3) ?: "50.0")
+                    initialAmp = unescape(parts.getOrNull(3) ?: "0.5")
                 )
             }
         } catch (e: Exception) {

@@ -48,6 +48,8 @@ fun FourierSettingsCard(
     onErrorSensitivityChange: (Float) -> Unit,
     windingFrequency: Float,
     onWindingFrequencyChange: (Float) -> Unit,
+    waveStretch: Float,
+    onWaveStretchChange: (Float) -> Unit,
     displayMode: FourierDisplayMode,
     drawingPoints: MutableList<Float>,
     drawingPoints2D: MutableList<Offset>,
@@ -161,8 +163,8 @@ fun FourierSettingsCard(
                                 Text(
                                     labelText,
                                     color = if (selected) colors.accentCyan else colors.textSecondary,
-                                    fontSize = 12.sp,
-                                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium
+                                fontSize = AppDesign.textBody,
+                                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium
                                 )
                             }
                         }
@@ -194,7 +196,7 @@ fun FourierSettingsCard(
                                         Box(
                                             modifier = Modifier
                                                 .weight(1f)
-                                                .height(32.dp)
+                                                .height(AppDesign.chipHeight)
                                                 .clip(RoundedCornerShape(AppDesign.radiusSmall))
                                                 .background(if (waveType == WaveType.MY_SIGNAL) colors.accentCyan.copy(0.1f) else Color.Transparent)
                                                 .border(
@@ -205,12 +207,12 @@ fun FourierSettingsCard(
                                                 .clickable { onWaveTypeChange(WaveType.MY_SIGNAL); onClearPath() },
                                             contentAlignment = Alignment.Center
                                         ) {
-                                            Text("1D Drawing", color = if (waveType == WaveType.MY_SIGNAL) colors.accentCyan else colors.textSecondary, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                            Text("1D Drawing", color = if (waveType == WaveType.MY_SIGNAL) colors.accentCyan else colors.textSecondary, fontSize = AppDesign.textSmall, fontWeight = FontWeight.Bold)
                                         }
                                         Box(
                                             modifier = Modifier
                                                 .weight(1f)
-                                                .height(32.dp)
+                                                .height(AppDesign.chipHeight)
                                                 .clip(RoundedCornerShape(AppDesign.radiusSmall))
                                                 .background(if (waveType == WaveType.MY_SIGNAL_2D) colors.accentCyan.copy(0.1f) else Color.Transparent)
                                                 .border(
@@ -221,7 +223,7 @@ fun FourierSettingsCard(
                                                 .clickable { onWaveTypeChange(WaveType.MY_SIGNAL_2D); onClearPath() },
                                             contentAlignment = Alignment.Center
                                         ) {
-                                            Text("2D Drawing", color = if (waveType == WaveType.MY_SIGNAL_2D) colors.accentCyan else colors.textSecondary, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                            Text("2D Drawing", color = if (waveType == WaveType.MY_SIGNAL_2D) colors.accentCyan else colors.textSecondary, fontSize = AppDesign.textSmall, fontWeight = FontWeight.Bold)
                                         }
                                     }
 
@@ -448,7 +450,7 @@ fun FourierSettingsCard(
                                         Box(
                                             modifier = Modifier
                                                 .weight(1f)
-                                                .height(32.dp)
+                                                .height(AppDesign.chipHeight)
                                                 .clip(RoundedCornerShape(AppDesign.radiusSmall))
                                                 .background(if (waveType == WaveType.PURE_SIGNAL) colors.accentCyan.copy(0.1f) else Color.Transparent)
                                                 .border(
@@ -459,12 +461,12 @@ fun FourierSettingsCard(
                                                 .clickable { onWaveTypeChange(WaveType.PURE_SIGNAL); onClearPath() },
                                             contentAlignment = Alignment.Center
                                         ) {
-                                            Text("Signal", color = if (waveType == WaveType.PURE_SIGNAL) colors.accentCyan else colors.textSecondary, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                            Text("Signal", color = if (waveType == WaveType.PURE_SIGNAL) colors.accentCyan else colors.textSecondary, fontSize = AppDesign.textSmall, fontWeight = FontWeight.Bold)
                                         }
                                         Box(
                                             modifier = Modifier
                                                 .weight(1f)
-                                                .height(32.dp)
+                                                .height(AppDesign.chipHeight)
                                                 .clip(RoundedCornerShape(AppDesign.radiusSmall))
                                                 .background(if (waveType == WaveType.FORMULA) colors.accentCyan.copy(0.1f) else Color.Transparent)
                                                 .border(
@@ -475,7 +477,7 @@ fun FourierSettingsCard(
                                                 .clickable { onWaveTypeChange(WaveType.FORMULA); onClearPath() },
                                             contentAlignment = Alignment.Center
                                         ) {
-                                            Text("Formula", color = if (waveType == WaveType.FORMULA) colors.accentCyan else colors.textSecondary, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                            Text("Formula", color = if (waveType == WaveType.FORMULA) colors.accentCyan else colors.textSecondary, fontSize = AppDesign.textSmall, fontWeight = FontWeight.Bold)
                                         }
                                     }
 
@@ -542,7 +544,7 @@ fun FourierSettingsCard(
                                                     Spacer(Modifier.width(AppDesign.spacingSmall))
                                                     Text(
                                                         "Add Component",
-                                                        fontSize = 12.sp,
+                                                        fontSize = AppDesign.textBody,
                                                         color = colors.textPrimary,
                                                         fontWeight = FontWeight.Bold
                                                     )
@@ -580,7 +582,7 @@ fun FourierSettingsCard(
                                                     Spacer(Modifier.width(4.dp))
                                                     Text(
                                                         "Clear",
-                                                        fontSize = 12.sp,
+                                                        fontSize = AppDesign.textBody,
                                                         color = colors.accentHell,
                                                         fontWeight = FontWeight.Bold
                                                     )
@@ -635,14 +637,14 @@ fun FourierSettingsCard(
                                                                 if (isSignalsExpanded) "Show Less" else "Show All Components (${customFunctionSignals.size})",
                                                                 color = colors.accentCyan,
                                                                 fontWeight = FontWeight.Bold,
-                                                                fontSize = 12.sp
+                                                                fontSize = AppDesign.textBody
                                                             )
                                                             Spacer(Modifier.width(AppDesign.spacingSmall))
                                                             Icon(
                                                                 if (isSignalsExpanded) painterResource(id = R.drawable.chevron_up_outline) else painterResource(id = R.drawable.chevron_down_outline),
                                                                 null,
                                                                 tint = colors.accentCyan,
-                                                                modifier = Modifier.size(14.dp)
+                                                                modifier = Modifier.size(AppDesign.spacingMedium)
                                                             )
                                                         }
                                                     }
@@ -730,9 +732,9 @@ fun FourierSettingsCard(
                                                     val p = Path()
                                                     val center = Offset(w / 2f, h / 2f)
                                                     val previewScale = with(density) { 60.dp.toPx() }
-                                                    p.moveTo(svgPoints[0].x * previewScale + center.x, svgPoints[0].y * previewScale + center.y)
+                                                    p.moveTo(svgPoints[0].x * previewScale + center.x, -svgPoints[0].y * previewScale + center.y)
                                                     for (i in 1 until svgPoints.size) {
-                                                        p.lineTo(svgPoints[i].x * previewScale + center.x, svgPoints[i].y * previewScale + center.y)
+                                                        p.lineTo(svgPoints[i].x * previewScale + center.x, -svgPoints[i].y * previewScale + center.y)
                                                     }
                                                     drawPath(
                                                         p,
@@ -839,6 +841,20 @@ fun FourierSettingsCard(
                             colors = colors
                         ) { onWindingFrequencyChange(it) }
                     }
+
+                    AnimatedVisibility(visible = displayMode == FourierDisplayMode.CIRCULAR) {
+                        LabeledSlider(
+                            label = "Wave Stretch",
+                            valueDisplay = String.format(
+                                Locale.US,
+                                "%.0f dp",
+                                waveStretch
+                            ),
+                            value = waveStretch,
+                            range = 30f..300f,
+                            colors = colors
+                        ) { onWaveStretchChange(it) }
+                    }
                 }
             }
         }
@@ -880,7 +896,7 @@ fun SymmetryMessage(result: FourierLogic.SymmetryResult?, colors: AppColors) {
                 Text(
                     text = message,
                     color = colors.textPrimary,
-                    fontSize = 11.sp,
+                    fontSize = AppDesign.textSmall,
                     lineHeight = 16.sp,
                     fontWeight = FontWeight.Medium
                 )
@@ -938,13 +954,13 @@ fun SignalSettingsCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     IconButton(
                         onClick = { signal.isPaused = !signal.isPaused; onParameterChange() },
-                        modifier = Modifier.size(28.dp)
+                        modifier = Modifier.size(AppDesign.iconLarge + 4.dp)
                     ) {
                         Icon(
                             painter = if (signal.isPaused) painterResource(id = R.drawable.caret_forward_outline) else painterResource(id = R.drawable.pause_outline),
                             contentDescription = if (signal.isPaused) "Resume" else "Pause",
                             tint = if (signal.isPaused) colors.accentCyan else colors.textSecondary,
-                            modifier = Modifier.size(18.dp)
+                            modifier = Modifier.size(AppDesign.iconSmallMedium)
                         )
                     }
 
@@ -952,13 +968,13 @@ fun SignalSettingsCard(
                         Spacer(Modifier.width(AppDesign.spacingExtraSmall))
                         IconButton(
                             onClick = onDel,
-                            modifier = Modifier.size(28.dp)
+                            modifier = Modifier.size(AppDesign.iconLarge + 4.dp)
                         ) {
                             Icon(
                                 painterResource(id = R.drawable.trash_outline),
                                 null,
                                 tint = colors.accentHell.copy(alpha = 0.8f),
-                                modifier = Modifier.size(18.dp)
+                                modifier = Modifier.size(AppDesign.iconSmallMedium)
                             )
                         }
                     }
@@ -968,7 +984,7 @@ fun SignalSettingsCard(
                         if (signal.isExpanded) painterResource(id = R.drawable.chevron_up_outline) else painterResource(id = R.drawable.chevron_down_outline),
                         null,
                         tint = colors.textSecondary.copy(alpha = 0.6f),
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(AppDesign.iconSmall)
                     )
                 }
             }
@@ -1057,7 +1073,7 @@ fun RowScope.SignalField(
                     colors.cardBorder.copy(alpha = 0.2f),
                     RoundedCornerShape(AppDesign.radiusSmall)
                 )
-                .padding(horizontal = AppDesign.spacingSmall, vertical = 10.dp)
+                .padding(horizontal = AppDesign.spacingSmall, vertical = AppDesign.spacingSmall)
         )
     }
 }

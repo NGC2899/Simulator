@@ -55,6 +55,8 @@ object AppDesign {
     val welcomeGridSpacing = 60.dp
     val termsBoxHeight = 280.dp
     val errorGradientThreshold = 20f
+    val unitCircleRadius = 110.dp
+    val phasorRadiusBase = 20.dp
 
     val iconTiny = 10.dp
     val iconSmall = 16.dp

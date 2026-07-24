@@ -1,0 +1,10 @@
+- [x] Fix Math Parser (`FourierExpression.kt`)
+- [x] Fix Fourier Simulation Logic (`FourierSeries.kt`)
+- [x] Stretch Fourier Circular Visualization
+- [x] Fix Formula Domain to $[-\pi, \pi]$
+- [x] Add Wave Stretch Handler
+    - [x] Add `fourierWaveStretch` to `Persistence.kt`
+    - [x] Add `waveStretch` state to `FourierSeries.kt`
+    - [x] Update `FourierVisualizer.kt` to use `waveStretch`
+    - [x] Add slider to `FourierSettings.kt`
+- [x] Verify Results

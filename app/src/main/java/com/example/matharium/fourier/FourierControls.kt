@@ -50,7 +50,7 @@ fun FourierActionControls(
                 painter = if (running) painterResource(id = R.drawable.pause_outline) else painterResource(id = R.drawable.caret_forward_outline),
                 contentDescription = null,
                 tint = colors.textOnAccent,
-                modifier = Modifier.size(AppDesign.iconSmall)
+                modifier = Modifier.size(AppDesign.iconSmallMedium)
             )
             Spacer(Modifier.width(AppDesign.spacingSmall))
             Text(
