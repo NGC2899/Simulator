@@ -34,7 +34,10 @@ I have completed the requested improvements to the Fourier Series simulator, foc
 
 render_diffs(file:///C:/Users/Yasin/AndroidStudioProjects/Matharium/app/src/main/java/com/example/matharium/fourier/FourierSettings.kt)
 render_diffs(file:///C:/Users/Yasin/AndroidStudioProjects/Matharium/app/src/main/java/com/example/matharium/fourier/FourierVisualizer.kt)
-render_diffs(file:///C:/Users/Yasin/AndroidStudioProjects/Matharium/app/src/main/java/com/example/matharium/fourier/FourierSeries.kt)
+### 8. Plane Reversal (Horizontal Mirroring Fix)
+- **Time/Space Alignment**: I added a single minus sign to the Fourier analysis angle in `FourierLogic.kt`. This effectively instructs the simulation to reconstruct $f(-t)$.
+- **Cancellation of Reversals**: Since the Oscilloscope naturally displays time "backwards" (moving from Now to Past as you look right), this change causes the two reversals to cancel out.
+- **Result**: Formulas like `sin(x)` now appear as standard, forward-moving sine waves on the graph, and drawn shapes are correctly oriented without being horizontally flipped.
 ### 6. Phase Synchronization
 - **Phasor Alignment**: Eliminated the `PI/2` phase offset that was incorrectly applied to built-in waves (`SINE`, `SQUARE`, etc.) in the visualization layer. The circles now perfectly trace the wave they are generating.
 - **Harmonic Preview Sync**: Updated the phasor decomposition list to use the same coordinate transformation as the main simulation, ensuring that the mini-phasors match the large phasors on the canvas.

@@ -24,7 +24,7 @@ object FourierLogic {
             var im = 0.0
             val angleFactor = 2.0 * PI * k / samplesCount
             for (i in 0 until samplesCount) {
-                val angle = angleFactor * i
+                val angle = -angleFactor * i
                 re += drawingPoints[i] * cos(angle)
                 im += drawingPoints[i] * sin(angle)
             }
@@ -50,7 +50,7 @@ object FourierLogic {
             var re = 0.0
             var im = 0.0
             for (i in 0 until n) {
-                val angle = 2 * PI * k * i / n
+                val angle = -2 * PI * k * i / n
                 val cosA = cos(angle)
                 val sinA = sin(angle)
                 // Complex multiplication: (px + i py) * (cosA - i sinA)

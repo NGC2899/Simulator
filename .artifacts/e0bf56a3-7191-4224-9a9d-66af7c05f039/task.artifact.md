@@ -4,6 +4,5 @@
 - [x] Fix Formula Domain to $[-\pi, \pi]$
 - [x] Add Wave Stretch Handler
 - [x] Synchronize Phasors and Graphs (Phase Alignment)
-    - [x] Fix analytical wave phases in `FourierVisualizer.kt`
-    - [x] Fix phasor phases in `FourierComponents.kt`
+- [x] Reverse Fourier Plane to match $f(x)$ (Horizontal Mirroring Fix)
 - [x] Verify Results

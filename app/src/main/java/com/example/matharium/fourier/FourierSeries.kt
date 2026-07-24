@@ -386,7 +386,9 @@ fun FourierSeries() {
                             if (waveType == WaveType.MY_SIGNAL || waveType == WaveType.FORMULA) {
                                 val coeffs = if (waveType == WaveType.FORMULA) formulaCoefficients else customCoefficients
                                 if (i < coeffs.size) {
-                                    val (amp, phase) = coeffs[i]
+                                    val coeff = coeffs[i]
+                                    val amp = harmonicAmplitudes[i] ?: coeff.first
+                                    val phase = coeff.second
                                     val n = harmonicFrequencies[i] ?: i.toFloat()
                                     // Unified CCW Phasor: X = cos, Y = -sin
                                     // DFT gives phase phi such that signal = amp * cos(wt - phi)
