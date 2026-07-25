@@ -51,7 +51,8 @@ fun FourierVisualizerBox(
     pausedHarmonics: Map<Int, Boolean> = emptyMap(),
     removedHarmonics: Map<Int, Boolean> = emptyMap(),
     harmonicFrequencies: Map<Int, Float> = emptyMap(),
-    harmonicAmplitudes: Map<Int, Float> = emptyMap()
+    harmonicAmplitudes: Map<Int, Float> = emptyMap(),
+    harmonicPhases: Map<Int, Float> = emptyMap()
 ) {
     val density = androidx.compose.ui.platform.LocalDensity.current
     val radiusBasePx = with(density) { AppDesign.unitCircleRadius.toPx() }
@@ -220,7 +221,7 @@ fun FourierVisualizerBox(
                             else -> 1f
                         }
 
-                        val (defaultAmp, phase) = when (waveType) {
+                        val (defaultAmp, analyzedPhase) = when (waveType) {
                             WaveType.SINE -> Pair(1f, 0f)
                             WaveType.SQUARE -> {
                                 Pair(4f / (baseN * PI.toFloat()), 0f)
@@ -246,6 +247,7 @@ fun FourierVisualizerBox(
                         }
 
                         val amp = harmonicAmplitudes[i] ?: defaultAmp
+                        val phase = harmonicPhases[i] ?: analyzedPhase
 
                         if (kotlin.math.abs(amp) < 0.005f && i > 0) continue
 

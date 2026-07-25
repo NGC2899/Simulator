@@ -50,6 +50,8 @@ fun HarmonicComponents(
     getHarmonicFrequency: (Int, Float) -> Float = { _, default -> default },
     onAmplitudeChange: (Int, Float) -> Unit = { _, _ -> },
     getHarmonicAmplitude: (Int, Float) -> Float = { _, default -> default },
+    onPhaseChange: (Int, Float) -> Unit = { _, _ -> },
+    getHarmonicPhase: (Int, Float) -> Float = { _, default -> default },
     removedHarmonics: Map<Int, Boolean> = emptyMap(),
     onResetHarmonic: (Int) -> Unit = {},
     onResetHarmonics: () -> Unit = {}
@@ -162,7 +164,7 @@ fun HarmonicComponents(
                         else -> 1f
                     }
 
-                    val (defaultAmp, phase) = when (waveType) {
+                    val (defaultAmp, analyzedPhase) = when (waveType) {
                         WaveType.SINE -> Pair(1.0f, 0f)
                         WaveType.SQUARE -> Pair(4f / (baseN * PI.toFloat()), 0f)
                         WaveType.SAWTOOTH -> {
@@ -185,6 +187,7 @@ fun HarmonicComponents(
                         else -> (0f to 0f)
                     }
                     val amp = getHarmonicAmplitude(i, defaultAmp)
+                    val phase = getHarmonicPhase(i, analyzedPhase)
 
                     Row(
                         modifier = Modifier
@@ -308,15 +311,16 @@ fun HarmonicComponents(
                                         )
 
                                         Column(modifier = Modifier.padding(horizontal = AppDesign.spacingMedium, vertical = AppDesign.spacingExtraSmall)) {
+                                            val currentN = getHarmonicFrequency(i, defaultN)
                                             Row(
                                                 modifier = Modifier.fillMaxWidth(),
                                                 horizontalArrangement = Arrangement.SpaceBetween
                                             ) {
                                                 Text("Frequency", fontSize = AppDesign.textSmall, color = colors.textSecondary, fontWeight = FontWeight.SemiBold)
-                                                Text(String.format(Locale.US, "%.1f Hz", n), fontSize = AppDesign.textSmall, color = colors.accentCyan, fontWeight = FontWeight.Bold)
+                                                Text(String.format(Locale.US, "%.1f Hz", currentN), fontSize = AppDesign.textSmall, color = colors.accentCyan, fontWeight = FontWeight.Bold)
                                             }
                                             Slider(
-                                                value = n,
+                                                value = currentN,
                                                 onValueChange = { onFrequencyChange(i, it) },
                                                 valueRange = -20f..20f,
                                                 colors = SliderDefaults.colors(
@@ -328,20 +332,43 @@ fun HarmonicComponents(
                                         }
 
                                         Column(modifier = Modifier.padding(horizontal = AppDesign.spacingMedium, vertical = AppDesign.spacingExtraSmall)) {
+                                            val currentAmp = getHarmonicAmplitude(i, defaultAmp)
                                             Row(
                                                 modifier = Modifier.fillMaxWidth(),
                                                 horizontalArrangement = Arrangement.SpaceBetween
                                             ) {
                                                 Text("Amplitude", fontSize = AppDesign.textSmall, color = colors.textSecondary, fontWeight = FontWeight.SemiBold)
-                                                Text(String.format(Locale.US, "%.1f", amp), fontSize = AppDesign.textSmall, color = colors.accentViolet, fontWeight = FontWeight.Bold)
+                                                Text(String.format(Locale.US, "%.1f", currentAmp), fontSize = AppDesign.textSmall, color = colors.accentViolet, fontWeight = FontWeight.Bold)
                                             }
                                             Slider(
-                                                value = amp,
+                                                value = currentAmp,
                                                 onValueChange = { onAmplitudeChange(i, it) },
                                                 valueRange = -2.0f..2.0f,
                                                 colors = SliderDefaults.colors(
                                                     thumbColor = colors.accentViolet,
                                                     activeTrackColor = colors.accentViolet,
+                                                    inactiveTrackColor = colors.fieldBorder.copy(0.2f)
+                                                )
+                                            )
+                                        }
+
+                                        Column(modifier = Modifier.padding(horizontal = AppDesign.spacingMedium, vertical = AppDesign.spacingExtraSmall)) {
+                                            val currentPhase = getHarmonicPhase(i, analyzedPhase)
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween
+                                            ) {
+                                                Text("Phase", fontSize = AppDesign.textSmall, color = colors.textSecondary, fontWeight = FontWeight.SemiBold)
+                                                val degrees = currentPhase * 180f / PI.toFloat()
+                                                Text(String.format(Locale.US, "%.0f°", degrees), fontSize = AppDesign.textSmall, color = colors.accentCyan, fontWeight = FontWeight.Bold)
+                                            }
+                                            Slider(
+                                                value = currentPhase,
+                                                onValueChange = { onPhaseChange(i, it) },
+                                                valueRange = -PI.toFloat()..PI.toFloat(),
+                                                colors = SliderDefaults.colors(
+                                                    thumbColor = colors.accentCyan,
+                                                    activeTrackColor = colors.accentCyan,
                                                     inactiveTrackColor = colors.fieldBorder.copy(0.2f)
                                                 )
                                             )
@@ -527,6 +554,8 @@ fun ComplexHarmonicComponents(
     getHarmonicFrequency: (Int, Float) -> Float = { _, default -> default },
     onAmplitudeChange: (Int, Float) -> Unit = { _, _ -> },
     getHarmonicAmplitude: (Int, Float) -> Float = { _, default -> default },
+    onPhaseChange: (Int, Float) -> Unit = { _, _ -> },
+    getHarmonicPhase: (Int, Float) -> Float = { _, default -> default },
     removedHarmonics: Map<Int, Boolean> = emptyMap(),
     onResetHarmonic: (Int) -> Unit = {},
     onResetHarmonics: () -> Unit = {}
@@ -637,7 +666,7 @@ fun ComplexHarmonicComponents(
                         else -> 1f
                     }
 
-                    val (defaultRadius, phase) = when (waveType) {
+                    val (defaultRadius, analyzedPhase) = when (waveType) {
                         WaveType.SINE -> Pair(1.0f, 0f)
                         WaveType.SQUARE -> Pair(4f / (baseN * PI.toFloat()), 0f)
                         WaveType.SAWTOOTH -> {
@@ -657,6 +686,7 @@ fun ComplexHarmonicComponents(
                     }
                     
                     val radius = getHarmonicAmplitude(i, defaultRadius)
+                    val phase = getHarmonicPhase(i, analyzedPhase)
 
                     Row(
                         modifier = Modifier
@@ -685,14 +715,7 @@ fun ComplexHarmonicComponents(
                                 .fillMaxHeight()
                         ) {
                             val center = Offset(size.width / 2, size.height / 2)
-                            val phasorPhase = when (waveType) {
-                                WaveType.MY_SIGNAL -> if (i < customCoefficients.size) (PI.toFloat() / 2f - customCoefficients[i].second) else 0f
-                                WaveType.FORMULA -> if (i < formulaCoefficients.size) (PI.toFloat() / 2f - formulaCoefficients[i].second) else 0f
-                                WaveType.MY_SIGNAL_2D -> if (i < customCoefficients2D.size) customCoefficients2D[i].phase else 0f
-                                WaveType.SVG -> if (i < svgCoefficients.size) svgCoefficients[i].phase else 0f
-                                WaveType.PURE_SIGNAL -> if (i < customFunctionSignals.size) customFunctionSignals[i].cachedPhase else 0f
-                                else -> 0f
-                            }
+                            val phasorPhase = phase
 
                             drawCircle(
                                 color = colors.accentCyan.copy(alpha = 0.1f),
@@ -816,15 +839,16 @@ fun ComplexHarmonicComponents(
                                         )
 
                                         Column(modifier = Modifier.padding(horizontal = AppDesign.spacingMedium, vertical = AppDesign.spacingExtraSmall)) {
+                                            val currentN = getHarmonicFrequency(i, defaultN)
                                             Row(
                                                 modifier = Modifier.fillMaxWidth(),
                                                 horizontalArrangement = Arrangement.SpaceBetween
                                             ) {
                                                 Text("Frequency", fontSize = AppDesign.textSmall, color = colors.textSecondary, fontWeight = FontWeight.SemiBold)
-                                                Text(String.format(Locale.US, "%.1f Hz", n), fontSize = AppDesign.textSmall, color = colors.accentCyan, fontWeight = FontWeight.Bold)
+                                                Text(String.format(Locale.US, "%.1f Hz", currentN), fontSize = AppDesign.textSmall, color = colors.accentCyan, fontWeight = FontWeight.Bold)
                                             }
                                             Slider(
-                                                value = n,
+                                                value = currentN,
                                                 onValueChange = { onFrequencyChange(i, it) },
                                                 valueRange = -20f..20f,
                                                 colors = SliderDefaults.colors(
@@ -836,20 +860,43 @@ fun ComplexHarmonicComponents(
                                         }
 
                                         Column(modifier = Modifier.padding(horizontal = AppDesign.spacingMedium, vertical = AppDesign.spacingExtraSmall)) {
+                                            val currentAmp = getHarmonicAmplitude(i, defaultRadius)
                                             Row(
                                                 modifier = Modifier.fillMaxWidth(),
                                                 horizontalArrangement = Arrangement.SpaceBetween
                                             ) {
                                                 Text("Amplitude", fontSize = AppDesign.textSmall, color = colors.textSecondary, fontWeight = FontWeight.SemiBold)
-                                                Text(String.format(Locale.US, "%.1f", radius), fontSize = AppDesign.textSmall, color = colors.accentViolet, fontWeight = FontWeight.Bold)
+                                                Text(String.format(Locale.US, "%.1f", currentAmp), fontSize = AppDesign.textSmall, color = colors.accentViolet, fontWeight = FontWeight.Bold)
                                             }
                                             Slider(
-                                                value = radius,
+                                                value = currentAmp,
                                                 onValueChange = { onAmplitudeChange(i, it) },
                                                 valueRange = -2.0f..2.0f,
                                                 colors = SliderDefaults.colors(
                                                     thumbColor = colors.accentViolet,
                                                     activeTrackColor = colors.accentViolet,
+                                                    inactiveTrackColor = colors.fieldBorder.copy(0.2f)
+                                                )
+                                            )
+                                        }
+
+                                        Column(modifier = Modifier.padding(horizontal = AppDesign.spacingMedium, vertical = AppDesign.spacingExtraSmall)) {
+                                            val currentPhase = getHarmonicPhase(i, analyzedPhase)
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween
+                                            ) {
+                                                Text("Phase", fontSize = AppDesign.textSmall, color = colors.textSecondary, fontWeight = FontWeight.SemiBold)
+                                                val degrees = currentPhase * 180f / PI.toFloat()
+                                                Text(String.format(Locale.US, "%.0f°", degrees), fontSize = AppDesign.textSmall, color = colors.accentCyan, fontWeight = FontWeight.Bold)
+                                            }
+                                            Slider(
+                                                value = currentPhase,
+                                                onValueChange = { onPhaseChange(i, it) },
+                                                valueRange = -PI.toFloat()..PI.toFloat(),
+                                                colors = SliderDefaults.colors(
+                                                    thumbColor = colors.accentCyan,
+                                                    activeTrackColor = colors.accentCyan,
                                                     inactiveTrackColor = colors.fieldBorder.copy(0.2f)
                                                 )
                                             )

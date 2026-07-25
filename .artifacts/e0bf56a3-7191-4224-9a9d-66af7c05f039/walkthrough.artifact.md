@@ -46,9 +46,15 @@ render_diffs(file:///C:/Users/Yasin/AndroidStudioProjects/Matharium/app/src/main
 - **Time/Space Alignment**: I added a single minus sign to the Fourier analysis angle in `FourierLogic.kt`. This effectively instructs the simulation to reconstruct $f(-t)$.
 - **Cancellation of Reversals**: Since the Oscilloscope naturally displays time "backwards" (moving from Now to Past as you look right), this change causes the two reversals to cancel out.
 - **Result**: Formulas like `sin(x)` now appear as standard, forward-moving sine waves on the graph, and drawn shapes are correctly oriented without being horizontally flipped.
-### 6. Phase Synchronization
-- **Phasor Alignment**: Eliminated the `PI/2` phase offset that was incorrectly applied to built-in waves (`SINE`, `SQUARE`, etc.) in the visualization layer. The circles now perfectly trace the wave they are generating.
-- **Harmonic Preview Sync**: Updated the phasor decomposition list to use the same coordinate transformation as the main simulation, ensuring that the mini-phasors match the large phasors on the canvas.
+### 10. Starting Angle (Phase) for Custom Signals
+- **New Parameter**: Added a "Phase" field to the custom signal component settings. You can now specify the starting angle in degrees (e.g., 0° for Sine, 90° for Cosine).
+- **Persistent Settings**: The phase value is saved and loaded along with frequency and amplitude.
+- **Unified Math**: Synchronized the phase parameter across the simulation loop, real-time spectrum analysis, and phasor visualizations.
+
+### 11. Phase Slider in Edit Menu
+- **Interactive Tuning**: Added a "Phase" slider to the edit menu of each harmonic in the Signal Decomposition list.
+- **Degrees Display**: The slider displays the value in degrees (0° to 360°) for intuitive adjustments, while internally handling the conversion to radians.
+- **Unified Logic**: The phase tuning works for all wave types, including custom signals, formulas, and pre-defined analytical waves.
 
 ### 7. Amplitude Scaling Fix
 - **Global Scale Synchronization**: Fixed a mismatch where the simulation was using a hardcoded 100dp radius while the axis labels were using 110dp. All layers now use the central `AppDesign.unitCircleRadius` constant, ensuring that a square wave correctly reaches the $\pm 1.0$ marks on the scale.

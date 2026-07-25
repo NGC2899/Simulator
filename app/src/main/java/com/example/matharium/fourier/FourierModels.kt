@@ -26,9 +26,9 @@ class SignalInstance(
     var isPaused by mutableStateOf(false)
 
     // Cached values for high-performance simulation loop
-    var cachedFreq: Float = initialFreq.toFloatOrNull() ?: 1.0f
-    var cachedAmp: Float = initialAmp.toFloatOrNull() ?: 0.5f
-    var cachedPhase: Float = (initialPhase.toFloatOrNull() ?: 0.0f) * (Math.PI.toFloat() / 180f)
+    var cachedFreq by mutableStateOf(initialFreq.toFloatOrNull() ?: 1.0f)
+    var cachedAmp by mutableStateOf(initialAmp.toFloatOrNull() ?: 0.5f)
+    var cachedPhase by mutableStateOf((initialPhase.toFloatOrNull() ?: 0.0f) * (Math.PI.toFloat() / 180f))
 
     fun updateCache() {
         cachedFreq = freq.toFloatOrNull() ?: 0.0f

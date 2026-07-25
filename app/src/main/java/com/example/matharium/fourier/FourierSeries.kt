@@ -118,6 +118,7 @@ fun FourierSeries() {
     val removedHarmonics = remember { mutableStateMapOf<Int, Boolean>() }
     val harmonicFrequencies = remember { mutableStateMapOf<Int, Float>() }
     val harmonicAmplitudes = remember { mutableStateMapOf<Int, Float>() }
+    val harmonicPhases = remember { mutableStateMapOf<Int, Float>() }
 
     // Pre-calculated spectrum data (0..5 Hz) for real-time visualization
     var spectrumData by remember { mutableStateOf<List<FourierLogic.Complex>>(emptyList()) }
@@ -370,7 +371,7 @@ fun FourierSeries() {
                             if (signal.isPaused) continue
                             val freq = harmonicFrequencies[i] ?: signal.cachedFreq
                             val ampValue = (harmonicAmplitudes[i] ?: signal.cachedAmp) * radiusBase
-                            val phase = signal.cachedPhase
+                            val phase = harmonicPhases[i] ?: signal.cachedPhase
                             
                             // For custom signals, we use the pure phasor rotation.
                             // Standard reconstruction: -A*sin(wt + phase)
@@ -387,7 +388,9 @@ fun FourierSeries() {
                             if (waveType == WaveType.MY_SIGNAL || waveType == WaveType.FORMULA) {
                                 val coeffs = if (waveType == WaveType.FORMULA) formulaCoefficients else customCoefficients
                                 if (i < coeffs.size) {
-                                    val (amp, phase) = coeffs[i]
+                                    val (analyzedAmp, analyzedPhase) = coeffs[i]
+                                    val amp = harmonicAmplitudes[i] ?: analyzedAmp
+                                    val phase = harmonicPhases[i] ?: analyzedPhase
                                     val n = harmonicFrequencies[i] ?: i.toFloat()
                                     // Unified CCW Phasor: X = cos, Y = -sin
                                     // DFT gives phase phi such that signal = amp * cos(wt - phi)
@@ -404,8 +407,9 @@ fun FourierSeries() {
                                     val coeff = customCoefficients2D[i]
                                     val n = harmonicFrequencies[i] ?: coeff.freq.toFloat()
                                     val amp = harmonicAmplitudes[i] ?: coeff.amp
+                                    val phase = harmonicPhases[i] ?: coeff.phase
                                     // 2D signals use their complex phase directly
-                                    val totalAngle = 2 * kotlin.math.PI.toFloat() * n * time + coeff.phase
+                                    val totalAngle = 2 * kotlin.math.PI.toFloat() * n * time + phase
                                     currentX += (amp * radiusBase) * kotlin.math.cos(totalAngle.toDouble()).toFloat()
                                     currentY += -(amp * radiusBase) * kotlin.math.sin(totalAngle.toDouble()).toFloat()
                                 }
@@ -417,7 +421,8 @@ fun FourierSeries() {
                                     val coeff = svgCoefficients[i]
                                     val n = harmonicFrequencies[i] ?: coeff.freq.toFloat()
                                     val amp = harmonicAmplitudes[i] ?: coeff.amp
-                                    val totalAngle = 2 * kotlin.math.PI.toFloat() * n * time + coeff.phase
+                                    val phase = harmonicPhases[i] ?: coeff.phase
+                                    val totalAngle = 2 * kotlin.math.PI.toFloat() * n * time + phase
                                     currentX += (amp * radiusBase) * kotlin.math.cos(totalAngle.toDouble()).toFloat()
                                     currentY += -(amp * radiusBase) * kotlin.math.sin(totalAngle.toDouble()).toFloat()
                                 }
@@ -449,7 +454,8 @@ fun FourierSeries() {
                             }
                             
                             val amp = harmonicAmplitudes[i] ?: defaultAmp
-                            val angle = 2 * kotlin.math.PI.toFloat() * n * time
+                            val phase = harmonicPhases[i] ?: 0f
+                            val angle = 2 * kotlin.math.PI.toFloat() * n * time + phase
                             
                             // Analytical waves are built from sines. 
                             // Sin(wt) corresponds to X = cos(wt - pi/2 + pi/2) = cos(wt), Y = -sin(wt)
@@ -533,7 +539,8 @@ fun FourierSeries() {
             pausedHarmonics = pausedHarmonics,
             removedHarmonics = removedHarmonics,
             harmonicFrequencies = harmonicFrequencies,
-            harmonicAmplitudes = harmonicAmplitudes
+            harmonicAmplitudes = harmonicAmplitudes,
+            harmonicPhases = harmonicPhases
         )
 
         FourierActionControls(
@@ -630,6 +637,7 @@ fun FourierSeries() {
                 removedHarmonics.remove(index)
                 harmonicFrequencies.remove(index)
                 harmonicAmplitudes.remove(index)
+                harmonicPhases.remove(index)
                 if (waveType == WaveType.PURE_SIGNAL && index < customFunctionSignals.size) {
                     customFunctionSignals[index].freq = "1.0"
                     customFunctionSignals[index].amp = "0.5"
@@ -645,6 +653,7 @@ fun FourierSeries() {
                 removedHarmonics.clear()
                 harmonicFrequencies.clear()
                 harmonicAmplitudes.clear()
+                harmonicPhases.clear()
                 
                 when (waveType) {
                     WaveType.MY_SIGNAL -> {
@@ -747,6 +756,27 @@ fun FourierSeries() {
                                 harmonicAmplitudes[index] ?: default
                             }
                         },
+                        onPhaseChange = { index, newPhase ->
+                            if (waveType == WaveType.PURE_SIGNAL) {
+                                if (index < customFunctionSignals.size) {
+                                    val degrees = newPhase * 180f / kotlin.math.PI.toFloat()
+                                    customFunctionSignals[index].phase = String.format(java.util.Locale.US, "%.2f", degrees)
+                                    customFunctionSignals[index].updateCache()
+                                }
+                            } else {
+                                harmonicPhases[index] = newPhase
+                            }
+                            path.clear()
+                        },
+                        getHarmonicPhase = { index, default ->
+                            if (waveType == WaveType.PURE_SIGNAL) {
+                                if (index < customFunctionSignals.size) {
+                                    customFunctionSignals[index].cachedPhase
+                                } else default
+                            } else {
+                                harmonicPhases[index] ?: default
+                            }
+                        },
                         removedHarmonics = removedHarmonics,
                         onResetHarmonic = handleResetHarmonic,
                         onResetHarmonics = handleResetHarmonics
@@ -818,6 +848,27 @@ fun FourierSeries() {
                                 } else default
                             } else {
                                 harmonicAmplitudes[index] ?: default
+                            }
+                        },
+                        onPhaseChange = { index, newPhase ->
+                            if (waveType == WaveType.PURE_SIGNAL) {
+                                if (index < customFunctionSignals.size) {
+                                    val degrees = newPhase * 180f / kotlin.math.PI.toFloat()
+                                    customFunctionSignals[index].phase = String.format(java.util.Locale.US, "%.2f", degrees)
+                                    customFunctionSignals[index].updateCache()
+                                }
+                            } else {
+                                harmonicPhases[index] = newPhase
+                            }
+                            path.clear()
+                        },
+                        getHarmonicPhase = { index, default ->
+                            if (waveType == WaveType.PURE_SIGNAL) {
+                                if (index < customFunctionSignals.size) {
+                                    customFunctionSignals[index].cachedPhase
+                                } else default
+                            } else {
+                                harmonicPhases[index] ?: default
                             }
                         },
                         removedHarmonics = removedHarmonics,
