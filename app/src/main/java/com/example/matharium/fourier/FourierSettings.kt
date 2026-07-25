@@ -510,6 +510,7 @@ fun FourierSettingsCard(
                                                         val last = customFunctionSignals.lastOrNull()
                                                         val nextFreq = last?.freq ?: "1.0"
                                                         val nextAmp = last?.amp ?: "0.5"
+                                                        val nextPhase = last?.phase ?: "0.0"
                                                         val color = Color.hsv(
                                                             kotlin.random.Random.nextFloat() * 360f,
                                                             0.7f,
@@ -520,7 +521,8 @@ fun FourierSettingsCard(
                                                                 nextSignalId,
                                                                 color,
                                                                 nextFreq,
-                                                                nextAmp
+                                                                nextAmp,
+                                                                nextPhase
                                                             )
                                                         )
                                                         onNextSignalIdChange(nextSignalId + 1)

@@ -639,10 +639,12 @@ fun FourierSeries() {
                 harmonicAmplitudes.remove(index)
                 harmonicPhases.remove(index)
                 if (waveType == WaveType.PURE_SIGNAL && index < customFunctionSignals.size) {
-                    customFunctionSignals[index].freq = "1.0"
-                    customFunctionSignals[index].amp = "0.5"
-                    customFunctionSignals[index].isPaused = false
-                    customFunctionSignals[index].updateCache()
+                    val signal = customFunctionSignals[index]
+                    signal.freq = signal.initialFreq
+                    signal.amp = signal.initialAmp
+                    signal.phase = signal.initialPhase
+                    signal.isPaused = false
+                    signal.updateCache()
                 }
                 path.clear()
                 time = 0f
