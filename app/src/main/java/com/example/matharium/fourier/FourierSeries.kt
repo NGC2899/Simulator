@@ -273,6 +273,18 @@ fun FourierSeries() {
     LaunchedEffect(drawingPoints.toList()) { prefs.drawingPoints = drawingPoints.toList() }
     LaunchedEffect(customFunctionSignals.toList()) { prefs.saveFourierSignals(customFunctionSignals.toList()) }
 
+    // Synchronize nTerms with Custom Signal changes
+    LaunchedEffect(customFunctionSignals.size) {
+        if (waveType == WaveType.PURE_SIGNAL) {
+            if (nTerms > customFunctionSignals.size) {
+                nTerms = customFunctionSignals.size
+            } else if (customFunctionSignals.size > 0 && nTerms == customFunctionSignals.size - 1) {
+                // If we were showing all and added one, keep showing all
+                nTerms = customFunctionSignals.size
+            }
+        }
+    }
+
     // Asynchronously calculate spectrum data blueprint
     LaunchedEffect(waveType, drawingPoints.toList(), formulaString, customFunctionSignals.toList()) {
         launch(Dispatchers.Default) {

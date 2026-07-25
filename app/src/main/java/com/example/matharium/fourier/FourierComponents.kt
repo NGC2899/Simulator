@@ -58,7 +58,7 @@ fun HarmonicComponents(
 ) {
     var isExpanded by remember { mutableStateOf(false) }
     val maxTerms = when (waveType) {
-        WaveType.PURE_SIGNAL -> customFunctionSignals.size
+        WaveType.PURE_SIGNAL -> nTerms.coerceAtMost(customFunctionSignals.size)
         WaveType.MY_SIGNAL_2D -> nTerms.coerceAtMost(customCoefficients2D.size)
         WaveType.FORMULA -> nTerms.coerceAtMost(formulaCoefficients.size)
         WaveType.SVG -> nTerms.coerceAtMost(svgCoefficients.size)
@@ -562,7 +562,7 @@ fun ComplexHarmonicComponents(
 ) {
     var isExpanded by remember { mutableStateOf(false) }
     val maxTerms = when (waveType) {
-        WaveType.PURE_SIGNAL -> customFunctionSignals.size
+        WaveType.PURE_SIGNAL -> nTerms.coerceAtMost(customFunctionSignals.size)
         WaveType.MY_SIGNAL_2D -> nTerms.coerceAtMost(customCoefficients2D.size)
         WaveType.FORMULA -> nTerms.coerceAtMost(formulaCoefficients.size)
         WaveType.SVG -> nTerms.coerceAtMost(svgCoefficients.size)
