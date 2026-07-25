@@ -294,7 +294,7 @@ fun FourierSeries() {
                         var sum = 0f
                         for (sig in customFunctionSignals) {
                             if (sig.isPaused) continue
-                            sum += -sig.cachedAmp * kotlin.math.sin(2 * kotlin.math.PI.toFloat() * sig.cachedFreq * t)
+                            sum += sig.cachedAmp * kotlin.math.sin(2 * kotlin.math.PI.toFloat() * sig.cachedFreq * t + sig.cachedPhase)
                         }
                         sum
                     }
@@ -370,10 +370,11 @@ fun FourierSeries() {
                             if (signal.isPaused) continue
                             val freq = harmonicFrequencies[i] ?: signal.cachedFreq
                             val ampValue = (harmonicAmplitudes[i] ?: signal.cachedAmp) * radiusBase
+                            val phase = signal.cachedPhase
                             
                             // For custom signals, we use the pure phasor rotation.
-                            // We start them all in phase (sine-like) for simplicity
-                            val angle = 2 * kotlin.math.PI.toFloat() * freq * time
+                            // Standard reconstruction: -A*sin(wt + phase)
+                            val angle = 2 * kotlin.math.PI.toFloat() * freq * time + phase
                             currentX += ampValue * kotlin.math.cos(angle.toDouble()).toFloat()
                             currentY += -ampValue * kotlin.math.sin(angle.toDouble()).toFloat()
                         }
@@ -386,9 +387,7 @@ fun FourierSeries() {
                             if (waveType == WaveType.MY_SIGNAL || waveType == WaveType.FORMULA) {
                                 val coeffs = if (waveType == WaveType.FORMULA) formulaCoefficients else customCoefficients
                                 if (i < coeffs.size) {
-                                    val coeff = coeffs[i]
-                                    val amp = harmonicAmplitudes[i] ?: coeff.first
-                                    val phase = coeff.second
+                                    val (amp, phase) = coeffs[i]
                                     val n = harmonicFrequencies[i] ?: i.toFloat()
                                     // Unified CCW Phasor: X = cos, Y = -sin
                                     // DFT gives phase phi such that signal = amp * cos(wt - phi)
@@ -894,7 +893,8 @@ private fun getIdealValue(
                 if (signal.isPaused) continue
                 val freq = signal.freq.toFloatOrNull() ?: 0f
                 val amp = (signal.amp.toFloatOrNull() ?: 0f) * radiusBase
-                val angleVal = 2 * kotlin.math.PI.toFloat() * freq * time
+                val phase = (signal.phase.toFloatOrNull() ?: 0f) * (kotlin.math.PI.toFloat() / 180f)
+                val angleVal = 2 * kotlin.math.PI.toFloat() * freq * time + phase
                 sumY += -amp * kotlin.math.sin(angleVal.toDouble()).toFloat()
                 sumX += amp * kotlin.math.cos(angleVal.toDouble()).toFloat()
             }

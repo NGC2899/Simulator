@@ -179,7 +179,8 @@ fun HarmonicComponents(
                         WaveType.SVG -> if (i < svgCoefficients.size) (svgCoefficients[i].amp to svgCoefficients[i].phase) else (0f to 0f)
                         WaveType.PURE_SIGNAL -> {
                             val ampValue = (customFunctionSignals[i].amp.toFloatOrNull() ?: 0f)
-                            ampValue to 0f
+                            val phaseValue = customFunctionSignals[i].cachedPhase
+                            ampValue to phaseValue
                         }
                         else -> (0f to 0f)
                     }
@@ -651,7 +652,7 @@ fun ComplexHarmonicComponents(
                         WaveType.FORMULA -> if (i < formulaCoefficients.size) (formulaCoefficients[i].first to (PI.toFloat() / 2f - formulaCoefficients[i].second)) else (0f to 0f)
                         WaveType.MY_SIGNAL_2D -> if (i < customCoefficients2D.size) (customCoefficients2D[i].amp to customCoefficients2D[i].phase) else (0f to 0f)
                         WaveType.SVG -> if (i < svgCoefficients.size) (svgCoefficients[i].amp to svgCoefficients[i].phase) else (0f to 0f)
-                        WaveType.PURE_SIGNAL -> (customFunctionSignals[i].amp.toFloatOrNull() ?: 0f) to 0f
+                        WaveType.PURE_SIGNAL -> (customFunctionSignals[i].amp.toFloatOrNull() ?: 0f) to customFunctionSignals[i].cachedPhase
                         else -> 0f to 0f
                     }
                     
@@ -689,6 +690,7 @@ fun ComplexHarmonicComponents(
                                 WaveType.FORMULA -> if (i < formulaCoefficients.size) (PI.toFloat() / 2f - formulaCoefficients[i].second) else 0f
                                 WaveType.MY_SIGNAL_2D -> if (i < customCoefficients2D.size) customCoefficients2D[i].phase else 0f
                                 WaveType.SVG -> if (i < svgCoefficients.size) svgCoefficients[i].phase else 0f
+                                WaveType.PURE_SIGNAL -> if (i < customFunctionSignals.size) customFunctionSignals[i].cachedPhase else 0f
                                 else -> 0f
                             }
 

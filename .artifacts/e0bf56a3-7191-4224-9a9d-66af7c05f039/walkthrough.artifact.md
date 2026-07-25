@@ -32,8 +32,16 @@ I have completed the requested improvements to the Fourier Series simulator, foc
 - **After**: Setting the slider to `30dp` produces a highly compressed wave (many cycles visible), while `300dp` produces a highly stretched wave (very few cycles, high detail).
 - **Default**: Resets to `120dp`.
 
+render_diffs(file:///C:/Users/Yasin/AndroidStudioProjects/Matharium/app/src/main/java/com/example/matharium/fourier/FourierModels.kt)
 render_diffs(file:///C:/Users/Yasin/AndroidStudioProjects/Matharium/app/src/main/java/com/example/matharium/fourier/FourierSettings.kt)
 render_diffs(file:///C:/Users/Yasin/AndroidStudioProjects/Matharium/app/src/main/java/com/example/matharium/fourier/FourierVisualizer.kt)
+render_diffs(file:///C:/Users/Yasin/AndroidStudioProjects/Matharium/app/src/main/java/com/example/matharium/fourier/FourierSeries.kt)
+render_diffs(file:///C:/Users/Yasin/AndroidStudioProjects/Matharium/app/src/main/java/com/example/matharium/fourier/FourierComponents.kt)
+
+### 10. Starting Angle (Phase) for Custom Signals
+- **New Parameter**: Added a "Phase" field to the custom signal component settings. You can now specify the starting angle in degrees (e.g., 0° for Sine, 90° for Cosine).
+- **Persistent Settings**: The phase value is saved and loaded along with frequency and amplitude.
+- **Unified Math**: Synchronized the phase parameter across the simulation loop, real-time spectrum analysis, and phasor visualizations.
 ### 8. Plane Reversal (Horizontal Mirroring Fix)
 - **Time/Space Alignment**: I added a single minus sign to the Fourier analysis angle in `FourierLogic.kt`. This effectively instructs the simulation to reconstruct $f(-t)$.
 - **Cancellation of Reversals**: Since the Oscilloscope naturally displays time "backwards" (moving from Now to Past as you look right), this change causes the two reversals to cancel out.

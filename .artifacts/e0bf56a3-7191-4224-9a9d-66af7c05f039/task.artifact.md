@@ -1,8 +1,8 @@
-- [x] Fix Math Parser (`FourierExpression.kt`)
-- [x] Fix Fourier Simulation Logic (`FourierSeries.kt`)
-- [x] Stretch Fourier Circular Visualization
-- [x] Fix Formula Domain to $[-\pi, \pi]$
-- [x] Add Wave Stretch Handler
-- [x] Synchronize Phasors and Graphs (Phase Alignment)
-- [x] Reverse Fourier Plane to match $f(x)$ (Horizontal Mirroring Fix)
+- [x] Add Starting Angle (Phase) to Custom Signals
+    - [x] Update `SignalInstance` model in `FourierModels.kt`
+    - [x] Update serialization in `Persistence.kt`
+    - [x] Add Phase text field in `FourierSettings.kt`
+    - [x] Update simulation and spectrum in `FourierSeries.kt`
+    - [x] Update drawing in `FourierVisualizer.kt`
+    - [x] Update previews in `FourierComponents.kt`
 - [x] Verify Results

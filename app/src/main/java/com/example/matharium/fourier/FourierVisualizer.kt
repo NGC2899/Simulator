@@ -240,7 +240,8 @@ fun FourierVisualizerBox(
                             WaveType.SVG -> if (i < svgCoefficients.size) (svgCoefficients[i].amp to svgCoefficients[i].phase) else (0f to 0f)
                             WaveType.PURE_SIGNAL -> if (i < customFunctionSignals.size) {
                                 val ampInput = harmonicAmplitudes[i] ?: (customFunctionSignals[i].amp.toFloatOrNull() ?: 0f)
-                                ampInput to 0f
+                                val phaseInput = customFunctionSignals[i].cachedPhase
+                                ampInput to phaseInput
                             } else (0f to 0f)
                         }
 

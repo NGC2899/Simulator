@@ -94,7 +94,7 @@ class AppPreferences(context: Context) {
     private fun unescape(s: String) = s.replace("%7C", "|").replace("%3B", ";").replace("%25", "%")
 
     fun saveFourierSignals(signals: List<SignalInstance>) {
-        val serialized = signals.joinToString(";") { "${it.id}|${it.color.toArgb()}|${escape(it.freq)}|${escape(it.amp)}" }
+        val serialized = signals.joinToString(";") { "${it.id}|${it.color.toArgb()}|${escape(it.freq)}|${escape(it.amp)}|${escape(it.phase)}" }
         prefs.edit().putString("fourier_signals", serialized).apply()
     }
 
@@ -107,7 +107,8 @@ class AppPreferences(context: Context) {
                     id = parts.getOrNull(0)?.toIntOrNull() ?: 0,
                     color = Color(parts.getOrNull(1)?.toIntOrNull() ?: accentColor.toArgb()),
                     initialFreq = unescape(parts.getOrNull(2) ?: "1.0"),
-                    initialAmp = unescape(parts.getOrNull(3) ?: "0.5")
+                    initialAmp = unescape(parts.getOrNull(3) ?: "0.5"),
+                    initialPhase = unescape(parts.getOrNull(4) ?: "0.0")
                 )
             }
         } catch (e: Exception) {

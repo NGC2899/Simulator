@@ -32,6 +32,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.matharium.R
 import com.example.matharium.app.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -1019,6 +1022,18 @@ fun SignalSettingsCard(
                             colors = colors,
                             onValueChange = {
                                 signal.amp = it
+                                signal.updateCache()
+                                onParameterChange()
+                            }
+                        )
+                        SignalField(
+                            label = "Phase",
+                            unit = "°",
+                            icon = rememberVectorPainter(Icons.Default.Refresh),
+                            value = signal.phase,
+                            colors = colors,
+                            onValueChange = {
+                                signal.phase = it
                                 signal.updateCache()
                                 onParameterChange()
                             }
