@@ -116,6 +116,37 @@ class AppPreferences(context: Context) {
         }
     }
 
+    var customCoefficients: List<Pair<Float, Float>>
+        get() {
+            val data = prefs.getString("custom_coeffs", "") ?: ""
+            if (data.isEmpty()) return emptyList()
+            return data.split(";").filter { it.isNotEmpty() }.mapNotNull {
+                val parts = it.split(",")
+                if (parts.size == 2) {
+                    val amp = parts[0].toFloatOrNull()
+                    val phase = parts[1].toFloatOrNull()
+                    if (amp != null && phase != null) amp to phase else null
+                } else null
+            }
+        }
+        set(value) = prefs.edit().putString("custom_coeffs", value.joinToString(";") { "${it.first},${it.second}" }).apply()
+
+    var customCoefficients2D: List<com.example.matharium.fourier.FourierLogic.ComplexCoeff>
+        get() {
+            val data = prefs.getString("custom_coeffs_2d", "") ?: ""
+            if (data.isEmpty()) return emptyList()
+            return data.split(";").filter { it.isNotEmpty() }.mapNotNull {
+                val parts = it.split(",")
+                if (parts.size == 3) {
+                    val freq = parts[0].toIntOrNull()
+                    val amp = parts[1].toFloatOrNull()
+                    val phase = parts[2].toFloatOrNull()
+                    if (freq != null && amp != null && phase != null) com.example.matharium.fourier.FourierLogic.ComplexCoeff(freq, amp, phase) else null
+                } else null
+            }
+        }
+        set(value) = prefs.edit().putString("custom_coeffs_2d", value.joinToString(";") { "${it.freq},${it.amp},${it.phase}" }).apply()
+
     // Pendulum Settings
     var pendulumScale: Float
         get() = prefs.getFloat("pendulum_scale", 100f)

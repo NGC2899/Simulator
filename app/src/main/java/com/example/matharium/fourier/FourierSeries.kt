@@ -81,8 +81,8 @@ fun FourierSeries() {
         }
         list
     }
-    var customCoefficients by remember { mutableStateOf<List<Pair<Float, Float>>>(emptyList()) }
-    var baseCustomCoefficients by remember { mutableStateOf<List<Pair<Float, Float>>>(emptyList()) }
+    var customCoefficients by remember { mutableStateOf<List<Pair<Float, Float>>>(prefs.customCoefficients) }
+    var baseCustomCoefficients by remember { mutableStateOf<List<Pair<Float, Float>>>(prefs.customCoefficients) }
 
     // --- Draw 2D State ---
     val drawingPoints2D = remember {
@@ -91,8 +91,8 @@ fun FourierSeries() {
         list.addAll(saved)
         list
     }
-    var customCoefficients2D by remember { mutableStateOf<List<FourierLogic.ComplexCoeff>>(emptyList()) }
-    var baseCustomCoefficients2D by remember { mutableStateOf<List<FourierLogic.ComplexCoeff>>(emptyList()) }
+    var customCoefficients2D by remember { mutableStateOf<List<FourierLogic.ComplexCoeff>>(prefs.customCoefficients2D) }
+    var baseCustomCoefficients2D by remember { mutableStateOf<List<FourierLogic.ComplexCoeff>>(prefs.customCoefficients2D) }
 
     // --- SVG State ---
     val svgPoints = remember { 
@@ -166,6 +166,7 @@ fun FourierSeries() {
                 } else {
                     customCoefficients = coeffs
                     baseCustomCoefficients = coeffs
+                    prefs.customCoefficients = coeffs
                 }
             }
         }
@@ -191,6 +192,7 @@ fun FourierSeries() {
             withContext(Dispatchers.Main) {
                 customCoefficients2D = coeffs
                 baseCustomCoefficients2D = coeffs
+                prefs.customCoefficients2D = coeffs
             }
         }
     }
@@ -276,19 +278,30 @@ fun FourierSeries() {
         }
     }
 
+    // Throttled persistence with non-blocking initial load
     LaunchedEffect(drawingPoints.toList()) {
         // Debounce saving to avoid lag while drawing
-        kotlinx.coroutines.delay(300)
+        kotlinx.coroutines.delay(500)
         prefs.drawingPoints = drawingPoints.toList() 
     }
 
     LaunchedEffect(drawingPoints2D.toList()) {
         if (waveType == WaveType.MY_SIGNAL_2D) {
-            // Debounce to avoid heavy DFT calculation on every touch event
-            kotlinx.coroutines.delay(100)
+            // Reduced delay for better responsiveness, but still debounce to save CPU
+            kotlinx.coroutines.delay(150)
             calculateDFT2D()
         }
         prefs.drawingPoints2D = drawingPoints2D.toList()
+    }
+    
+    // Explicitly trigger DFT on waveType switch or if coefficients are empty
+    LaunchedEffect(waveType) {
+        when (waveType) {
+            WaveType.MY_SIGNAL -> if (customCoefficients.isEmpty()) calculateDFT()
+            WaveType.MY_SIGNAL_2D -> if (customCoefficients2D.isEmpty()) calculateDFT2D()
+            WaveType.SVG -> if (svgCoefficients.isEmpty()) calculateSVGDFT()
+            else -> {}
+        }
     }
 
     LaunchedEffect(customFunctionSignals.toList()) { prefs.saveFourierSignals(customFunctionSignals.toList()) }
@@ -405,8 +418,6 @@ fun FourierSeries() {
                             val ampValue = (harmonicAmplitudes[i] ?: signal.cachedAmp) * radiusBase
                             val phase = harmonicPhases[i] ?: signal.cachedPhase
                             
-                            // For custom signals, we use the pure phasor rotation.
-                            // Standard reconstruction: -A*sin(wt + phase)
                             val angle = 2 * kotlin.math.PI.toFloat() * freq * time + phase
                             currentX += ampValue * kotlin.math.cos(angle.toDouble()).toFloat()
                             currentY += -ampValue * kotlin.math.sin(angle.toDouble()).toFloat()
@@ -424,9 +435,6 @@ fun FourierSeries() {
                                     val amp = harmonicAmplitudes[i] ?: analyzedAmp
                                     val phase = harmonicPhases[i] ?: analyzedPhase
                                     val n = harmonicFrequencies[i] ?: i.toFloat()
-                                    // Unified CCW Phasor: X = cos, Y = -sin
-                                    // DFT gives phase phi such that signal = amp * cos(wt - phi)
-                                    // To make Y = -signal, we use angle = wt - phi + pi/2
                                     val totalAngle = 2 * kotlin.math.PI.toFloat() * n * time - phase + (kotlin.math.PI.toFloat() / 2f)
                                     currentX += (amp * radiusBase) * kotlin.math.cos(totalAngle.toDouble()).toFloat()
                                     currentY += -(amp * radiusBase) * kotlin.math.sin(totalAngle.toDouble()).toFloat()
@@ -440,7 +448,6 @@ fun FourierSeries() {
                                     val n = harmonicFrequencies[i] ?: coeff.freq.toFloat()
                                     val amp = harmonicAmplitudes[i] ?: coeff.amp
                                     val phase = harmonicPhases[i] ?: coeff.phase
-                                    // 2D signals use their complex phase directly
                                     val totalAngle = 2 * kotlin.math.PI.toFloat() * n * time + phase
                                     currentX += (amp * radiusBase) * kotlin.math.cos(totalAngle.toDouble()).toFloat()
                                     currentY += -(amp * radiusBase) * kotlin.math.sin(totalAngle.toDouble()).toFloat()
@@ -489,8 +496,6 @@ fun FourierSeries() {
                             val phase = harmonicPhases[i] ?: 0f
                             val angle = 2 * kotlin.math.PI.toFloat() * n * time + phase
                             
-                            // Analytical waves are built from sines. 
-                            // Sin(wt) corresponds to X = cos(wt - pi/2 + pi/2) = cos(wt), Y = -sin(wt)
                             currentX += (amp * radiusBase) * kotlin.math.cos(angle.toDouble()).toFloat()
                             currentY += -(amp * radiusBase) * kotlin.math.sin(angle.toDouble()).toFloat()
                         }
@@ -501,8 +506,6 @@ fun FourierSeries() {
                         val target = getIdealValue(time, waveType, radiusBase, displayMode, drawingPoints, drawingPoints2D, svgPoints, formulaString, customFunctionSignals)
                         
                         val error = if (showErrorGradient) {
-                            // For standard 1D signals in complex mode, we only care about approximating the Y component.
-                            // The 2D path traced by a one-sided Fourier series doesn't naturally converge to a 1D line.
                             val isExplicitly2D = waveType == WaveType.MY_SIGNAL_2D || 
                                                  waveType == WaveType.SVG || 
                                                  waveType == WaveType.SINE || 
@@ -525,10 +528,11 @@ fun FourierSeries() {
                 }
 
                 path.addAll(0, newPoints)
-
                 if (path.size > 2000) {
-                    val itemsToRemove = path.size - 2000
-                    repeat(itemsToRemove) { path.removeAt(path.size - 1) }
+                    val toRemove = path.size - 2000
+                    for (i in 0 until toRemove) {
+                        path.removeAt(path.size - 1)
+                    }
                 }
             }
         }

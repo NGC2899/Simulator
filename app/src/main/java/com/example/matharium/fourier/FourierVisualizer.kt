@@ -70,12 +70,8 @@ fun FourierVisualizerBox(
     val waveStartX = with(density) { 180.dp.toPx() }
     val indicatorSize = with(density) { AppDesign.spacingExtraSmall.toPx() }
 
-    // Optimize path drawing for low-end devices
-    val pathStep = when {
-        path.size > 1500 -> 8
-        path.size > 800 -> 4
-        else -> 2
-    }
+    // Perfect resolution for flagship devices (pathStep = 1)
+    val pathStep = 1
 
     Box(
         modifier = Modifier
@@ -161,8 +157,8 @@ fun FourierVisualizerBox(
                                 drawPath(gridPath, gridColor, style = Stroke(width = AppDesign.strokeThin.toPx()))
                                 drawPath(axisPath, axisColor, style = Stroke(width = AppDesign.strokeThin.toPx()))
                                 
-                                // Labels (Native Canvas)
-                                val step = gridStepPx
+                                // Optimized Label Drawing (only draw every 2nd step to save performance)
+                                val step = gridStepPx * 2
                                 val left = -actualCenterX
                                 val right = size.width - actualCenterX
                                 val top = -centerY
@@ -201,7 +197,7 @@ fun FourierVisualizerBox(
                                 
                                 val halfWidth = size.width / 2f
                                 val halfHeight = size.height / 2f
-                                val step = gridStepPx
+                                val step = gridStepPx * 2 // Optimized step
                                 
                                 paint.textAlign = android.graphics.Paint.Align.CENTER
                                 var lx = step
@@ -364,13 +360,17 @@ fun FourierVisualizerBox(
                         } else {
                             val wavePath = Path()
                             if (path.isNotEmpty()) {
-                                wavePath.moveTo(waveStartX, path[0].offset.y)
-                                // Performance optimization: dynamic step for drawing the wave
-                                val currentPathStep = pathStep * 2
+                            wavePath.moveTo(waveStartX, path[0].offset.y)
+                            // Performance optimization: dynamic step for drawing the wave
+                            val currentPathStep = pathStep * 2
+                            if (path.size > 1) {
                                 for (i in 1 until path.size step currentPathStep) {
                                     wavePath.lineTo(waveStartX + (time - path[i].offset.x) * pixelsPerTimeUnit, path[i].offset.y)
                                 }
+                                // Ensure the very last point is always connected
+                                wavePath.lineTo(waveStartX + (time - path.last().offset.x) * pixelsPerTimeUnit, path.last().offset.y)
                             }
+                        }
 
                             drawPath(
                                 path = wavePath,
@@ -399,8 +399,11 @@ fun FourierVisualizerBox(
                             if (path.isNotEmpty()) {
                                 tracePath.moveTo(path[0].offset.x, path[0].offset.y)
                                 // Performance optimization: dynamic step for 2D tracing
-                                for (i in 1 until path.size step pathStep) {
-                                    tracePath.lineTo(path[i].offset.x, path[i].offset.y)
+                                if (path.size > 1) {
+                                    for (i in 1 until path.size step pathStep) {
+                                        tracePath.lineTo(path[i].offset.x, path[i].offset.y)
+                                    }
+                                    tracePath.lineTo(path.last().offset.x, path.last().offset.y)
                                 }
                             }
                             drawPath(
