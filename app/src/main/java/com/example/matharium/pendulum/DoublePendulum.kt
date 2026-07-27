@@ -32,6 +32,7 @@ import kotlin.math.sqrt
 fun DoublePendulum() {
     val colors = LocalAppColors.current
     val prefs = LocalAppPrefs.current
+    val vibrate = rememberAppVibrator()
 
     val pendulums = remember {
         val list = mutableStateListOf<PendulumInstance>()
@@ -175,6 +176,7 @@ fun DoublePendulum() {
         ) {
             Button(
                 onClick = {
+                    vibrate(true)
                     if (!hasStarted) {
                         pendulums.forEach { it.initialize(gravityAmount); it.trail.clear(); it.angleTrail.clear() }
                         hasStarted = true

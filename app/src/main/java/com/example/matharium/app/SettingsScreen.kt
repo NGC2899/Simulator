@@ -14,7 +14,9 @@ import androidx.compose.ui.unit.sp
 fun SettingsScreen(
     isAnimatedBg: Boolean,
     onToggleAnimatedBg: (Boolean) -> Unit,
-    onToggleTheme: () -> Unit
+    onToggleTheme: () -> Unit,
+    hapticEnabled: Boolean,
+    onToggleHaptic: (Boolean) -> Unit
 ) {
     val colors = LocalAppColors.current
 
@@ -50,6 +52,15 @@ fun SettingsScreen(
                     label = "Animated Background",
                     checked = isAnimatedBg,
                     onCheckedChange = onToggleAnimatedBg,
+                    colors = colors
+                )
+
+                Spacer(modifier = Modifier.height(AppDesign.spacingSmall))
+
+                ToggleRow(
+                    label = "Haptic Feedback",
+                    checked = hapticEnabled,
+                    onCheckedChange = onToggleHaptic,
                     colors = colors
                 )
                 

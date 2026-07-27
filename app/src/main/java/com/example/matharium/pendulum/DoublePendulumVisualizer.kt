@@ -248,8 +248,8 @@ fun DoublePendulumVisualizer(
                                 val path = Path().apply {
                                     val start = p.angleTrail.first() * graphScale
                                     moveTo(start.x, start.y)
-                                    // Step optimization for high density trails
-                                    val step = if (p.angleTrail.size > 200) 2 else 1
+                                    // Perfect resolution for flagship devices
+                                    val step = 1
                                     for (i in step until p.angleTrail.size step step) {
                                         val point = p.angleTrail[i] * graphScale
                                         lineTo(point.x, point.y)

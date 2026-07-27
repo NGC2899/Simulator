@@ -19,6 +19,10 @@ class AppPreferences(context: Context) {
         get() = prefs.getBoolean("is_animated_background", true)
         set(value) = prefs.edit().putBoolean("is_animated_background", value).apply()
 
+    var hapticFeedbackEnabled: Boolean
+        get() = prefs.getBoolean("haptic_feedback_enabled", true)
+        set(value) = prefs.edit().putBoolean("haptic_feedback_enabled", value).apply()
+
     // Fourier Settings
     var fourierNTerms: Int
         get() = prefs.getInt("fourier_n_terms", 5)

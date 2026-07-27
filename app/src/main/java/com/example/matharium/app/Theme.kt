@@ -1,5 +1,11 @@
 package com.example.matharium.app
 
+import android.content.Context
+import android.os.Build
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.text.TextStyle
@@ -10,12 +16,14 @@ import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.foundation.border
@@ -450,6 +458,47 @@ fun ToggleRow(
 }
 
 @Composable
+fun rememberAppVibrator(): (Boolean) -> Unit {
+    val context = LocalContext.current
+    val prefs = LocalAppPrefs.current
+    val vibrator = remember {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val vibratorManager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+            vibratorManager.defaultVibrator
+        } else {
+            @Suppress("DEPRECATION")
+            context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+        }
+    }
+
+    return { enabled ->
+        if (enabled && prefs.hapticFeedbackEnabled) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                vibrator.vibrate(VibrationEffect.createOneShot(25, VibrationEffect.DEFAULT_AMPLITUDE))
+            } else {
+                @Suppress("DEPRECATION")
+                vibrator.vibrate(25)
+            }
+        }
+    }
+}
+
+fun Modifier.hapticClickable(
+    enabled: Boolean = true,
+    onClick: () -> Unit
+): Modifier = this.composed {
+    val vibrate = rememberAppVibrator()
+    
+    this.clickable(
+        enabled = enabled,
+        onClick = {
+            vibrate(enabled)
+            onClick()
+        }
+    )
+}
+
+@Composable
 fun DisplayModeButton(
     icon: ImageVector,
     selected: Boolean,
@@ -460,7 +509,7 @@ fun DisplayModeButton(
     Surface(
         modifier = modifier
             .size(AppDesign.sidebarButtonSize)
-            .clickable { onClick() },
+            .hapticClickable { onClick() },
         shape = RoundedCornerShape(AppDesign.radiusSmall),
         color = if (selected) colors.accentCyan.copy(AppDesign.opacityLow) else colors.cardSurface.copy(
             AppDesign.opacityMedium

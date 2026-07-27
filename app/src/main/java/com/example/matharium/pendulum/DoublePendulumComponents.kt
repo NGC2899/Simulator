@@ -190,8 +190,8 @@ fun DrawScope.drawChaosTrail(trail: List<Offset>, color: Color, scale: Float) {
     val size = trail.size
     if (size < 2) return
     
-    // Performance Optimization: Skip points if the trail is long to reduce draw calls
-    val step = if (size > 40) 2 else 1
+    // Perfect resolution for flagship devices
+    val step = 1
     
     for (i in 0 until size - step step step) {
         val alpha = (i.toFloat() / size) * DoublePendulumConstants.COLOR_SATURATION_ALT

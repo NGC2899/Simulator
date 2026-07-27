@@ -44,11 +44,13 @@ class MainActivity : ComponentActivity() {
         setContent {
             var isDarkTheme by remember { mutableStateOf(prefs.isDarkTheme) }
             var isAnimatedBg by remember { mutableStateOf(prefs.isAnimatedBackground) }
+            var hapticEnabled by remember { mutableStateOf(prefs.hapticFeedbackEnabled) }
 
             CompositionLocalProvider(LocalAppPrefs provides prefs) {
                 AppTheme(darkTheme = isDarkTheme) {
                     MainContainer(
                         isAnimatedBg = isAnimatedBg,
+                        hapticEnabled = hapticEnabled,
                         onToggleTheme = {
                             isDarkTheme = !isDarkTheme
                             prefs.isDarkTheme = isDarkTheme
@@ -56,6 +58,10 @@ class MainActivity : ComponentActivity() {
                         onToggleAnimatedBg = {
                             isAnimatedBg = it
                             prefs.isAnimatedBackground = it
+                        },
+                        onToggleHaptic = {
+                            hapticEnabled = it
+                            prefs.hapticFeedbackEnabled = it
                         }
                     )
                 }
@@ -67,8 +73,10 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun MainContainer(
     isAnimatedBg: Boolean,
+    hapticEnabled: Boolean,
     onToggleTheme: () -> Unit,
-    onToggleAnimatedBg: (Boolean) -> Unit
+    onToggleAnimatedBg: (Boolean) -> Unit,
+    onToggleHaptic: (Boolean) -> Unit
 ) {
     val colors = LocalAppColors.current
     var currentScreen by remember { mutableStateOf(Screen.Welcome) }
@@ -97,7 +105,9 @@ fun MainContainer(
                     onNavigate = { currentScreen = it },
                     onToggleTheme = onToggleTheme,
                     isAnimatedBg = isAnimatedBg,
-                    onToggleAnimatedBg = onToggleAnimatedBg
+                    onToggleAnimatedBg = onToggleAnimatedBg,
+                    hapticEnabled = hapticEnabled,
+                    onToggleHaptic = onToggleHaptic
                 )
             }
         } else {
@@ -106,7 +116,9 @@ fun MainContainer(
                 onNavigate = { currentScreen = it },
                 onToggleTheme = onToggleTheme,
                 isAnimatedBg = isAnimatedBg,
-                onToggleAnimatedBg = onToggleAnimatedBg
+                onToggleAnimatedBg = onToggleAnimatedBg,
+                hapticEnabled = hapticEnabled,
+                onToggleHaptic = onToggleHaptic
             )
         }
     }
@@ -118,7 +130,9 @@ fun ScreenTransition(
     onNavigate: (Screen) -> Unit,
     onToggleTheme: () -> Unit,
     isAnimatedBg: Boolean,
-    onToggleAnimatedBg: (Boolean) -> Unit
+    onToggleAnimatedBg: (Boolean) -> Unit,
+    hapticEnabled: Boolean,
+    onToggleHaptic: (Boolean) -> Unit
 ) {
     val colors = LocalAppColors.current
     
@@ -180,7 +194,9 @@ fun ScreenTransition(
                     Screen.Settings -> SettingsScreen(
                         isAnimatedBg = isAnimatedBg,
                         onToggleAnimatedBg = onToggleAnimatedBg,
-                        onToggleTheme = onToggleTheme
+                        onToggleTheme = onToggleTheme,
+                        hapticEnabled = hapticEnabled,
+                        onToggleHaptic = onToggleHaptic
                     )
                 }
             }

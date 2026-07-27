@@ -25,6 +25,8 @@ fun FourierActionControls(
     colors: AppColors,
     enabled: Boolean = true,
 ) {
+    val vibrate = rememberAppVibrator()
+    
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -33,6 +35,7 @@ fun FourierActionControls(
     ) {
         Button(
             onClick = {
+                vibrate(true)
                 if (!hasStarted) onHasStartedChange(true)
                 onRunningChange(!running)
             },
