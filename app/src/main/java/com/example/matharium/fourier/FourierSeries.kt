@@ -256,7 +256,7 @@ fun FourierSeries() {
         }
     }
 
-    // Save state when it changes
+    // Save state when it changes - Throttled for drawing points
     LaunchedEffect(nTerms) { prefs.fourierNTerms = nTerms }
     LaunchedEffect(speed) { prefs.fourierSpeed = speed }
     LaunchedEffect(windingFrequency) { prefs.fourierWindingFrequency = windingFrequency }
@@ -270,7 +270,13 @@ fun FourierSeries() {
             calculateDFT()
         }
     }
-    LaunchedEffect(drawingPoints.toList()) { prefs.drawingPoints = drawingPoints.toList() }
+    
+    // Save drawing points with a delay to avoid lagging while drawing
+    LaunchedEffect(drawingPoints.toList()) {
+        kotlinx.coroutines.delay(500)
+        prefs.drawingPoints = drawingPoints.toList() 
+    }
+    
     LaunchedEffect(customFunctionSignals.toList()) { prefs.saveFourierSignals(customFunctionSignals.toList()) }
 
     // Synchronize nTerms with Custom Signal changes
@@ -506,9 +512,12 @@ fun FourierSeries() {
 
                 path.addAll(0, newPoints)
 
+                // Optimized removal from the end
                 if (path.size > 2000) {
-                    val itemsToRemove = path.size - 2000
-                    repeat(itemsToRemove) { path.removeAt(path.size - 1) }
+                    val toRemove = path.size - 2000
+                    for (i in 0 until toRemove) {
+                        path.removeAt(path.size - 1)
+                    }
                 }
             }
         }
