@@ -333,7 +333,6 @@ fun FourierSettingsCard(
                                                             val y = (change.position.y - halfHeight).coerceIn(-halfHeight, halfHeight)
 
                                                             drawingPoints2D.add(Offset(x, y))
-                                                            onCalculateDFT2D()
                                                         },
                                                         onDragEnd = {
                                                             prefs.drawingPoints2D = drawingPoints2D.toList()

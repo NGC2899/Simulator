@@ -175,8 +175,13 @@ fun FourierSeries() {
         dftJob?.cancel()
         dftJob = coroutineScope.launch(Dispatchers.Default) {
             if (drawingPoints2D.isEmpty()) return@launch
-            // Flip Y for mathematical consistency (CCW rotation)
-            val normalizedPoints = drawingPoints2D.map { Offset(it.x / radiusBasePx, -it.y / radiusBasePx) }
+            
+            // 1. Resample points uniformly for consistent time steps
+            val resampled = FourierLogic.resamplePath(drawingPoints2D.toList(), 1000)
+            
+            // 2. Flip Y for mathematical consistency (CCW rotation)
+            val normalizedPoints = resampled.map { Offset(it.x / radiusBasePx, -it.y / radiusBasePx) }
+            
             val coeffs = try {
                 FourierLogic.performComplexDFT(normalizedPoints)
             } catch (e: Exception) {
@@ -256,7 +261,7 @@ fun FourierSeries() {
         }
     }
 
-    // Save state when it changes
+    // Save state when it changes - with debounce for heavy operations
     LaunchedEffect(nTerms) { prefs.fourierNTerms = nTerms }
     LaunchedEffect(speed) { prefs.fourierSpeed = speed }
     LaunchedEffect(windingFrequency) { prefs.fourierWindingFrequency = windingFrequency }
@@ -270,7 +275,22 @@ fun FourierSeries() {
             calculateDFT()
         }
     }
-    LaunchedEffect(drawingPoints.toList()) { prefs.drawingPoints = drawingPoints.toList() }
+
+    LaunchedEffect(drawingPoints.toList()) {
+        // Debounce saving to avoid lag while drawing
+        kotlinx.coroutines.delay(300)
+        prefs.drawingPoints = drawingPoints.toList() 
+    }
+
+    LaunchedEffect(drawingPoints2D.toList()) {
+        if (waveType == WaveType.MY_SIGNAL_2D) {
+            // Debounce to avoid heavy DFT calculation on every touch event
+            kotlinx.coroutines.delay(100)
+            calculateDFT2D()
+        }
+        prefs.drawingPoints2D = drawingPoints2D.toList()
+    }
+
     LaunchedEffect(customFunctionSignals.toList()) { prefs.saveFourierSignals(customFunctionSignals.toList()) }
 
     // Synchronize nTerms with Custom Signal changes

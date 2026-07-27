@@ -253,46 +253,9 @@ object FourierLogic {
             if (rawPoints.isEmpty()) return emptyList()
 
             // 1. Resample points uniformly along the path
-            val resampledPoints = mutableListOf<Offset>()
-            val targetSampleCount = 1000
+            val resampledPoints = resamplePath(rawPoints, 1000)
             
-            var totalPathLength = 0f
-            val segments = mutableListOf<Pair<Offset, Offset>>()
-            for (i in 0 until rawPoints.size - 1) {
-                val p1 = rawPoints[i]
-                val p2 = rawPoints[i+1]
-                val dist = sqrt((p2.x - p1.x).pow(2) + (p2.y - p1.y).pow(2))
-                if (dist > 0.1f) {
-                    totalPathLength += dist
-                    segments.add(p1 to p2)
-                }
-            }
-            
-            if (segments.isEmpty()) return emptyList()
-            
-            val stepSize = totalPathLength / targetSampleCount
-            var currentDist = 0f
-            var currentSegmentIdx = 0
-            
-            resampledPoints.add(segments[0].first)
-            for (i in 1 until targetSampleCount) {
-                val targetDist = i * stepSize
-                while (currentDist + sqrt((segments[currentSegmentIdx].second.x - segments[currentSegmentIdx].first.x).pow(2) + (segments[currentSegmentIdx].second.y - segments[currentSegmentIdx].first.y).pow(2)) < targetDist) {
-                    val d = sqrt((segments[currentSegmentIdx].second.x - segments[currentSegmentIdx].first.x).pow(2) + (segments[currentSegmentIdx].second.y - segments[currentSegmentIdx].first.y).pow(2))
-                    currentDist += d
-                    currentSegmentIdx++
-                    if (currentSegmentIdx >= segments.size) break
-                }
-                if (currentSegmentIdx >= segments.size) break
-                
-                val seg = segments[currentSegmentIdx]
-                val segLen = sqrt((seg.second.x - seg.first.x).pow(2) + (seg.second.y - seg.first.y).pow(2))
-                val t = (targetDist - currentDist) / segLen
-                resampledPoints.add(Offset(
-                    seg.first.x + (seg.second.x - seg.first.x) * t,
-                    seg.first.y + (seg.second.y - seg.first.y) * t
-                ))
-            }
+            if (resampledPoints.isEmpty()) return emptyList()
 
             // 2. Center and Scale
             val minX = resampledPoints.minOf { it.x }
@@ -317,6 +280,53 @@ object FourierLogic {
             Log.e("FourierLogic", "Error parsing SVG", e)
         }
         return emptyList()
+    }
+
+    /**
+     * Resamples a path to have a uniform distribution of points.
+     */
+    fun resamplePath(points: List<Offset>, targetCount: Int): List<Offset> {
+        if (points.size < 2) return points
+        if (targetCount <= 1) return listOf(points[0])
+
+        var totalLength = 0f
+        val segmentLengths = mutableListOf<Float>()
+        for (i in 0 until points.size - 1) {
+            val d = (points[i+1] - points[i]).getDistance()
+            totalLength += d
+            segmentLengths.add(d)
+        }
+
+        if (totalLength < 1e-6f) return List(targetCount) { points[0] }
+
+        val resampled = mutableListOf<Offset>()
+        val step = totalLength / (targetCount - 1)
+        
+        var accumulatedLength = 0f
+        var currentSegment = 0
+        
+        resampled.add(points[0])
+        
+        for (i in 1 until targetCount - 1) {
+            val targetDist = i * step
+            while (currentSegment < segmentLengths.size - 1 && accumulatedLength + segmentLengths[currentSegment] < targetDist) {
+                accumulatedLength += segmentLengths[currentSegment]
+                currentSegment++
+            }
+            
+            val distInSegment = targetDist - accumulatedLength
+            val t = if (segmentLengths[currentSegment] > 0) distInSegment / segmentLengths[currentSegment] else 0f
+            
+            val p1 = points[currentSegment]
+            val p2 = points[currentSegment + 1]
+            resampled.add(Offset(
+                p1.x + (p2.x - p1.x) * t,
+                p1.y + (p2.y - p1.y) * t
+            ))
+        }
+        
+        resampled.add(points.last())
+        return resampled
     }
 
     data class SimulationPoint(val time: Float, val value: Float)
