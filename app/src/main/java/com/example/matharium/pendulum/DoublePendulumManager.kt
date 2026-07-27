@@ -41,8 +41,8 @@ fun DoublePendulumManager(
     onNextIdChange: (Int) -> Unit,
     prefs: AppPreferences
 ) {
-    var isPendulumManagerExpanded by remember { mutableStateOf(true) }
-    var isPendulumsExpanded by remember { mutableStateOf(false) }
+    var isPendulumManagerExpanded by remember { mutableStateOf(false) }
+    var isPendulumsExpanded by remember { mutableStateOf(true) }
 
     GlassCard(colors = colors) {
         Column(

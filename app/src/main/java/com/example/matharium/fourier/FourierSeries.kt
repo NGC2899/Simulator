@@ -358,7 +358,7 @@ fun FourierSeries() {
             if (samples.isEmpty()) return@launch
 
             val maxFreq = 5.0f
-            val spectrumPoints = 250
+            val spectrumPoints = 500 // Increased from 250 for smoother spectrum wiggles
             val result = List(spectrumPoints) { i ->
                 val f = (i.toFloat() / spectrumPoints) * maxFreq
                 var re = 0.0

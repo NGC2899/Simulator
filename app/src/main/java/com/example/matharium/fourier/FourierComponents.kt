@@ -215,7 +215,7 @@ fun HarmonicComponents(
                         ) {
                             val centerY = size.height / 2
                             val path = Path()
-                            val samples = 150
+                            val samples = 500 // Increased from 150 for flagship-level smoothing
                             val timeRange = size.width / pixelsPerTimeUnit
                             for (s in 0..samples) {
                                 val x = (s.toFloat() / samples) * size.width

@@ -78,88 +78,8 @@ fun FourierSettingsCard(
     prefs: AppPreferences,
     samplesCount: Int
 ) {
-    var isSettingsExpanded by remember { mutableStateOf(true) }
-
-    GlassCard(colors = colors) {
-        Column(
-            modifier = Modifier
-                .padding(AppDesign.spacingLarge)
-                .animateContentSize()
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { isSettingsExpanded = !isSettingsExpanded },
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    "Simulator Settings",
-                    fontSize = AppDesign.textHeadline,
-                    fontWeight = FontWeight.Bold
-                )
-                Icon(
-                    if (isSettingsExpanded) painterResource(id = R.drawable.chevron_up_outline) else painterResource(id = R.drawable.chevron_down_outline),
-                    null,
-                    tint = colors.textSecondary,
-                    modifier = Modifier.size(AppDesign.iconSmall)
-                )
-            }
-
-            Spacer(modifier = Modifier.height( AppDesign.spacingLarge))
-
-            AnimatedVisibility(visible = isSettingsExpanded) {
-                Spacer(Modifier.height(AppDesign.radiusLarge))
-
-                LabeledSlider(
-                    label = "Animation Speed",
-                    valueDisplay = String.format(Locale.US, "%.1fx", speed),
-                    value = speed,
-                    range = 0.1f..3f,
-                    colors = colors
-                ) { onSpeedChange(it) }
-            }
-
-            AnimatedVisibility(visible = displayMode == FourierDisplayMode.CIRCULAR) {
-                LabeledSlider(
-                    label = "Wave Stretch",
-                    valueDisplay = String.format(
-                        Locale.US,
-                        "%.0f dp",
-                        waveStretch
-                    ),
-                    value = waveStretch,
-                    range = 30f..300f,
-                    colors = colors
-                ) { onWaveStretchChange(it) }
-            }
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = AppDesign.spacingSmall),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                ToggleRow(
-                    label = "Enable error gradient",
-                    checked = showErrorGradient,
-                    onCheckedChange = { onShowErrorGradientChange(it) },
-                    colors = colors
-                )
-            }
-
-            AnimatedVisibility(visible = showErrorGradient) {
-                LabeledSlider(
-                    label = "Error Sensitivity",
-                    valueDisplay = String.format(Locale.US, "%.0f%%", errorSensitivity),
-                    value = errorSensitivity,
-                    range = 1f..100f,
-                    colors = colors
-                ) { onErrorSensitivityChange(it) }
-            }
-        }
-    }
+    var isSettingsExpanded by remember { mutableStateOf(false) }
+    var isGraphSettingsExpanded by remember { mutableStateOf(false) }
 
     GlassCard(colors = colors) {
         Column(
@@ -203,7 +123,7 @@ fun FourierSettingsCard(
                             val selected = (waveType == type) ||
                                     (type == WaveType.MY_SIGNAL && waveType == WaveType.MY_SIGNAL_2D) ||
                                     (type == WaveType.PURE_SIGNAL && waveType == WaveType.FORMULA)
-                            
+
                             val isSpecialType = type == WaveType.MY_SIGNAL || type == WaveType.PURE_SIGNAL || type == WaveType.SVG
 
                             Box(
@@ -247,8 +167,8 @@ fun FourierSettingsCard(
                                 Text(
                                     labelText,
                                     color = if (selected) colors.accentCyan else colors.textSecondary,
-                                fontSize = AppDesign.textBody,
-                                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium
+                                    fontSize = AppDesign.textBody,
+                                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium
                                 )
                             }
                         }
@@ -895,6 +815,92 @@ fun FourierSettingsCard(
             }
         }
     }
+
+    GlassCard(colors = colors) {
+        Column(
+            modifier = Modifier
+                .padding(AppDesign.spacingLarge)
+                .animateContentSize()
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { isGraphSettingsExpanded = !isGraphSettingsExpanded },
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Simulator Settings",
+                    fontSize = AppDesign.textHeadline,
+                    fontWeight = FontWeight.Bold
+                )
+                Icon(
+                    if (isGraphSettingsExpanded) painterResource(id = R.drawable.chevron_up_outline) else painterResource(id = R.drawable.chevron_down_outline),
+                    null,
+                    tint = colors.textSecondary,
+                    modifier = Modifier.size(AppDesign.iconSmall)
+                )
+            }
+
+            Spacer(modifier = Modifier.height( AppDesign.spacingLarge))
+
+            AnimatedVisibility(visible = isGraphSettingsExpanded) {
+                Column {
+                    Spacer(Modifier.height(AppDesign.radiusLarge))
+
+                    LabeledSlider(
+                        label = "Animation Speed",
+                        valueDisplay = String.format(Locale.US, "%.1fx", speed),
+                        value = speed,
+                        range = 0.1f..3f,
+                        colors = colors
+                    ) { onSpeedChange(it) }
+
+                    AnimatedVisibility(visible = displayMode == FourierDisplayMode.CIRCULAR) {
+                        LabeledSlider(
+                            label = "Wave Stretch",
+                            valueDisplay = String.format(
+                                Locale.US,
+                                "%.0f dp",
+                                waveStretch
+                            ),
+                            value = waveStretch,
+                            range = 30f..300f,
+                            colors = colors
+                        ) { onWaveStretchChange(it) }
+                    }
+
+                    Spacer(Modifier.height(AppDesign.spacingLarge))
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = AppDesign.spacingSmall),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        ToggleRow(
+                            label = "Enable error gradient",
+                            checked = showErrorGradient,
+                            onCheckedChange = { onShowErrorGradientChange(it) },
+                            colors = colors
+                        )
+                    }
+
+                    AnimatedVisibility(visible = showErrorGradient) {
+                        LabeledSlider(
+                            label = "Error Sensitivity",
+                            valueDisplay = String.format(Locale.US, "%.0f%%", errorSensitivity),
+                            value = errorSensitivity,
+                            range = 1f..100f,
+                            colors = colors
+                        ) { onErrorSensitivityChange(it) }
+                    }
+                }
+            }
+        }
+    }
+
 }
 
 @Composable
