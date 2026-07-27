@@ -70,7 +70,7 @@ fun DoublePendulumManager(
                 )
             }
 
-            Spacer(Modifier.height(AppDesign.spacingSmall))
+            Spacer(Modifier.height(AppDesign.spacingLarge))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -82,10 +82,9 @@ fun DoublePendulumManager(
                         .weight(1f)
                         .height(AppDesign.buttonHeightSmall)
                         .clip(RoundedCornerShape(AppDesign.radiusButton))
-                        .background(colors.cardSurface.copy(AppDesign.opacityLow))
                         .border(
                             BorderStroke(
-                                AppDesign.borderStandard,
+                                AppDesign.borderThin,
                                 Brush.linearGradient(
                                     listOf(colors.accentCyan, colors.accentViolet)
                                 )
@@ -130,7 +129,7 @@ fun DoublePendulumManager(
                         .clip(RoundedCornerShape(AppDesign.radiusButton))
                         .background(colors.accentViolet.copy(AppDesign.opacityLow))
                         .border(
-                            AppDesign.borderStandard,
+                            AppDesign.borderThin,
                             colors.accentViolet.copy(AppDesign.opacityMedium),
                             RoundedCornerShape(AppDesign.radiusButton)
                         )
@@ -190,7 +189,7 @@ fun DoublePendulumManager(
                         .clip(RoundedCornerShape(AppDesign.radiusButton))
                         .background(colors.accentHell.copy(AppDesign.opacityLow))
                         .border(
-                            AppDesign.borderStandard,
+                            AppDesign.borderThin,
                             colors.accentHell.copy(AppDesign.opacityMedium),
                             RoundedCornerShape(AppDesign.radiusButton)
                         )
@@ -235,7 +234,6 @@ fun DoublePendulumManager(
             ) {
                 Column(
                     modifier = Modifier
-                        .padding(top = AppDesign.spacingSmall)
                         .animateContentSize(animationSpec = tween(AppDesign.animDurationStandard)),
                     verticalArrangement = Arrangement.spacedBy(AppDesign.spacingSmall)
                 ) {

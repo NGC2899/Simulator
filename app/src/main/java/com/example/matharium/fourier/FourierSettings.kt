@@ -11,6 +11,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -502,10 +503,20 @@ fun FourierSettingsCard(
                                             horizontalArrangement = Arrangement.spacedBy(AppDesign.spacingMedium),
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            Surface(
+                                            Box(
                                                 modifier = Modifier
                                                     .weight(1f)
                                                     .fillMaxHeight()
+                                                    .clip(RoundedCornerShape(AppDesign.radiusButton))
+                                                    .border(
+                                                        BorderStroke(
+                                                            AppDesign.borderThin,
+                                                            Brush.linearGradient(
+                                                                listOf(colors.accentCyan, colors.accentViolet)
+                                                            )
+                                                        ),
+                                                        RoundedCornerShape(AppDesign.radiusButton)
+                                                    )
                                                     .clickable {
                                                         val last = customFunctionSignals.lastOrNull()
                                                         val nextFreq = last?.freq ?: "1.0"
@@ -527,14 +538,7 @@ fun FourierSettingsCard(
                                                         )
                                                         onNextSignalIdChange(nextSignalId + 1)
                                                     },
-                                                shape = RoundedCornerShape(AppDesign.radiusButton),
-                                                color = colors.accentCyan.copy(alpha = 0.1f),
-                                                border = BorderStroke(
-                                                    1.dp,
-                                                    Brush.linearGradient(
-                                                        listOf(colors.accentCyan, colors.accentViolet)
-                                                    )
-                                                )
+                                                contentAlignment = Alignment.Center
                                             ) {
                                                 Row(
                                                     verticalAlignment = Alignment.CenterVertically,
@@ -556,10 +560,19 @@ fun FourierSettingsCard(
                                                 }
                                             }
 
-                                            Surface(
+                                            Box(
                                                 modifier = Modifier
                                                     .weight(0.5f)
                                                     .fillMaxHeight()
+                                                    .clip(RoundedCornerShape(AppDesign.radiusButton))
+                                                    .background(colors.accentHell.copy(alpha = 0.1f))
+                                                    .border(
+                                                        BorderStroke(
+                                                            AppDesign.borderThin,
+                                                            colors.accentHell.copy(alpha = 0.3f)
+                                                        ),
+                                                        RoundedCornerShape(AppDesign.radiusButton)
+                                                    )
                                                     .clickable {
                                                         customFunctionSignals.clear()
                                                         onNextSignalIdChange(0)
@@ -567,12 +580,7 @@ fun FourierSettingsCard(
                                                         onResetHasStarted()
                                                         onClearPath()
                                                     },
-                                                shape = RoundedCornerShape(AppDesign.radiusButton),
-                                                color = colors.accentHell.copy(alpha = 0.1f),
-                                                border = BorderStroke(
-                                                    1.dp,
-                                                    colors.accentHell.copy(alpha = 0.3f)
-                                                )
+                                                contentAlignment = Alignment.Center
                                             ) {
                                                 Row(
                                                     verticalAlignment = Alignment.CenterVertically,
@@ -624,14 +632,15 @@ fun FourierSettingsCard(
                                                 }
 
                                                 if (customFunctionSignals.size > 5) {
-                                                    Surface(
-                                                        onClick = { onSignalsExpandedChange(!isSignalsExpanded) },
+                                                    Box(
                                                         modifier = Modifier
                                                             .fillMaxWidth()
-                                                            .padding(top = AppDesign.spacingSmall),
-                                                        shape = RoundedCornerShape(AppDesign.radiusSmall),
-                                                        color = colors.accentCyan.copy(alpha = 0.05f),
-                                                        border = BorderStroke(1.dp, colors.accentCyan.copy(alpha = 0.1f))
+                                                            .padding(top = AppDesign.spacingSmall)
+                                                            .clip(RoundedCornerShape(AppDesign.radiusSmall))
+                                                            .background(colors.accentCyan.copy(alpha = 0.05f))
+                                                            .border(BorderStroke(AppDesign.borderThin, colors.accentCyan.copy(alpha = 0.1f)), RoundedCornerShape(AppDesign.radiusSmall))
+                                                            .clickable { onSignalsExpandedChange(!isSignalsExpanded) },
+                                                        contentAlignment = Alignment.Center
                                                     ) {
                                                         Row(
                                                             modifier = Modifier.padding(vertical = 8.dp),
@@ -842,11 +851,9 @@ fun FourierSettingsCard(
                 )
             }
 
-            Spacer(modifier = Modifier.height( AppDesign.spacingLarge))
-
             AnimatedVisibility(visible = isGraphSettingsExpanded) {
                 Column {
-                    Spacer(Modifier.height(AppDesign.radiusLarge))
+                    Spacer(modifier = Modifier.height( AppDesign.spacingLarge))
 
                     LabeledSlider(
                         label = "Animation Speed",
@@ -870,14 +877,11 @@ fun FourierSettingsCard(
                         ) { onWaveStretchChange(it) }
                     }
 
-                    Spacer(Modifier.height(AppDesign.spacingLarge))
-
                     Row(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = AppDesign.spacingSmall),
+                            .fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        horizontalArrangement = Arrangement.Start
                     ) {
                         ToggleRow(
                             label = "Enable error gradient",
@@ -1001,7 +1005,7 @@ fun SignalSettingsCard(
                         Icon(
                             painter = if (signal.isPaused) painterResource(id = R.drawable.caret_forward_outline) else painterResource(id = R.drawable.pause_outline),
                             contentDescription = if (signal.isPaused) "Resume" else "Pause",
-                            tint = if (signal.isPaused) colors.accentCyan else colors.textSecondary,
+                            tint = colors.textSecondary,
                             modifier = Modifier.size(AppDesign.iconSmallMedium)
                         )
                     }
@@ -1025,7 +1029,7 @@ fun SignalSettingsCard(
                     Icon(
                         if (signal.isExpanded) painterResource(id = R.drawable.chevron_up_outline) else painterResource(id = R.drawable.chevron_down_outline),
                         null,
-                        tint = colors.textSecondary.copy(alpha = 0.6f),
+                        tint = colors.textSecondary,
                         modifier = Modifier.size(AppDesign.iconSmall)
                     )
                 }
