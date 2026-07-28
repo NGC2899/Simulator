@@ -417,6 +417,83 @@ object FourierLogic {
         return FloatArray(n) { (result[it].re / n).toFloat() }
     }
 
+    fun getIdealValue(
+        time: Float,
+        waveType: WaveType,
+        radiusBase: Float,
+        displayMode: FourierDisplayMode,
+        drawingPoints: List<Float>,
+        drawingPoints2D: List<Offset>,
+        svgPoints: List<Offset>,
+        formulaString: String,
+        customFunctionSignals: List<SignalInstance>
+    ): Offset {
+        val t = (time % 1f + 1f) % 1f
+        val angle = 2 * PI.toFloat() * t
+        return when (waveType) {
+            WaveType.SINE -> {
+                val y = -radiusBase * sin(angle.toDouble()).toFloat()
+                if (displayMode == FourierDisplayMode.COMPLEX) {
+                    Offset(radiusBase * cos(angle.toDouble()).toFloat(), y)
+                } else Offset(time, y)
+            }
+            WaveType.SQUARE -> {
+                val y = if (t % 1f < 0.5f) -radiusBase else radiusBase
+                if (displayMode == FourierDisplayMode.COMPLEX) Offset(0f, y) else Offset(time, y)
+            }
+            WaveType.SAWTOOTH -> {
+                val fraction = (t + 0.5f) % 1f
+                val y = -radiusBase * (2f * fraction - 1f)
+                if (displayMode == FourierDisplayMode.COMPLEX) Offset(0f, y) else Offset(time, y)
+            }
+            WaveType.TRIANGLE -> {
+                val fraction = (t + 0.75f) % 1f
+                val y = radiusBase * (if (fraction < 0.5f) (4f * fraction - 1f) else (3f - 4f * fraction))
+                if (displayMode == FourierDisplayMode.COMPLEX) Offset(0f, y) else Offset(time, y)
+            }
+            WaveType.PURE_SIGNAL -> {
+                var sumX = 0f
+                var sumY = 0f
+                for (signal in customFunctionSignals) {
+                    if (signal.isPaused) continue
+                    val freq = signal.freq.toFloatOrNull() ?: 0f
+                    val amp = (signal.amp.toFloatOrNull() ?: 0f) * radiusBase
+                    val phase = (signal.phase.toFloatOrNull() ?: 0f) * (PI.toFloat() / 180f)
+                    val angleVal = 2 * PI.toFloat() * freq * time + phase
+                    sumY += -amp * sin(angleVal.toDouble()).toFloat()
+                    sumX += amp * cos(angleVal.toDouble()).toFloat()
+                }
+                if (displayMode == FourierDisplayMode.COMPLEX) Offset(sumX, sumY) else Offset(time, sumY)
+            }
+            WaveType.MY_SIGNAL -> {
+                val y = if (drawingPoints.isNotEmpty()) {
+                    val idx = (t * (drawingPoints.size - 1)).toInt()
+                    drawingPoints[idx]
+                } else 0f
+                if (displayMode == FourierDisplayMode.COMPLEX) Offset(0f, y) else Offset(time, y)
+            }
+            WaveType.FORMULA -> {
+                val x = (t.toDouble() * 2.0 * PI - PI)
+                val eval = FourierExpressionEvaluator.evaluate(formulaString, x)
+                val y = if (eval.isFinite()) -eval.toFloat() * radiusBase else 0f
+                if (displayMode == FourierDisplayMode.COMPLEX) Offset(0f, y) else Offset(time, y)
+            }
+            WaveType.MY_SIGNAL_2D -> {
+                if (drawingPoints2D.isNotEmpty()) {
+                    val idx = (t * (drawingPoints2D.size - 1)).toInt()
+                    drawingPoints2D[idx]
+                } else Offset(0f, 0f)
+            }
+            WaveType.SVG -> {
+                if (svgPoints.isNotEmpty()) {
+                    val idx = (t * (svgPoints.size - 1)).toInt()
+                    val pt = svgPoints[idx]
+                    Offset(pt.x * radiusBase, pt.y * radiusBase)
+                } else Offset(0f, 0f)
+            }
+        }
+    }
+
     data class Complex(val re: Double, val im: Double) {
         operator fun plus(other: Complex) = Complex(re + other.re, im + other.im)
         operator fun minus(other: Complex) = Complex(re - other.re, im - other.im)
