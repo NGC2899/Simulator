@@ -1,39 +1,28 @@
-# Implementation Plan - Export Fourier Series
+# Implementation Plan - Fix Center of Mass Graph for 2D Inputs
 
-The user wants an "Export" button in the "Signal Decomposition" and "Phasor Decomposition" boxes. This button will open a dialog showing the Fourier series in both "Normal" (Trigonometric/Parametric) and "Complex" (Exponential) forms, with "Copy" buttons for each.
+The "Frequency Domain (Center of Mass)" graph currently only supports 1D signals (Sine, Square, etc.). When the user selects SVG or 2D Drawing mode, the spectrum calculation returns an empty list, causing the graph to disappear.
 
 ## Proposed Changes
 
 ### Fourier Module
 
-#### [MODIFY] [FourierComponents.kt](file:///C:/Users/Yasin/AndroidStudioProjects/Matharium/app/src/main/java/com/example/matharium/fourier/FourierComponents.kt)
-- **Export Button**: Add an "Export" `TextButton` next to the "Reset" button in both `HarmonicComponents` and `ComplexHarmonicComponents`.
-- **Export Dialog**: Implement a `FourierExportDialog` composable that:
-    - Takes the current harmonics data (frequencies, amplitudes, phases).
-    - Formats them into strings for "Normal" and "Complex" series.
-    - Displays them in read-only text fields with "Copy" buttons.
-    - Uses `LocalClipboardManager` for copying.
-
-### Logic Improvements
-
-#### [NEW] [FourierExportLogic.kt](file:///C:/Users/Yasin/AndroidStudioProjects/Matharium/app/src/main/java/com/example/matharium/fourier/FourierExportLogic.kt)
-- Create a helper object to generate the series strings.
-- **Normal Form (1D)**: $f(t) = \sum A_n \cos(2\pi f_n t + \phi_n)$
-- **Normal Form (2D/Complex)**:
-    - $x(t) = \sum A_n \cos(2\pi f_n t + \phi_n)$
-    - $y(t) = \sum A_n \sin(2\pi f_n t + \phi_n)$
-- **Complex Form**: $f(t) = \sum A_n e^{i (2\pi f_n t + \phi_n)}$
-- Filter out terms with near-zero amplitude.
-- Round values for readability (e.g., 2 decimal places).
+#### [MODIFY] [FourierState.kt](file:///C:/Users/Yasin/AndroidStudioProjects/Matharium/app/src/main/java/com/example/matharium/fourier/FourierState.kt)
+- **Support 2D in `updateSpectrum`**:
+    - Update the `when` block in `updateSpectrum` to handle `WaveType.MY_SIGNAL_2D` and `WaveType.SVG`.
+    - Change the internal `samples` collection to use `FourierLogic.Complex` instead of `Float`. This allows us to unify the logic for both 1D and 2D signals.
+    - **1D Signals**: Map to `Complex(value, 0.0)`.
+    - **2D Signals**: Map to `Complex(x, y)`.
+- **Complex Integration**:
+    - Update the spectrum integral to use complex multiplication: $z(t) \cdot e^{i \omega t}$.
+    - This will correctly calculate the "Center of Mass" for 2D paths. For example, a circle with frequency 1 will show a strong peak at 1Hz in the spectrum.
 
 ## Verification Plan
 
 ### Manual Verification
 1.  Navigate to the Fourier simulation.
-2.  Choose a wave type (e.g., Square).
-3.  Click the **Export** button in "Signal Decomposition".
-4.  Verify the dialog opens and shows the correct formula components (e.g., frequencies 1, 3, 5 for Square).
-5.  Click **Copy** for one of the fields and paste it somewhere to verify the content.
-6.  Modify a harmonic using the edit menu (e.g., change amplitude).
-7.  Re-open **Export** and verify the string reflects the change.
-8.  Repeat for "Complex" display mode and verify the 2D parametric/complex output.
+2.  Switch to **Draw 2D** mode and draw a circle or a complex shape.
+3.  **Verify**: The "Frequency Domain" graph should now appear and show peaks corresponding to the dominant frequencies of the drawing.
+4.  Switch to **Import SVG** and load a file.
+5.  **Verify**: The graph should populate with the spectrum data for the SVG path.
+6.  Switch back to **Square Wave** (1D).
+7.  **Verify**: The 1D spectrum continues to function correctly (peaks at odd harmonics 1, 3, 5...).

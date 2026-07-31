@@ -25,6 +25,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
@@ -90,7 +93,7 @@ fun HarmonicComponents(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth().heightIn(min = 40.dp),
+                modifier = Modifier.fillMaxWidth().height(AppDesign.radiusLarge),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -654,7 +657,7 @@ fun ComplexHarmonicComponents(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth().heightIn(min = 40.dp),
+                modifier = Modifier.fillMaxWidth().height(AppDesign.radiusLarge),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -1150,6 +1153,7 @@ fun FourierExportDialog(
 
 @Composable
 fun ExportField(label: String, content: String, colors: AppColors, onCopy: () -> Unit) {
+    val scrollState = rememberScrollState()
     Column {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -1179,17 +1183,21 @@ fun ExportField(label: String, content: String, colors: AppColors, onCopy: () ->
         Box(
             modifier = Modifier
                 .fillMaxWidth()
+                .heightIn(max = 120.dp)
                 .background(colors.cardSurface.copy(alpha = 0.2f), RoundedCornerShape(AppDesign.radiusSmall))
                 .border(AppDesign.borderThin, colors.cardBorder.copy(alpha = 0.2f), RoundedCornerShape(AppDesign.radiusSmall))
+                .verticalScroll(scrollState)
                 .padding(AppDesign.spacingSmall)
         ) {
-            Text(
-                content,
-                modifier = Modifier.fillMaxWidth(),
-                color = colors.textPrimary,
-                fontSize = AppDesign.textSmall,
-                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
-            )
+            SelectionContainer {
+                Text(
+                    content,
+                    modifier = Modifier.fillMaxWidth(),
+                    color = colors.textPrimary,
+                    fontSize = AppDesign.textSmall,
+                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                )
+            }
         }
     }
 }

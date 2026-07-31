@@ -418,9 +418,15 @@ object FourierLogic {
         displayMode: FourierDisplayMode,
         drawingPoints: List<Float>,
         drawingPoints2D: List<Offset>,
+        resampledPoints2D: List<Offset>,
         svgPoints: List<Offset>,
         formulaString: String,
-        customFunctionSignals: List<SignalInstance>
+        customFunctionSignals: List<SignalInstance>,
+        nTerms: Int = 250,
+        removedHarmonics: Map<Int, Boolean> = emptyMap(),
+        harmonicFrequencies: Map<Int, Float> = emptyMap(),
+        harmonicAmplitudes: Map<Int, Float> = emptyMap(),
+        harmonicPhases: Map<Int, Float> = emptyMap()
     ): Offset {
         val t = (time % 1f + 1f) % 1f
         val angle = 2 * PI.toFloat() * t
@@ -448,11 +454,15 @@ object FourierLogic {
             WaveType.PURE_SIGNAL -> {
                 var sumX = 0f
                 var sumY = 0f
-                for (signal in customFunctionSignals) {
+                val limit = nTerms.coerceAtMost(customFunctionSignals.size)
+                for (i in 0 until limit) {
+                    if (removedHarmonics[i] == true) continue
+                    val signal = customFunctionSignals[i]
                     if (signal.isPaused) continue
-                    val freq = signal.freq.toFloatOrNull() ?: 0f
-                    val amp = (signal.amp.toFloatOrNull() ?: 0f) * radiusBase
-                    val phase = (signal.phase.toFloatOrNull() ?: 0f) * (PI.toFloat() / 180f)
+                    
+                    val freq = harmonicFrequencies[i] ?: signal.cachedFreq
+                    val amp = (harmonicAmplitudes[i] ?: signal.cachedAmp) * radiusBase
+                    val phase = harmonicPhases[i] ?: signal.cachedPhase
                     val angleVal = 2 * PI.toFloat() * freq * time + phase
                     sumY += -amp * sin(angleVal.toDouble()).toFloat()
                     sumX += amp * cos(angleVal.toDouble()).toFloat()
@@ -473,16 +483,19 @@ object FourierLogic {
                 if (displayMode == FourierDisplayMode.COMPLEX) Offset(0f, y) else Offset(time, y)
             }
             WaveType.MY_SIGNAL_2D -> {
-                if (drawingPoints2D.isNotEmpty()) {
-                    val idx = (t * (drawingPoints2D.size - 1)).toInt()
-                    drawingPoints2D[idx]
+                val points = if (resampledPoints2D.isNotEmpty()) resampledPoints2D else drawingPoints2D
+                if (points.isNotEmpty()) {
+                    val idx = (t * (points.size - 1)).toInt()
+                    points[idx]
                 } else Offset(0f, 0f)
             }
             WaveType.SVG -> {
                 if (svgPoints.isNotEmpty()) {
                     val idx = (t * (svgPoints.size - 1)).toInt()
                     val pt = svgPoints[idx]
-                    Offset(pt.x * radiusBase, pt.y * radiusBase)
+                    // svgPoints in state are normalized and Y-negated during import (math space, Y-up).
+                    // Simulation currentY is screen-space (Y-down). We negate here to match.
+                    Offset(pt.x * radiusBase, -pt.y * radiusBase)
                 } else Offset(0f, 0f)
             }
         }

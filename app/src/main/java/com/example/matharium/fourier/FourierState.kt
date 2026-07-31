@@ -58,8 +58,14 @@ class FourierState(
     var baseCustomCoefficients by mutableStateOf<List<Pair<Float, Float>>>(prefs.customCoefficients)
 
     val drawingPoints2D = mutableStateListOf<Offset>().apply {
-        addAll(prefs.drawingPoints2D)
+        val saved = prefs.drawingPoints2D
+        if (saved.isNotEmpty()) {
+            addAll(saved)
+            // Trigger resampling for initial load
+            scope.launch { calculateDFT2D() }
+        }
     }
+    val resampledPoints2D = mutableStateListOf<Offset>()
     var customCoefficients2D by mutableStateOf<List<FourierLogic.ComplexCoeff>>(prefs.customCoefficients2D)
     var baseCustomCoefficients2D by mutableStateOf<List<FourierLogic.ComplexCoeff>>(prefs.customCoefficients2D)
 
@@ -136,6 +142,8 @@ class FourierState(
                 emptyList()
             }
             withContext(Dispatchers.Main) {
+                resampledPoints2D.clear()
+                resampledPoints2D.addAll(resampled)
                 customCoefficients2D = coeffs
                 baseCustomCoefficients2D = coeffs
                 prefs.customCoefficients2D = coeffs
@@ -168,40 +176,68 @@ class FourierState(
 
     fun updateSpectrum() {
         scope.launch(Dispatchers.Default) {
-            val samples = when (waveType) {
+            val samples: List<FourierLogic.Complex> = when (waveType) {
                 WaveType.MY_SIGNAL -> {
-                    if (drawingPoints.size == samplesCount) drawingPoints.toList()
+                    val pts = if (drawingPoints.size == samplesCount) drawingPoints.toList()
                     else List(samplesCount) { i -> drawingPoints.getOrElse((i.toFloat() / samplesCount * drawingPoints.size).toInt()) { 0f } }
+                    pts.map { FourierLogic.Complex(it.toDouble() / radiusBasePx, 0.0) }
                 }
                 WaveType.FORMULA -> {
                     List(samplesCount) { i ->
                         val x = (i.toDouble() / samplesCount) * 2.0 * kotlin.math.PI - kotlin.math.PI
                         val eval = FourierExpressionEvaluator.evaluate(formulaString, x)
-                        if (eval.isFinite()) eval.toFloat() else 0f
+                        val value = if (eval.isFinite()) eval.toDouble() else 0.0
+                        FourierLogic.Complex(value, 0.0)
                     }
                 }
                 WaveType.PURE_SIGNAL -> {
                     val limit = nTerms.coerceAtMost(customFunctionSignals.size)
                     List(samplesCount) { i ->
                         val t = i.toFloat() / samplesCount
-                        var sum = 0f
+                        var sumX = 0.0
+                        var sumY = 0.0
                         for (j in 0 until limit) {
                             if (removedHarmonics[j] == true) continue
                             val sig = customFunctionSignals[j]
                             if (sig.isPaused) continue
-                            sum += sig.cachedAmp * kotlin.math.sin(2 * kotlin.math.PI.toFloat() * sig.cachedFreq * t + sig.cachedPhase)
+                            
+                            val freq = (harmonicFrequencies[j] ?: sig.cachedFreq).toDouble()
+                            val amp = (harmonicAmplitudes[j] ?: sig.cachedAmp).toDouble()
+                            val phase = (harmonicPhases[j] ?: sig.cachedPhase).toDouble()
+                            
+                            val angle = 2 * kotlin.math.PI * freq * t + phase
+                            sumX += amp * kotlin.math.cos(angle)
+                            sumY += -amp * kotlin.math.sin(angle)
                         }
-                        sum
+                        FourierLogic.Complex(sumX, sumY)
                     }
                 }
-                WaveType.SINE -> List(samplesCount) { i -> -kotlin.math.sin(2 * kotlin.math.PI.toFloat() * (i.toFloat() / samplesCount)) }
-                WaveType.SQUARE -> List(samplesCount) { i -> if ((i.toFloat() / samplesCount) < 0.5f) -1.0f else 1.0f }
-                WaveType.SAWTOOTH -> List(samplesCount) { i -> - (2f * ((i.toFloat() / samplesCount + 0.5f) % 1f) - 1f) }
+                WaveType.SINE -> List(samplesCount) { i -> FourierLogic.Complex(-kotlin.math.sin(2 * kotlin.math.PI * (i.toDouble() / samplesCount)), 0.0) }
+                WaveType.SQUARE -> List(samplesCount) { i -> FourierLogic.Complex(if ((i.toFloat() / samplesCount) < 0.5f) -1.0 else 1.0, 0.0) }
+                WaveType.SAWTOOTH -> List(samplesCount) { i -> FourierLogic.Complex(-(2.0 * ((i.toDouble() / samplesCount + 0.5) % 1.0) - 1.0), 0.0) }
                 WaveType.TRIANGLE -> List(samplesCount) { i -> 
-                    val f = (i.toFloat() / samplesCount + 0.75f) % 1f
-                    if (f < 0.5f) (4f * f - 1f) else (3f - 4f * f)
+                    val f = (i.toDouble() / samplesCount + 0.75) % 1.0
+                    val v = if (f < 0.5) (4.0 * f - 1.0) else (3.0 - 4.0 * f)
+                    FourierLogic.Complex(v, 0.0)
                 }
-                else -> emptyList()
+                WaveType.MY_SIGNAL_2D -> {
+                    val raw = if (resampledPoints2D.isNotEmpty()) resampledPoints2D.toList() else drawingPoints2D.toList()
+                    if (raw.isEmpty()) emptyList()
+                    else {
+                        val pts = if (raw.size == samplesCount) raw
+                        else List(samplesCount) { i -> raw[(i.toFloat() / samplesCount * raw.size).toInt()] }
+                        pts.map { FourierLogic.Complex(it.x.toDouble() / radiusBasePx, -it.y.toDouble() / radiusBasePx) }
+                    }
+                }
+                WaveType.SVG -> {
+                    if (svgPoints.isEmpty()) emptyList()
+                    else {
+                        val pts = if (svgPoints.size == samplesCount) svgPoints.toList()
+                        else List(samplesCount) { i -> svgPoints[(i.toFloat() / samplesCount * svgPoints.size).toInt()] }
+                        // svgPoints are already normalized/negated to math space
+                        pts.map { FourierLogic.Complex(it.x.toDouble(), it.y.toDouble()) }
+                    }
+                }
             }
 
             if (samples.isEmpty()) return@launch
@@ -210,17 +246,19 @@ class FourierState(
             val spectrumPoints = 500
             val result = List(spectrumPoints) { i ->
                 val f = (i.toFloat() / spectrumPoints) * maxFreq
-                var re = 0.0
-                var im = 0.0
+                var sum = FourierLogic.Complex(0.0, 0.0)
                 val analyzeWindow = 10.0
-                for (j in 0 until (samples.size * analyzeWindow).toInt()) {
+                val totalSteps = (samples.size * analyzeWindow).toInt()
+                for (j in 0 until totalSteps) {
                     val sampleIdx = j % samples.size
                     val normalizedT = j.toDouble() / samples.size
                     val angle = 2 * kotlin.math.PI * f * normalizedT
-                    re += samples[sampleIdx] * kotlin.math.cos(angle)
-                    im += samples[sampleIdx] * kotlin.math.sin(angle)
+                    // Center of mass formula: integral z(t) * e^(-i * 2pi * f * t)
+                    // We calculate sum [ samples[t] * (cos(angle) - i sin(angle)) ]
+                    val rot = FourierLogic.Complex(kotlin.math.cos(angle), -kotlin.math.sin(angle))
+                    sum += samples[sampleIdx] * rot
                 }
-                FourierLogic.Complex(re / (samples.size * analyzeWindow), im / (samples.size * analyzeWindow))
+                FourierLogic.Complex(sum.re / totalSteps, sum.im / totalSteps)
             }
             withContext(Dispatchers.Main) {
                 spectrumData = result
@@ -331,7 +369,13 @@ class FourierState(
 
             if (displayMode == FourierDisplayMode.COMPLEX) {
                 val approx = Offset(currentX, currentY)
-                val target = FourierLogic.getIdealValue(time, waveType, radiusBase, displayMode, drawingPoints, drawingPoints2D, svgPoints, formulaString, customFunctionSignals)
+                val target = FourierLogic.getIdealValue(
+                    time, waveType, radiusBase, displayMode,
+                    drawingPoints, drawingPoints2D, resampledPoints2D, svgPoints,
+                    formulaString, customFunctionSignals,
+                    nTerms, removedHarmonics,
+                    harmonicFrequencies, harmonicAmplitudes, harmonicPhases
+                )
                 val error = if (showErrorGradient) {
                     val isExplicitly2D = waveType == WaveType.MY_SIGNAL_2D || waveType == WaveType.SVG || waveType == WaveType.SINE || waveType == WaveType.PURE_SIGNAL
                     if (isExplicitly2D) (approx - target).getDistance() else kotlin.math.abs(approx.y - target.y)
@@ -339,7 +383,13 @@ class FourierState(
                 newPoints.add(0, PathPoint(approx, error))
             } else {
                 val approxY = currentY
-                val targetY = FourierLogic.getIdealValue(time, waveType, radiusBase, displayMode, drawingPoints, drawingPoints2D, svgPoints, formulaString, customFunctionSignals).y
+                val targetY = FourierLogic.getIdealValue(
+                    time, waveType, radiusBase, displayMode,
+                    drawingPoints, drawingPoints2D, resampledPoints2D, svgPoints,
+                    formulaString, customFunctionSignals,
+                    nTerms, removedHarmonics,
+                    harmonicFrequencies, harmonicAmplitudes, harmonicPhases
+                ).y
                 val error = if (showErrorGradient) kotlin.math.abs(approxY - targetY) else 0f
                 newPoints.add(0, PathPoint(Offset(time, approxY), error))
             }
@@ -363,6 +413,7 @@ class FourierState(
 
     fun clearDrawing2D() {
         drawingPoints2D.clear()
+        resampledPoints2D.clear()
         prefs.drawingPoints2D = emptyList()
         customCoefficients2D = emptyList()
         baseCustomCoefficients2D = emptyList()

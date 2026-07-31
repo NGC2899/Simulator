@@ -48,4 +48,48 @@ class FourierLogicTest {
         val parsedWithUS = formattedWithUS.toFloatOrNull()
         assertTrue("Parsing works when formatted with Locale.US: $formattedWithUS", parsedWithUS == 1.5f)
     }
+
+    @Test
+    fun testGetIdealValue_SVGAlignment() {
+        val svgPoints = listOf(Offset(0f, 1f)) // Math space (up positive)
+        val target = FourierLogic.getIdealValue(
+            time = 0f,
+            waveType = WaveType.SVG,
+            radiusBase = 100f,
+            displayMode = FourierDisplayMode.COMPLEX,
+            drawingPoints = emptyList(),
+            drawingPoints2D = emptyList(),
+            resampledPoints2D = emptyList(),
+            svgPoints = svgPoints,
+            formulaString = "",
+            customFunctionSignals = emptyList()
+        )
+        // Math Y = 1, Radius = 100 -> Screen Y should be -100 (Y-down positive)
+        assertTrue("SVG target should be Y-negated for screen: ${target.y}", target.y == -100f)
+    }
+
+    @Test
+    fun testGetIdealValue_PureSignalDynamic() {
+        val signal = SignalInstance(0, androidx.compose.ui.graphics.Color.Red, "1.0", "1.0", "0.0")
+        signal.updateCache()
+        val customSignals = listOf(signal)
+        val harmonicAmplitudes = mapOf(0 to 2.0f) // Override amplitude
+        
+        val target = FourierLogic.getIdealValue(
+            time = 0.25f, // t=1/4 cycle
+            waveType = WaveType.PURE_SIGNAL,
+            radiusBase = 100f,
+            displayMode = FourierDisplayMode.CIRCULAR,
+            drawingPoints = emptyList(),
+            drawingPoints2D = emptyList(),
+            resampledPoints2D = emptyList(),
+            svgPoints = emptyList(),
+            formulaString = "",
+            customFunctionSignals = customSignals,
+            nTerms = 1,
+            harmonicAmplitudes = harmonicAmplitudes
+        )
+        // freq=1, time=0.25 -> angle = 2*PI*1*0.25 = PI/2. sin(PI/2)=1. y = -amp * sin = - (2.0 * 100) * 1 = -200
+        assertTrue("Pure signal target should respect harmonic overrides: ${target.y}", Math.abs(target.y - (-200f)) < 0.1f)
+    }
 }

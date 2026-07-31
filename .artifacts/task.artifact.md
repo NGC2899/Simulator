@@ -1,8 +1,7 @@
-- [x] Create `FourierExportLogic.kt` for formula generation
-- [x] Implement `FourierExportDialog` in `FourierComponents.kt`
-- [x] Add "Export" button to `HarmonicComponents`
-- [x] Add "Export" button to `ComplexHarmonicComponents`
-- [x] Verification
-    - [x] Verified formula string generation logic
-    - [x] Verified clipboard copy functionality
-    - [x] Verified layout integration next to Reset button
+- [x] Implement 2D support in `updateSpectrum` (`FourierState.kt`)
+    - [x] Change `samples` to `List<FourierLogic.Complex>`
+    - [x] Add `MY_SIGNAL_2D` and `SVG` branches
+    - [x] Update integral calculation logic
+- [ ] Verification
+    - [ ] Verify spectrum for 1D signals
+    - [ ] Verify spectrum for 2D signals (SVG/Draw)
