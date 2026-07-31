@@ -1,30 +1,30 @@
-# Walkthrough - Fix Locale-Sensitive Numeric Formatting
+# Walkthrough - Fourier Series Export
 
-I have fixed the issue where sliders in the "Custom Mode -> Signal" edit menu would jump to 0 immediately upon interaction. This was caused by locale-sensitive decimal separators (commas) breaking the internal numeric parsing.
+I have implemented an "Export" feature that allows you to copy the mathematical formulas for your current Fourier series (both normal and complex forms) directly from the simulation.
 
 ## Changes Made
 
-### Unified Numeric Formatting
+### Mathematical Generation
 
-#### [FourierSeries.kt](file:///C:/Users/Yasin/AndroidStudioProjects/Matharium/app/src/main/java/com/example/matharium/fourier/FourierSeries.kt)
-- **Locale-Aware Formatting**: Updated all numeric formatting logic for `SignalInstance` to explicitly use `java.util.Locale.US`.
-- **Consistency**: This ensures that regardless of the device locale (e.g., German, Persian), decimal values are always stored and parsed using the dot (`.`) separator, which is what `toFloatOrNull()` expects.
-- **Affected Parameters**:
-    - Frequency (Hz)
-    - Amplitude
-    - Phase (Degrees)
+#### [NEW] [FourierExportLogic.kt](file:///C:/Users/Yasin/AndroidStudioProjects/Matharium/app/src/main/java/com/example/matharium/fourier/FourierExportLogic.kt)
+- **Series Formatting**: Created a logic helper to generate human-readable string representations of the Fourier series.
+- **Normal Form**: Supports 1D waves ($f(t) = \sum A \cos(\dots)$) and 2D parametric curves ($x(t), y(t)$).
+- **Complex Form**: Generates the exponential form using Euler's formula ($e^{i\theta}$).
+- **Intelligent Filtering**: Automatically filters out terms with negligible amplitude to keep the formula concise.
 
-### Verification
+### UI Integration
 
-#### Unit Test Logic
-- Added a new test case `testLocaleSensitiveParsing` to [FourierLogicTest.kt](file:///C:/Users/Yasin/AndroidStudioProjects/Matharium/app/src/test/java/com/example/matharium/fourier/FourierLogicTest.kt).
-- The test demonstrates that:
-    1.  `"1,50".toFloatOrNull()` returns `null` (causing the jump to 0).
-    2.  Formatting with `Locale.US` produces `"1.50"`, which parses correctly back to `1.5f`.
+#### [FourierComponents.kt](file:///C:/Users/Yasin/AndroidStudioProjects/Matharium/app/src/main/java/com/example/matharium/fourier/FourierComponents.kt)
+- **Export Button**: Added an "Export" button next to the "Reset" button in the Decomposition boxes.
+- **Interactive Dialog**: Implemented a popup window that displays both formula versions in monospaced fields.
+- **Clipboard Support**: Integrated "Copy" buttons for each field using the system clipboard.
+- **Dynamic Updates**: The exported formulas automatically reflect any changes you make to the harmonics via the edit sliders.
 
-#### Manual Logic Review
-- Verified that all `String.format` calls in the settings UI now either use `Locale.US` or are only used for display (where locale-sensitive formatting is actually desired).
-- Confirmed that the `onValueChange` listeners in `FourierSeries.kt` correctly update the `SignalInstance` cache after formatting the string correctly.
+## Verification Results
 
-> [!NOTE]
-> This fix prevents the "jump to 0" bug for users with non-US regional settings while maintaining correct simulation behavior. All internal mathematical calculations already use `Float` values, so this change only affects how these values are serialized to strings in the UI state.
+- **1D Mode**: Verified that exporting a Square wave produces the correct trigonometric series with odd harmonics (1, 3, 5...).
+- **2D Mode**: Verified that complex shapes (like SVG or Draw 2D) produce parametric $x(t)$ and $y(t)$ formulas.
+- **Copy/Paste**: Confirmed that the "Copy" button correctly transfers the text to the system clipboard for use in other apps.
+
+> [!TIP]
+> You can use these exported formulas in graphing software like Desmos or in mathematical tools like WolframAlpha to further analyze your signals!

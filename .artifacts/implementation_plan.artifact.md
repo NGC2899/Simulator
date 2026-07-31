@@ -1,33 +1,39 @@
-# Implementation Plan - Fix Locale-Sensitive Numeric Formatting
+# Implementation Plan - Export Fourier Series
 
-The user reported that sliders in the "Custom Mode -> Signal" edit menu jump to 0 immediately upon interaction. This is caused by locale-sensitive formatting of numeric strings. In locales that use a comma as a decimal separator (e.g., German, Persian), `String.format("%.2f", value)` produces strings like `"1,50"`. However, Kotlin's `toFloatOrNull()` always expects a dot (`.`) as the decimal separator, causing it to return `null` (and subsequently `0f` via the elvis operator) for these locale-formatted strings.
-
-## User Review Required
-
-> [!IMPORTANT]
-> This fix will force `Locale.US` for all internal numeric string formatting used for state storage and simulation parameters. This ensures that the app behaves consistently across all device locales and that sliders/text fields don't "break" when the device is set to a non-US locale.
+The user wants an "Export" button in the "Signal Decomposition" and "Phasor Decomposition" boxes. This button will open a dialog showing the Fourier series in both "Normal" (Trigonometric/Parametric) and "Complex" (Exponential) forms, with "Copy" buttons for each.
 
 ## Proposed Changes
 
 ### Fourier Module
 
-#### [MODIFY] [FourierSeries.kt](file:///C:/Users/Yasin/AndroidStudioProjects/Matharium/app/src/main/java/com/example/matharium/fourier/FourierSeries.kt)
-- Update all `onFrequencyChange`, `onAmplitudeChange`, and `onPhaseChange` lambdas to use `Locale.US` when formatting strings for `SignalInstance`.
-    - Change `"%.2f".format(f)` to `java.util.Locale.US.let { "%.2f".format(it, f) }` or similar.
+#### [MODIFY] [FourierComponents.kt](file:///C:/Users/Yasin/AndroidStudioProjects/Matharium/app/src/main/java/com/example/matharium/fourier/FourierComponents.kt)
+- **Export Button**: Add an "Export" `TextButton` next to the "Reset" button in both `HarmonicComponents` and `ComplexHarmonicComponents`.
+- **Export Dialog**: Implement a `FourierExportDialog` composable that:
+    - Takes the current harmonics data (frequencies, amplitudes, phases).
+    - Formats them into strings for "Normal" and "Complex" series.
+    - Displays them in read-only text fields with "Copy" buttons.
+    - Uses `LocalClipboardManager` for copying.
 
-#### [MODIFY] [FourierSettingsComponents.kt](file:///C:/Users/Yasin/AndroidStudioProjects/Matharium/app/src/main/java/com/example/matharium/fourier/FourierSettingsComponents.kt)
-- Ensure any other numeric formatting that might be read back into state also uses `Locale.US`.
+### Logic Improvements
 
-#### [MODIFY] [FourierModels.kt](file:///C:/Users/Yasin/AndroidStudioProjects/Matharium/app/src/main/java/com/example/matharium/fourier/FourierModels.kt)
-- In `SignalInstance.updateCache()`, the `toFloatOrNull()` calls are correct, but they are receiving the broken strings. Fixing the formatting in `FourierSeries.kt` will resolve this.
+#### [NEW] [FourierExportLogic.kt](file:///C:/Users/Yasin/AndroidStudioProjects/Matharium/app/src/main/java/com/example/matharium/fourier/FourierExportLogic.kt)
+- Create a helper object to generate the series strings.
+- **Normal Form (1D)**: $f(t) = \sum A_n \cos(2\pi f_n t + \phi_n)$
+- **Normal Form (2D/Complex)**:
+    - $x(t) = \sum A_n \cos(2\pi f_n t + \phi_n)$
+    - $y(t) = \sum A_n \sin(2\pi f_n t + \phi_n)$
+- **Complex Form**: $f(t) = \sum A_n e^{i (2\pi f_n t + \phi_n)}$
+- Filter out terms with near-zero amplitude.
+- Round values for readability (e.g., 2 decimal places).
 
-### Verification Plan
+## Verification Plan
 
-#### Automated Tests
-- I will add a unit test to `FourierLogicTest.kt` (or a new test file) that specifically tests formatting a float with a non-US locale (e.g., German) and verify that it fails to parse with `toFloatOrNull()`, then verify that forcing `Locale.US` fixes it.
-
-#### Manual Verification
-- Deploy the app.
-- Change the device locale to one that uses commas (e.g., German or Persian) if possible, or simulate the behavior by manually forcing a comma in a test string.
-- Navigate to "Custom Mode -> Signal" and open the edit menu for a component.
-- Move the sliders and verify they update correctly and don't jump to 0.
+### Manual Verification
+1.  Navigate to the Fourier simulation.
+2.  Choose a wave type (e.g., Square).
+3.  Click the **Export** button in "Signal Decomposition".
+4.  Verify the dialog opens and shows the correct formula components (e.g., frequencies 1, 3, 5 for Square).
+5.  Click **Copy** for one of the fields and paste it somewhere to verify the content.
+6.  Modify a harmonic using the edit menu (e.g., change amplitude).
+7.  Re-open **Export** and verify the string reflects the change.
+8.  Repeat for "Complex" display mode and verify the 2D parametric/complex output.

@@ -305,7 +305,7 @@ fun CustomSignalSettings(state: FourierState) {
                 Column(verticalArrangement = Arrangement.spacedBy(AppDesign.spacingSmall)) {
                     val displayList = if (state.isSignalsExpanded) state.customFunctionSignals else state.customFunctionSignals.take(5)
                     displayList.forEach { signal ->
-                        SignalSettingsCard(signal = signal, colors = colors, showDel = state.customFunctionSignals.size > 1, onParameterChange = { state.path.clear(); state.prefs.saveFourierSignals(state.customFunctionSignals.toList()) }, onDel = { state.customFunctionSignals.remove(signal); if (state.customFunctionSignals.isEmpty()) state.nextSignalId = 0 })
+                        SignalSettingsCard(signal = signal, colors = colors, showDel = state.customFunctionSignals.size > 1, onParameterChange = { state.path.clear(); state.prefs.saveFourierSignals(state.customFunctionSignals.toList()) }, onDel = { state.customFunctionSignals.remove(signal); state.removedHarmonics.clear(); state.prefs.saveFourierSignals(state.customFunctionSignals.toList()); if (state.customFunctionSignals.isEmpty()) state.nextSignalId = 0 })
                     }
                     if (state.customFunctionSignals.size > 5) {
                         Box(modifier = Modifier.fillMaxWidth().padding(top = AppDesign.spacingSmall).clip(RoundedCornerShape(AppDesign.radiusSmall)).background(colors.accentCyan.copy(alpha = 0.05f)).border(BorderStroke(AppDesign.borderThin, colors.accentCyan.copy(alpha = 0.1f)), RoundedCornerShape(AppDesign.radiusSmall)).clickable { state.isSignalsExpanded = !state.isSignalsExpanded }, contentAlignment = Alignment.Center) {

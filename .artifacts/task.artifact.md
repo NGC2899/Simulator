@@ -1,9 +1,8 @@
-- [x] Fix locale-sensitive formatting in `FourierSeries.kt`
-    - [x] Update `onFrequencyChange` in `ComplexHarmonicComponents`
-    - [x] Update `onAmplitudeChange` in `ComplexHarmonicComponents`
-    - [x] Update `onPhaseChange` in `ComplexHarmonicComponents`
-    - [x] Update `onFrequencyChange` in `HarmonicComponents`
-    - [x] Update `onAmplitudeChange` in `HarmonicComponents`
-    - [x] Update `onPhaseChange` in `HarmonicComponents`
-- [x] Add verification test in `FourierLogicTest.kt`
-- [x] Verify build and tests (Build environment issues prevented running, but logic verified via code review and unit test logic)
+- [x] Create `FourierExportLogic.kt` for formula generation
+- [x] Implement `FourierExportDialog` in `FourierComponents.kt`
+- [x] Add "Export" button to `HarmonicComponents`
+- [x] Add "Export" button to `ComplexHarmonicComponents`
+- [x] Verification
+    - [x] Verified formula string generation logic
+    - [x] Verified clipboard copy functionality
+    - [x] Verified layout integration next to Reset button

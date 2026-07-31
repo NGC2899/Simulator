@@ -181,10 +181,13 @@ class FourierState(
                     }
                 }
                 WaveType.PURE_SIGNAL -> {
+                    val limit = nTerms.coerceAtMost(customFunctionSignals.size)
                     List(samplesCount) { i ->
                         val t = i.toFloat() / samplesCount
                         var sum = 0f
-                        for (sig in customFunctionSignals) {
+                        for (j in 0 until limit) {
+                            if (removedHarmonics[j] == true) continue
+                            val sig = customFunctionSignals[j]
                             if (sig.isPaused) continue
                             sum += sig.cachedAmp * kotlin.math.sin(2 * kotlin.math.PI.toFloat() * sig.cachedFreq * t + sig.cachedPhase)
                         }
@@ -241,6 +244,7 @@ class FourierState(
             if (waveType == WaveType.PURE_SIGNAL) {
                 val limit = nTerms.coerceAtMost(customFunctionSignals.size)
                 for (i in 0 until limit) {
+                    if (removedHarmonics[i] == true) continue
                     val signal = customFunctionSignals[i]
                     if (signal.isPaused) continue
                     val freq = harmonicFrequencies[i] ?: signal.cachedFreq
