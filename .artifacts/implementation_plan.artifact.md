@@ -1,43 +1,33 @@
-# Implementation Plan - Fix SVG Input and UI
+# Implementation Plan - Fix Locale-Sensitive Numeric Formatting
 
-The user reported that "svg input does not work". Investigation revealed two main issues:
-1. **Parser Fragility**: The SVG parser in `FourierLogic.kt` is extremely restrictive. It throws an exception if it encounters any tag not in a small whitelist (like `<circle>`, `<rect>`, or `<metadata>`), which are common in real-world SVGs. It also fails to parse paths with single quotes or commas.
-2. **UI Integration**: The `svgPickerLauncher` is passed to `FourierSettingsCard` but never used or passed further down to the components that should trigger it.
+The user reported that sliders in the "Custom Mode -> Signal" edit menu jump to 0 immediately upon interaction. This is caused by locale-sensitive formatting of numeric strings. In locales that use a comma as a decimal separator (e.g., German, Persian), `String.format("%.2f", value)` produces strings like `"1,50"`. However, Kotlin's `toFloatOrNull()` always expects a dot (`.`) as the decimal separator, causing it to return `null` (and subsequently `0f` via the elvis operator) for these locale-formatted strings.
 
 ## User Review Required
 
 > [!IMPORTANT]
-> I will be removing the strict tag validation that causes crashes. The app will now ignore unknown tags and extract whatever path data it can find. This is a much more robust approach for user-provided files.
+> This fix will force `Locale.US` for all internal numeric string formatting used for state storage and simulation parameters. This ensures that the app behaves consistently across all device locales and that sliders/text fields don't "break" when the device is set to a non-US locale.
 
 ## Proposed Changes
 
-### Logic Improvements
+### Fourier Module
 
-#### [MODIFY] [FourierLogic.kt](file:///C:/Users/Yasin/AndroidStudioProjects/Matharium/app/src/main/java/com/example/matharium/fourier/FourierLogic.kt)
-- **Relax Tag Validation**: Remove the `IllegalArgumentException` for unknown tags.
-- **Robust Attribute Parsing**: Update `dPattern` to support both `d="..."` and `d='...'`.
-- **Better Tokenization**: Update `tokenRegex` to explicitly handle (or skip) commas between coordinates.
-- **Improved MoveTo (`m/M`)**: Correctly handle implicit line commands for multiple coordinate pairs following a MoveTo command.
-
-### UI Integration
-
-#### [MODIFY] [FourierSettings.kt](file:///C:/Users/Yasin/AndroidStudioProjects/Matharium/app/src/main/java/com/example/matharium/fourier/FourierSettings.kt)
-- Pass `svgPickerLauncher` to `WaveTypeSelector` and `SVGSettings`.
+#### [MODIFY] [FourierSeries.kt](file:///C:/Users/Yasin/AndroidStudioProjects/Matharium/app/src/main/java/com/example/matharium/fourier/FourierSeries.kt)
+- Update all `onFrequencyChange`, `onAmplitudeChange`, and `onPhaseChange` lambdas to use `Locale.US` when formatting strings for `SignalInstance`.
+    - Change `"%.2f".format(f)` to `java.util.Locale.US.let { "%.2f".format(it, f) }` or similar.
 
 #### [MODIFY] [FourierSettingsComponents.kt](file:///C:/Users/Yasin/AndroidStudioProjects/Matharium/app/src/main/java/com/example/matharium/fourier/FourierSettingsComponents.kt)
-- **`WaveTypeSelector`**: Update signature to accept `svgPickerLauncher`. Launch the picker when `WaveType.SVG` is selected or clicked.
-- **`SVGSettings`**: Update signature to accept `svgPickerLauncher`. Add an "Import/Change SVG" button to allow users to pick a different file.
+- Ensure any other numeric formatting that might be read back into state also uses `Locale.US`.
 
-## Verification Plan
+#### [MODIFY] [FourierModels.kt](file:///C:/Users/Yasin/AndroidStudioProjects/Matharium/app/src/main/java/com/example/matharium/fourier/FourierModels.kt)
+- In `SignalInstance.updateCache()`, the `toFloatOrNull()` calls are correct, but they are receiving the broken strings. Fixing the formatting in `FourierSeries.kt` will resolve this.
 
-### Automated Tests
-- I will create a scratch script `verify_svg_fix.kt` to test the updated `extractPointsFromSVG` with:
-    - SVGs containing `<circle>`, `<metadata>`, etc.
-    - Paths with commas and single quotes.
-    - Paths with scientific notation.
+### Verification Plan
 
-### Manual Verification
+#### Automated Tests
+- I will add a unit test to `FourierLogicTest.kt` (or a new test file) that specifically tests formatting a float with a non-US locale (e.g., German) and verify that it fails to parse with `toFloatOrNull()`, then verify that forcing `Locale.US` fixes it.
+
+#### Manual Verification
 - Deploy the app.
-- Select "Import SVG" in the Signal Settings.
-- Verify the file picker opens.
-- Import a sample SVG and verify it renders in the preview and simulation.
+- Change the device locale to one that uses commas (e.g., German or Persian) if possible, or simulate the behavior by manually forcing a comma in a test string.
+- Navigate to "Custom Mode -> Signal" and open the edit menu for a component.
+- Move the sliders and verify they update correctly and don't jump to 0.

@@ -34,4 +34,18 @@ class FourierLogicTest {
         val points = FourierLogic.extractPointsFromSVG(svgContent)
         assertTrue("Should handle scientific notation", points.isNotEmpty())
     }
+
+    @Test
+    fun testLocaleSensitiveParsing() {
+        val value = 1.5f
+        // Simulate a locale that uses comma as decimal separator
+        val formattedWithComma = "1,50" 
+        val parsedWithComma = formattedWithComma.toFloatOrNull()
+        assertTrue("Standard toFloatOrNull fails with comma: $formattedWithComma", parsedWithComma == null)
+
+        // Verify that forcing Locale.US during formatting fixes the issue
+        val formattedWithUS = String.format(java.util.Locale.US, "%.2f", value)
+        val parsedWithUS = formattedWithUS.toFloatOrNull()
+        assertTrue("Parsing works when formatted with Locale.US: $formattedWithUS", parsedWithUS == 1.5f)
+    }
 }
