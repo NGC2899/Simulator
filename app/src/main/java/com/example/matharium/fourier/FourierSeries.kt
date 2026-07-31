@@ -161,6 +161,9 @@ fun FourierSeries() {
         )
 
         Column(modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(AppDesign.spacingLarge)) {
+
+            SimulatorEnvironmentSettings(state)
+
             FourierSettingsCard(state, svgPickerLauncher)
             
             when (state.displayMode) {
@@ -202,8 +205,6 @@ fun FourierSeries() {
                     onResetHarmonics = { state.pausedHarmonics.clear(); state.removedHarmonics.clear(); state.harmonicFrequencies.clear(); state.harmonicAmplitudes.clear(); state.harmonicPhases.clear(); when (state.waveType) { WaveType.MY_SIGNAL -> state.customCoefficients = state.baseCustomCoefficients; WaveType.MY_SIGNAL_2D -> state.customCoefficients2D = state.baseCustomCoefficients2D; WaveType.SVG -> state.svgCoefficients = state.baseSvgCoefficients; WaveType.FORMULA -> state.formulaCoefficients = state.baseFormulaCoefficients; WaveType.PURE_SIGNAL -> { state.customFunctionSignals.clear(); state.customFunctionSignals.addAll(state.prefs.loadFourierSignals(colors.accentCyan)) } else -> {} }; state.path.clear(); state.time = 0f }
                 )
             }
-
-            SimulatorEnvironmentSettings(state)
 
             GlassCard(colors = colors) {
                 Column(modifier = Modifier.padding(AppDesign.radiusLarge)) {

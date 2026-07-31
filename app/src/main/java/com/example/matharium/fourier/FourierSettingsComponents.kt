@@ -28,9 +28,14 @@ import androidx.compose.ui.unit.sp
 import com.example.matharium.R
 import com.example.matharium.app.*
 import java.util.Locale
+import android.net.Uri
+import androidx.activity.compose.ManagedActivityResultLauncher
 
 @Composable
-fun WaveTypeSelector(state: FourierState) {
+fun WaveTypeSelector(
+    state: FourierState,
+    svgPickerLauncher: ManagedActivityResultLauncher<String, Uri?>
+) {
     val colors = state.colors
     Text("Wave Type", color = colors.textSecondary, fontSize = AppDesign.textBody)
     Row(
@@ -69,7 +74,7 @@ fun WaveTypeSelector(state: FourierState) {
                         if (type == WaveType.SVG) {
                             state.running = false
                             state.time = 0f
-                            // SVG Picker is launched by the parent
+                            svgPickerLauncher.launch("image/svg+xml")
                         }
                         if (type == WaveType.MY_SIGNAL && state.drawingPoints.isEmpty()) {
                             repeat(state.samplesCount) { state.drawingPoints.add(0f) }
@@ -98,7 +103,7 @@ fun WaveTypeSelector(state: FourierState) {
 @Composable
 fun DrawingCanvas(state: FourierState) {
     val colors = state.colors
-    Column(modifier = Modifier.padding(top = AppDesign.radiusLarge)) {
+    Column {
         Row(
             modifier = Modifier.fillMaxWidth().height(AppDesign.chipHeight + 8.dp),
             horizontalArrangement = Arrangement.spacedBy(AppDesign.spacingSmall),
@@ -233,7 +238,7 @@ fun DrawingCanvas(state: FourierState) {
 @Composable
 fun CustomSignalSettings(state: FourierState) {
     val colors = state.colors
-    Column(modifier = Modifier.padding(top = AppDesign.radiusLarge)) {
+    Column {
         Row(
             modifier = Modifier.fillMaxWidth().height(AppDesign.chipHeight + 8.dp),
             horizontalArrangement = Arrangement.spacedBy(AppDesign.spacingSmall),
@@ -325,10 +330,13 @@ fun CustomSignalSettings(state: FourierState) {
 }
 
 @Composable
-fun SVGSettings(state: FourierState) {
+fun SVGSettings(
+    state: FourierState,
+    svgPickerLauncher: ManagedActivityResultLauncher<String, Uri?>
+) {
     val colors = state.colors
     val density = androidx.compose.ui.platform.LocalContext.current.resources.displayMetrics.density
-    Column(modifier = Modifier.padding(top = AppDesign.radiusLarge)) {
+    Column {
         Text("SVG Path Preview", color = colors.accentCyan, fontSize = AppDesign.textBody, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(AppDesign.radiusSmall))
         Box(modifier = Modifier.fillMaxWidth().height(AppDesign.drawingAreaHeight).background(colors.cardSurface.copy(alpha = 0.2f), RoundedCornerShape(AppDesign.radiusSmall)).border(AppDesign.borderThin, colors.cardBorder.copy(alpha = 0.3f), RoundedCornerShape(AppDesign.radiusSmall))) {
@@ -349,11 +357,42 @@ fun SVGSettings(state: FourierState) {
             }
         }
         Spacer(Modifier.height(AppDesign.spacingMedium))
-        Box(modifier = Modifier.height(AppDesign.buttonHeightSmall).clip(RoundedCornerShape(AppDesign.radiusButton)).background(colors.accentHell.copy(alpha = AppDesign.opacityLow)).border(AppDesign.borderThin, colors.accentHell.copy(alpha = AppDesign.opacityMedium), RoundedCornerShape(AppDesign.radiusButton)).clickable { state.clearSVG() }, contentAlignment = Alignment.Center) {
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = AppDesign.spacingMedium)) {
-                Icon(painter = painterResource(id = R.drawable.trash_outline), null, tint = colors.accentHell, modifier = Modifier.size(AppDesign.iconSmall))
-                Spacer(Modifier.width(AppDesign.spacingSmall))
-                Text("Clear SVG", fontSize = AppDesign.textSmall, color = colors.accentHell, fontWeight = FontWeight.Bold)
+        
+        Row(horizontalArrangement = Arrangement.spacedBy(AppDesign.spacingMedium)) {
+            // Import/Change button
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(AppDesign.buttonHeightSmall)
+                    .clip(RoundedCornerShape(AppDesign.radiusButton))
+                    .background(colors.accentCyan.copy(alpha = AppDesign.opacityLow))
+                    .border(AppDesign.borderThin, colors.accentCyan.copy(alpha = AppDesign.opacityMedium), RoundedCornerShape(AppDesign.radiusButton))
+                    .clickable { svgPickerLauncher.launch("image/svg+xml") },
+                contentAlignment = Alignment.Center
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = AppDesign.spacingMedium)) {
+                    Icon(painter = painterResource(id = R.drawable.cloud), null, tint = colors.accentCyan, modifier = Modifier.size(AppDesign.iconSmall))
+                    Spacer(Modifier.width(AppDesign.spacingSmall))
+                    Text(if (state.svgPoints.isEmpty()) "Import SVG" else "Change SVG", fontSize = AppDesign.textSmall, color = colors.accentCyan, fontWeight = FontWeight.Bold)
+                }
+            }
+
+            // Clear button
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(AppDesign.buttonHeightSmall)
+                    .clip(RoundedCornerShape(AppDesign.radiusButton))
+                    .background(colors.accentHell.copy(alpha = AppDesign.opacityLow))
+                    .border(AppDesign.borderThin, colors.accentHell.copy(alpha = AppDesign.opacityMedium), RoundedCornerShape(AppDesign.radiusButton))
+                    .clickable { state.clearSVG() },
+                contentAlignment = Alignment.Center
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = AppDesign.spacingMedium)) {
+                    Icon(painter = painterResource(id = R.drawable.trash_outline), null, tint = colors.accentHell, modifier = Modifier.size(AppDesign.iconSmall))
+                    Spacer(Modifier.width(AppDesign.spacingSmall))
+                    Text("Clear SVG", fontSize = AppDesign.textSmall, color = colors.accentHell, fontWeight = FontWeight.Bold)
+                }
             }
         }
     }

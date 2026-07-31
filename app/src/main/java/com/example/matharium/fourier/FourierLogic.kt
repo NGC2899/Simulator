@@ -114,21 +114,15 @@ object FourierLogic {
     fun extractPointsFromSVG(svgContent: String): List<Offset> {
         val rawPoints = mutableListOf<Offset>()
         try {
-            val tagPattern = "<([a-zA-Z0-9]+)".toRegex()
-            val matches = tagPattern.findAll(svgContent)
-            for (match in matches) {
-                val tagName = match.groupValues[1].lowercase()
-                if (tagName != "svg" && tagName != "path" && tagName != "g" && tagName != "defs" && tagName != "style") {
-                    throw IllegalArgumentException("SVG contains unsupported element: $tagName. Only paths are allowed.")
-                }
-            }
-
-            val dPattern = "d=\"([^\"]+)\"".toRegex()
+            // Relaxed: Extract path data from all 'd' attributes, ignore unknown tags
+            val dPattern = "d=(?:\"|')([^\"']+)(?:\"|')".toRegex()
             val dMatches = dPattern.findAll(svgContent)
             
             for (dMatch in dMatches) {
                 val d = dMatch.groupValues[1]
                 val tokens = mutableListOf<String>()
+                // tokenRegex captures commands and numbers (including scientific notation). 
+                // Commas and whitespace are naturally skipped as they don't match.
                 val tokenRegex = "([a-df-z])|(-?\\d*\\.?\\d+(?:e[-+]?\\d+)?)"
                 val matcher = java.util.regex.Pattern.compile(tokenRegex, java.util.regex.Pattern.CASE_INSENSITIVE).matcher(d)
                 while (matcher.find()) {

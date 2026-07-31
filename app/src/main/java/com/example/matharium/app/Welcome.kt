@@ -95,7 +95,7 @@ fun WelcomeScreen(
                         title = "Fourier\nSeries",
                         colors = colors,
                         onClick = onNavigateToFourierSeries,
-                        iconRes = R.drawable.fourier_waves
+                        iconRes = R.drawable.menu_outline
                     )
                 }
             }

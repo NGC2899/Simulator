@@ -51,19 +51,19 @@ fun FourierSettingsCard(
 
             AnimatedVisibility(visible = isSettingsExpanded) {
                 Column(modifier = Modifier.padding(top = AppDesign.radiusLarge)) {
-                    WaveTypeSelector(state)
+                    WaveTypeSelector(state, svgPickerLauncher)
 
                     Spacer(modifier = Modifier.height(AppDesign.spacingLarge))
-                    HorizontalDivider(color = colors.cardBorder.copy(alpha = 0.2f))
 
                     when (state.waveType) {
                         WaveType.MY_SIGNAL, WaveType.MY_SIGNAL_2D -> DrawingCanvas(state)
                         WaveType.PURE_SIGNAL, WaveType.FORMULA -> CustomSignalSettings(state)
-                        WaveType.SVG -> SVGSettings(state)
+                        WaveType.SVG -> SVGSettings(state, svgPickerLauncher)
                         else -> {}
                     }
 
                     AnimatedVisibility(visible = state.displayMode == FourierDisplayMode.WRAPPING) {
+                        HorizontalDivider(color = colors.cardBorder.copy(alpha = 0.2f))
                         LabeledSlider(
                             label = "Winding Frequency",
                             valueDisplay = String.format(Locale.US, "%.2f Hz", state.windingFrequency),

@@ -1,0 +1,12 @@
+- [x] Fix SVG Parsing Logic in `FourierLogic.kt`
+    - [x] Relax tag validation (ignore unknown tags)
+    - [x] Support single/double quotes for `d` attribute
+    - [x] Handle commas in tokenization
+    - [x] Improve `m/M` command handling (implicit lines)
+- [x] Connect SVG Picker UI
+    - [x] Update `FourierSettings.kt` to pass launcher
+    - [x] Update `WaveTypeSelector` to trigger launcher
+    - [x] Update `SVGSettings` to include a "Change SVG" button
+- [ ] Verification
+    - [x] Created unit test `FourierLogicTest.kt` (Build issues prevented running, but logic verified manually)
+    - [ ] Build and verify (simulated)
