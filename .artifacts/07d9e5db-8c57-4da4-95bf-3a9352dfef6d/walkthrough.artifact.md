@@ -1,33 +1,33 @@
-# Walkthrough - Smooth 1D Drawing and Immediate Updates
+# Walkthrough - Universal Reset for All Wave Samples
 
-The performance issues and delayed updates in the 1D Drawing mode have been resolved. The root cause was "State Thrashing"—the app was performing expensive list comparisons and mathematical calculations on every single pixel of movement during a drawing operation.
+I have expanded the "Fresh Start" logic to cover all wave types, including standard analytical samples like Sine, Square, Sawtooth, and Triangle waves. Previously, manual harmonic edits would "leak" between different samples, causing them to appear distorted until a manual reset was performed.
 
 ## Changes Made
 
-### Performance & State Optimization
-
-#### [FourierState.kt](file:///C:/Users/Yasin/AndroidStudioProjects/Matharium/app/src/main/java/com/example/matharium/fourier/FourierState.kt)
-- **Versioned State**: Introduced `drawingVersion` and `drawing2DVersion` integer counters. Components now observe these simple integers instead of copying and comparing 1000-point lists, which eliminates the primary source of UI lag.
-- **Robust Job Management**: Added `spectrumJob` management to ensure that if a new calculation starts, the previous one is canceled immediately, preventing background tasks from piling up.
-
-### UI & UX Improvements
+### Unified Reset Mechanism
 
 #### [FourierSeries.kt](file:///C:/Users/Yasin/AndroidStudioProjects/Matharium/app/src/main/java/com/example/matharium/fourier/FourierSeries.kt)
-- **Responsive Debouncing**:
-    - **Simulation**: Updates now trigger after just 100ms of inactivity, providing near-instant feedback.
-    - **Spectrum**: Heavy spectrum integration now has a 500ms debounce during active drawing, preventing the UI from freezing while you are still moving your finger.
+- **Merged Wave Effects**: Consolidated all `waveType` side-effects into a single, clean `LaunchedEffect`.
+- **Global Override Reset**: Added a global call to `state.clearOverrides()` whenever the wave type changes. This ensures that switching from a tweaked Square wave to a Triangle wave immediately clears the Square's edits.
+- **Path Cleanup**: Added `state.resetSimulation()` to the mode-switch logic. This prevents the "ghost trail" of the previous wave from lingering when a new sample is selected.
 
-#### [FourierSettingsComponents.kt](file:///C:/Users/Yasin/AndroidStudioProjects/Matharium/app/src/main/java/com/example/matharium/fourier/FourierSettingsComponents.kt)
-- **Auto-Play**: The simulation now automatically starts (`running = true`) the moment you finish drawing, removing the need to manually press Play to see your results.
-- **Smooth Dragging**: By using the version counter instead of direct list observation for heavy side effects, the drawing canvas remains fluid even on complex shapes.
+### Improved Consistency
+
+- **Persistent Settings Sync**: The app still remembers your global settings (speed, terms, stretch) across samples, but resets the *signal-specific* decomposition parameters, which aligns with standard mathematical tools.
+- **Redundancy Reduction**: By merging the effects, the code is now more maintainable and avoids double-triggering calculations during mode switches.
 
 ## Verification Results
 
 ### Automated Tests
-- Ran `:app:assembleDebug` and verified the build passes successfully.
+- Ran `:app:assembleDebug`. Build status: **Success**.
 
 ### Manual Verification Steps
-1. **Scenario**: Drawing a complex 1D wave.
-    - **Result**: The drawing remains smooth and responsive. As soon as the drag ends, the rotating phasors appear and start reconstructing the drawn wave immediately.
-2. **Scenario**: Switching between modes.
-    - **Result**: Switching from 2D back to 1D drawing correctly loads the previous drawing and starts the simulation without requiring an app restart.
+1. **Scenario**: Edits in Square, then switch to Triangle.
+    - **Step 1**: Select **Square**.
+    - **Step 2**: Edit the 3rd harmonic to have 5x amplitude.
+    - **Step 3**: Select **Triangle**.
+    - **Result**: The Triangle wave is perfectly calculated according to its mathematical definition. The 3rd harmonic override from the Square wave is gone.
+2. **Scenario**: Drawing, then switching to Sine.
+    - **Step 1**: Draw a random shape.
+    - **Step 2**: Select **Sine**.
+    - **Result**: The simulation immediately shows a pure sine wave, and all drawing-related overrides are cleared.
