@@ -1,0 +1,3 @@
+- [x] Fix redundant Y-negation in `FourierSeries.kt`
+- [x] Verify the fix
+- [x] Create walkthrough

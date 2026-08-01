@@ -121,7 +121,7 @@ fun FourierSeries() {
                     val inputStream = context.contentResolver.openInputStream(it)
                     val content = inputStream?.bufferedReader()?.use { reader -> reader.readText() }
                     if (content != null) {
-                        val points = FourierLogic.extractPointsFromSVG(content).map { pt -> Offset(pt.x, -pt.y) }
+                        val points = FourierLogic.extractPointsFromSVG(content)
                         withContext(Dispatchers.Main) {
                             state.svgPoints.clear()
                             state.svgPoints.addAll(points)
