@@ -434,6 +434,7 @@ class FourierState(
     }
 
     fun clearDrawing() {
+        clearOverrides()
         drawingPoints.clear()
         repeat(samplesCount) { drawingPoints.add(0f) }
         prefs.drawingPoints = emptyList()
@@ -443,6 +444,7 @@ class FourierState(
     }
 
     fun clearDrawing2D() {
+        clearOverrides()
         drawingPoints2D.clear()
         resampledPoints2D.clear()
         prefs.drawingPoints2D = emptyList()
@@ -452,6 +454,7 @@ class FourierState(
     }
 
     fun clearSVG() {
+        clearOverrides()
         svgPoints.clear()
         prefs.fourierSvgPoints = emptyList()
         svgCoefficients = emptyList()

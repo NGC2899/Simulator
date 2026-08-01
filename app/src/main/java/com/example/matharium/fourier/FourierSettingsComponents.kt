@@ -142,6 +142,7 @@ fun DrawingCanvas(state: FourierState) {
                         var lastY = 0f
                         detectDragGestures(
                             onDragStart = { offset ->
+                                state.clearOverrides()
                                 state.running = false
                                 state.path.clear()
                                 state.time = 0f
@@ -174,6 +175,7 @@ fun DrawingCanvas(state: FourierState) {
                     } else {
                         detectDragGestures(
                             onDragStart = { offset ->
+                                state.clearOverrides()
                                 state.running = false
                                 state.path.clear()
                                 state.time = 0f
@@ -299,7 +301,7 @@ fun CustomSignalSettings(state: FourierState) {
                 Box(
                     modifier = Modifier.weight(0.5f).fillMaxHeight().clip(RoundedCornerShape(AppDesign.radiusButton)).background(colors.accentHell.copy(alpha = 0.1f))
                         .border(BorderStroke(AppDesign.borderThin, colors.accentHell.copy(alpha = 0.3f)), RoundedCornerShape(AppDesign.radiusButton))
-                        .clickable { state.customFunctionSignals.clear(); state.nextSignalId = 0; state.running = false; state.path.clear() },
+                        .clickable { state.clearOverrides(); state.customFunctionSignals.clear(); state.nextSignalId = 0; state.running = false; state.path.clear() },
                     contentAlignment = Alignment.Center
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
