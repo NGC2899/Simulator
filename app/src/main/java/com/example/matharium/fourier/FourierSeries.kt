@@ -48,14 +48,17 @@ fun FourierSeries() {
         if (state.waveType == WaveType.FORMULA) state.calculateDFT()
     }
 
-    LaunchedEffect(state.drawingPoints.toList()) {
-        kotlinx.coroutines.delay(500)
+    LaunchedEffect(state.drawingVersion) {
+        if (state.waveType == WaveType.MY_SIGNAL) {
+            kotlinx.coroutines.delay(100)
+            state.calculateDFT()
+        }
         state.prefs.drawingPoints = state.drawingPoints.toList()
     }
 
-    LaunchedEffect(state.drawingPoints2D.toList()) {
+    LaunchedEffect(state.drawing2DVersion) {
         if (state.waveType == WaveType.MY_SIGNAL_2D) {
-            kotlinx.coroutines.delay(150)
+            kotlinx.coroutines.delay(100)
             state.calculateDFT2D()
         }
         state.prefs.drawingPoints2D = state.drawingPoints2D.toList()
@@ -63,8 +66,8 @@ fun FourierSeries() {
     
     LaunchedEffect(state.waveType) {
         when (state.waveType) {
-            WaveType.MY_SIGNAL -> if (state.customCoefficients.isEmpty()) state.calculateDFT()
-            WaveType.MY_SIGNAL_2D -> if (state.customCoefficients2D.isEmpty()) state.calculateDFT2D()
+            WaveType.MY_SIGNAL -> state.calculateDFT()
+            WaveType.MY_SIGNAL_2D -> state.calculateDFT2D()
             WaveType.SVG -> if (state.svgCoefficients.isEmpty()) state.calculateSVGDFT()
             else -> {}
         }
@@ -84,7 +87,10 @@ fun FourierSeries() {
         }
     }
 
-    LaunchedEffect(state.waveType, state.drawingPoints.toList(), state.formulaString, state.customFunctionSignals.toList()) {
+    LaunchedEffect(state.waveType, state.drawingVersion, state.drawing2DVersion, state.formulaString, state.customFunctionSignals.toList()) {
+        if (state.waveType == WaveType.MY_SIGNAL || state.waveType == WaveType.MY_SIGNAL_2D) {
+            kotlinx.coroutines.delay(500)
+        }
         state.updateSpectrum()
     }
 

@@ -160,12 +160,16 @@ fun DrawingCanvas(state: FourierState) {
                                         val t = if (end == start) 1f else (i - lastIndex).toFloat() / (currentIndex - lastIndex)
                                         state.drawingPoints[i] = (lastY + (y - lastY) * t).coerceIn(-size.height / 2f, size.height / 2f)
                                     }
+                                    state.drawingVersion++
                                 }
                                 lastIndex = currentIndex
                                 lastY = y
-                                state.calculateDFT()
                             },
-                            onDragEnd = { state.prefs.drawingPoints = state.drawingPoints.toList() }
+                            onDragEnd = { 
+                                state.prefs.drawingPoints = state.drawingPoints.toList()
+                                state.running = true
+                                state.hasStarted = true
+                            }
                         )
                     } else {
                         detectDragGestures(
@@ -175,13 +179,19 @@ fun DrawingCanvas(state: FourierState) {
                                 state.time = 0f
                                 state.drawingPoints2D.clear()
                                 state.drawingPoints2D.add(offset - Offset(size.width / 2f, size.height / 2f))
+                                state.drawing2DVersion++
                             },
                             onDrag = { change, _ ->
                                 val halfWidth = size.width / 2f
                                 val halfHeight = size.height / 2f
                                 state.drawingPoints2D.add(Offset((change.position.x - halfWidth).coerceIn(-halfWidth, halfWidth), (change.position.y - halfHeight).coerceIn(-halfHeight, halfHeight)))
+                                state.drawing2DVersion++
                             },
-                            onDragEnd = { state.prefs.drawingPoints2D = state.drawingPoints2D.toList() }
+                            onDragEnd = { 
+                                state.prefs.drawingPoints2D = state.drawingPoints2D.toList()
+                                state.running = true
+                                state.hasStarted = true
+                            }
                         )
                     }
                 }

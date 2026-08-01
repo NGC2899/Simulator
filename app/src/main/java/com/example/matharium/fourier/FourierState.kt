@@ -54,6 +54,7 @@ class FourierState(
             repeat(samplesCount) { add(0f) }
         }
     }
+    var drawingVersion by mutableIntStateOf(0)
     var customCoefficients by mutableStateOf<List<Pair<Float, Float>>>(prefs.customCoefficients)
     var baseCustomCoefficients by mutableStateOf<List<Pair<Float, Float>>>(prefs.customCoefficients)
 
@@ -65,6 +66,7 @@ class FourierState(
             scope.launch { calculateDFT2D() }
         }
     }
+    var drawing2DVersion by mutableIntStateOf(0)
     val resampledPoints2D = mutableStateListOf<Offset>()
     var customCoefficients2D by mutableStateOf<List<FourierLogic.ComplexCoeff>>(prefs.customCoefficients2D)
     var baseCustomCoefficients2D by mutableStateOf<List<FourierLogic.ComplexCoeff>>(prefs.customCoefficients2D)
@@ -90,6 +92,7 @@ class FourierState(
     var spectrumData by mutableStateOf<List<FourierLogic.Complex>>(emptyList())
 
     private var dftJob: Job? = null
+    private var spectrumJob: Job? = null
 
     fun calculateDFT() {
         dftJob?.cancel()
@@ -175,7 +178,8 @@ class FourierState(
     }
 
     fun updateSpectrum() {
-        scope.launch(Dispatchers.Default) {
+        spectrumJob?.cancel()
+        spectrumJob = scope.launch(Dispatchers.Default) {
             val samples: List<FourierLogic.Complex> = when (waveType) {
                 WaveType.MY_SIGNAL -> {
                     val pts = if (drawingPoints.size == samplesCount) drawingPoints.toList()
