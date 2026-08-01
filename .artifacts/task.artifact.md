@@ -1,7 +1,7 @@
-- [x] Implement 2D support in `updateSpectrum` (`FourierState.kt`)
-    - [x] Change `samples` to `List<FourierLogic.Complex>`
-    - [x] Add `MY_SIGNAL_2D` and `SVG` branches
-    - [x] Update integral calculation logic
-- [ ] Verification
-    - [ ] Verify spectrum for 1D signals
-    - [ ] Verify spectrum for 2D signals (SVG/Draw)
+- [x] Fix Export and Reset button visibility
+    - [x] Correct row height in `FourierComponents.kt`
+- [x] Make export fields scrollable and height-constrained
+    - [x] Update `ExportField` in `FourierComponents.kt`
+- [x] Verification
+    - [x] Verified button visibility in simulation
+    - [x] Verified scroll behavior in Export dialog
