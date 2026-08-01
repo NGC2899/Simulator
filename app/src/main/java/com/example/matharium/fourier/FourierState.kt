@@ -402,9 +402,7 @@ class FourierState(
                     time, waveType, radiusBase, displayMode,
                     drawingPoints, drawingPoints2D, resampledPoints2D, svgPoints,
                     formulaString, customFunctionSignals,
-                    nTerms, removedHarmonics,
-                    harmonicFrequencies, harmonicAmplitudes, harmonicPhases,
-                    customCoefficients, formulaCoefficients, customCoefficients2D, svgCoefficients
+                    harmonicFrequencies, harmonicAmplitudes, harmonicPhases
                 )
                 val error = if (showErrorGradient) {
                     val isExplicitly2D = waveType == WaveType.MY_SIGNAL_2D || waveType == WaveType.SVG || waveType == WaveType.SINE || waveType == WaveType.PURE_SIGNAL
@@ -417,9 +415,7 @@ class FourierState(
                     time, waveType, radiusBase, displayMode,
                     drawingPoints, drawingPoints2D, resampledPoints2D, svgPoints,
                     formulaString, customFunctionSignals,
-                    nTerms, removedHarmonics,
-                    harmonicFrequencies, harmonicAmplitudes, harmonicPhases,
-                    customCoefficients, formulaCoefficients, customCoefficients2D, svgCoefficients
+                    harmonicFrequencies, harmonicAmplitudes, harmonicPhases
                 ).y
                 val error = if (showErrorGradient) kotlin.math.abs(approxY - targetY) else 0f
                 newPoints.add(0, PathPoint(Offset(time, approxY), error))

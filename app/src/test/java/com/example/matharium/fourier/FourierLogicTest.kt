@@ -86,10 +86,40 @@ class FourierLogicTest {
             svgPoints = emptyList(),
             formulaString = "",
             customFunctionSignals = customSignals,
-            nTerms = 1,
             harmonicAmplitudes = harmonicAmplitudes
         )
         // freq=1, time=0.25 -> angle = 2*PI*1*0.25 = PI/2. sin(PI/2)=1. y = -amp * sin = - (2.0 * 100) * 1 = -200
         assertTrue("Pure signal target should respect harmonic overrides: ${target.y}", Math.abs(target.y - (-200f)) < 0.1f)
+    }
+
+    @Test
+    fun testGetIdealValue_SquareWave() {
+        val targetFirstHalf = FourierLogic.getIdealValue(
+            time = 0.25f,
+            waveType = WaveType.SQUARE,
+            radiusBase = 100f,
+            displayMode = FourierDisplayMode.CIRCULAR,
+            drawingPoints = emptyList(),
+            drawingPoints2D = emptyList(),
+            resampledPoints2D = emptyList(),
+            svgPoints = emptyList(),
+            formulaString = "",
+            customFunctionSignals = emptyList()
+        )
+        assertTrue("Square wave first half should be -100 (up)", targetFirstHalf.y == -100f)
+
+        val targetSecondHalf = FourierLogic.getIdealValue(
+            time = 0.75f,
+            waveType = WaveType.SQUARE,
+            radiusBase = 100f,
+            displayMode = FourierDisplayMode.CIRCULAR,
+            drawingPoints = emptyList(),
+            drawingPoints2D = emptyList(),
+            resampledPoints2D = emptyList(),
+            svgPoints = emptyList(),
+            formulaString = "",
+            customFunctionSignals = emptyList()
+        )
+        assertTrue("Square wave second half should be 100 (down)", targetSecondHalf.y == 100f)
     }
 }

@@ -427,7 +427,7 @@ fun SimulatorEnvironmentSettings(state: FourierState) {
                     AnimatedVisibility(visible = state.displayMode == FourierDisplayMode.CIRCULAR) {
                         LabeledSlider(label = "Wave Stretch", valueDisplay = String.format(Locale.US, "%.0f dp", state.waveStretch), value = state.waveStretch, range = 30f..300f, colors = colors) { state.waveStretch = it }
                     }
-                    ToggleRow(label = "Enable error gradient (Doesn't function properly!)", checked = state.showErrorGradient, onCheckedChange = { state.showErrorGradient = it }, colors = colors)
+                    ToggleRow(label = "Enable error gradient", checked = state.showErrorGradient, onCheckedChange = { state.showErrorGradient = it }, colors = colors)
                     AnimatedVisibility(visible = state.showErrorGradient) {
                         LabeledSlider(label = "Error Sensitivity", valueDisplay = String.format(Locale.US, "%.0f%%", state.errorSensitivity), value = state.errorSensitivity, range = 1f..100f, colors = colors) { state.errorSensitivity = it }
                     }

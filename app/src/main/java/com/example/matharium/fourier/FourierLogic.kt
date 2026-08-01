@@ -267,7 +267,7 @@ object FourierLogic {
             return resampledPoints.map { 
                 val x = (it.x - avgX) * scale
                 val y = (it.y - avgY) * scale
-                if (x.isNaN() || y.isNaN()) Offset.Zero else Offset(x, y)
+                if (x.isNaN() || y.isNaN()) Offset.Zero else Offset(x, -y) // Negate Y to align with Math space
             }
             
         } catch (e: Exception) {
@@ -422,84 +422,104 @@ object FourierLogic {
         svgPoints: List<Offset>,
         formulaString: String,
         customFunctionSignals: List<SignalInstance>,
-        nTerms: Int = 250,
-        removedHarmonics: Map<Int, Boolean> = emptyMap(),
         harmonicFrequencies: Map<Int, Float> = emptyMap(),
         harmonicAmplitudes: Map<Int, Float> = emptyMap(),
-        harmonicPhases: Map<Int, Float> = emptyMap(),
-        customCoefficients: List<Pair<Float, Float>> = emptyList(),
-        formulaCoefficients: List<Pair<Float, Float>> = emptyList(),
-        customCoefficients2D: List<ComplexCoeff> = emptyList(),
-        svgCoefficients: List<ComplexCoeff> = emptyList()
+        harmonicPhases: Map<Int, Float> = emptyMap()
     ): Offset {
-        // To ensure the "Ideal Value" remains synced with manual harmonic edits,
-        // we calculate the sum of harmonics here, similar to updatePhysics.
-        // This ensures the reference line and the circles move together.
-        
+        // To unify and fix the error gradient logic, the "Ideal Value" now represents
+        // the true mathematical or sampled target signal, NOT the Fourier approximation.
+        // This allows the error gradient to reflect how well the series converges.
+
+        val normalizedT = ((time % 1f) + 1f) % 1f
         var sumX = 0f
         var sumY = 0f
-        val limit = if (waveType == WaveType.SINE) 1 else nTerms
-        
-        for (i in 0 until limit) {
-            if (removedHarmonics[i] == true) continue
-            // Note: pausedHarmonics check is omitted here as getIdealValue usually represents 
-            // the full signal, but for UI consistency with vectors, we should match.
-            // However, pausedHarmonics isn't passed here currently.
-            
-            val (defaultAmp, analyzedPhase, defaultN) = when (waveType) {
-                WaveType.SINE -> Triple(1.0f, 0f, 1f)
-                WaveType.SQUARE -> {
-                    val n = (i * 2 + 1).toFloat()
-                    Triple(4f / (n * PI.toFloat()), 0f, n)
+
+        when (waveType) {
+            WaveType.SINE -> {
+                val angle = 2 * PI.toFloat() * 1f * time
+                sumX = radiusBase * cos(angle)
+                sumY = -radiusBase * sin(angle)
+            }
+            WaveType.SQUARE -> {
+                val angle = 2 * PI.toFloat() * 1f * time
+                val value = if (sin(angle) >= 0) 1f else -1f
+                sumX = 0f // Squares are usually 1D in this app's context
+                sumY = -radiusBase * value
+            }
+            WaveType.SAWTOOTH -> {
+                // Sawtooth from 1 to -1 over one period
+                val value = 1f - 2f * normalizedT
+                sumX = 0f
+                sumY = -radiusBase * value
+            }
+            WaveType.TRIANGLE -> {
+                // Triangle from 0 to 1 to 0 to -1 to 0
+                val t = normalizedT * 4f
+                val value = when {
+                    t < 1f -> t
+                    t < 3f -> 2f - t
+                    else -> t - 4f
                 }
-                WaveType.SAWTOOTH -> {
-                    val n = (i + 1).toFloat()
-                    val sign = if (n.toInt() % 2 == 0) -1f else 1f
-                    Triple((2f / (n * PI.toFloat())) * sign, 0f, n)
-                }
-                WaveType.TRIANGLE -> {
-                    val n = (i * 2 + 1).toFloat()
-                    val sign = if (((n.toInt() - 1) / 2) % 2 != 0) -1f else 1f
-                    Triple((8f / (n * n * PI.toFloat() * PI.toFloat())) * sign, 0f, n)
-                }
-                WaveType.MY_SIGNAL -> {
-                    if (i < customCoefficients.size) {
-                        Triple(customCoefficients[i].first, -customCoefficients[i].second + (PI.toFloat() / 2f), i.toFloat())
-                    } else Triple(0f, 0f, i.toFloat())
-                }
-                WaveType.FORMULA -> {
-                    if (i < formulaCoefficients.size) {
-                        Triple(formulaCoefficients[i].first, -formulaCoefficients[i].second + (PI.toFloat() / 2f), i.toFloat())
-                    } else Triple(0f, 0f, i.toFloat())
-                }
-                WaveType.MY_SIGNAL_2D -> {
-                    if (i < customCoefficients2D.size) {
-                        val c = customCoefficients2D[i]
-                        Triple(c.amp, c.phase, c.freq.toFloat())
-                    } else Triple(0f, 0f, 0f)
-                }
-                WaveType.SVG -> {
-                    if (i < svgCoefficients.size) {
-                        val c = svgCoefficients[i]
-                        Triple(c.amp, c.phase, c.freq.toFloat())
-                    } else Triple(0f, 0f, 0f)
-                }
-                WaveType.PURE_SIGNAL -> {
-                    if (i < customFunctionSignals.size) {
-                        val s = customFunctionSignals[i]
-                        if (s.isPaused) Triple(0f, 0f, 0f)
-                        else Triple(s.amp.toFloatOrNull() ?: 0f, s.cachedPhase, s.freq.toFloatOrNull() ?: 0f)
-                    } else Triple(0f, 0f, 0f)
+                sumX = 0f
+                sumY = -radiusBase * value
+            }
+            WaveType.MY_SIGNAL -> {
+                if (drawingPoints.isNotEmpty()) {
+                    val floatIdx = normalizedT * (drawingPoints.size - 1)
+                    val i1 = floatIdx.toInt()
+                    val i2 = (i1 + 1).coerceAtMost(drawingPoints.size - 1)
+                    val frac = floatIdx - i1
+                    // drawingPoints stores raw pixel offsets which are already screen-aligned (Y-down)
+                    val y = drawingPoints[i1] * (1 - frac) + drawingPoints[i2] * frac
+                    sumX = 0f
+                    sumY = y
                 }
             }
-            
-            val amp = (harmonicAmplitudes[i] ?: defaultAmp) * radiusBase
-            val phase = harmonicPhases[i] ?: analyzedPhase
-            val n = harmonicFrequencies[i] ?: defaultN
-            
-            val angle = 2 * PI.toFloat() * n * time + phase
-            sumX += amp * cos(angle.toDouble()).toFloat()
-            sumY += -amp * sin(angle.toDouble()).toFloat()
+            WaveType.FORMULA -> {
+                val x = normalizedT.toDouble() * 2.0 * PI - PI
+                val eval = FourierExpressionEvaluator.evaluate(formulaString, x)
+                sumX = 0f
+                sumY = -(if (eval.isFinite()) eval.toFloat() else 0f) * radiusBase
+            }
+            WaveType.MY_SIGNAL_2D -> {
+                val source = if (resampledPoints2D.isNotEmpty()) resampledPoints2D else drawingPoints2D
+                if (source.isNotEmpty()) {
+                    val floatIdx = normalizedT * (source.size - 1)
+                    val i1 = floatIdx.toInt()
+                    val i2 = (i1 + 1) % source.size
+                    val frac = floatIdx - i1
+                    val p1 = source[i1]
+                    val p2 = source[i2]
+                    sumX = p1.x * (1 - frac) + p2.x * frac
+                    sumY = p1.y * (1 - frac) + p2.y * frac
+                }
+            }
+            WaveType.SVG -> {
+                if (svgPoints.isNotEmpty()) {
+                    val floatIdx = normalizedT * (svgPoints.size - 1)
+                    val i1 = floatIdx.toInt()
+                    val i2 = (i1 + 1) % svgPoints.size
+                    val frac = floatIdx - i1
+                    val p1 = svgPoints[i1]
+                    val p2 = svgPoints[i2]
+                    // svgPoints are now Math-aligned (Y-up), so we negate to get screen-aligned Y
+                    sumX = (p1.x * (1 - frac) + p2.x * frac) * radiusBase
+                    sumY = -(p1.y * (1 - frac) + p2.y * frac) * radiusBase
+                }
+            }
+            WaveType.PURE_SIGNAL -> {
+                // For Pure Signal (manual builder), the target is the sum of ALL active signals,
+                // regardless of the nTerms slider (which acts as a view filter in other modes).
+                for (s in customFunctionSignals) {
+                    if (s.isPaused) continue
+                    val freq = harmonicFrequencies[s.id] ?: s.cachedFreq
+                    val amp = (harmonicAmplitudes[s.id] ?: s.cachedAmp) * radiusBase
+                    val phase = harmonicPhases[s.id] ?: s.cachedPhase
+                    val angle = 2 * PI.toFloat() * freq * time + phase
+                    sumX += amp * cos(angle)
+                    sumY += -amp * sin(angle)
+                }
+            }
         }
 
         return if (displayMode == FourierDisplayMode.COMPLEX) {
