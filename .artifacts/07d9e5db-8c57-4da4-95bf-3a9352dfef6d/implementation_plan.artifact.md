@@ -1,26 +1,30 @@
-# Implementation Plan - Reset Overrides for All Wave Samples
+# Implementation Plan - Reset Harmonic Overrides on New Input
 
-The goal is to ensure that manual harmonic overrides (frequency, amplitude, phase, etc.) are cleared not just for custom drawings, but also when switching between standard wave samples (Sine, Square, Sawtooth, Triangle). Currently, if a user edits a harmonic in "Square" mode and then switches to "Triangle", the edit persists, resulting in a distorted Triangle wave.
+The goal is to ensure that manual tweaks made in the "Signal Decomposition" menu do not persist when the user provides a new input (e.g., drawing a new line or importing a new SVG). Currently, these overrides (frequency, amplitude, phase, paused/removed status) remain in memory, causing subsequent drawings to be distorted by old settings.
 
 ## User Review Required
 
 > [!IMPORTANT]
-> Switching between any wave type (e.g., from Sine to Square, or from Draw to Triangle) will now automatically reset all manual edits to the harmonics. This ensures that every sample starts with its mathematically correct "default" state.
+> When you draw a new line, all previous manual edits (like frequency changes or removed harmonics) will be automatically reset to their defaults. This ensures you are always looking at a clean representation of your new drawing.
 
 ## Proposed Changes
 
 ### Fourier State Management
 
 #### [MODIFY] [FourierState.kt](file:///C:/Users/Yasin/AndroidStudioProjects/Matharium/app/src/main/java/com/example/matharium/fourier/FourierState.kt)
-- Convert `waveType` from a simple `mutableStateOf` to a property with a custom setter (or handle it in the `LaunchedEffect` in `FourierSeries.kt`).
-- A cleaner way in the current architecture is to call `clearOverrides()` in the `LaunchedEffect(state.waveType)` block in `FourierSeries.kt`.
-- However, since `calculateDFT` already calls `clearOverrides()`, we just need to ensure the standard types do it too.
-
-### UI Reactivity
-
-#### [MODIFY] [FourierSeries.kt](file:///C:/Users/Yasin/AndroidStudioProjects/Matharium/app/src/main/java/com/example/matharium/fourier/FourierSeries.kt)
-- Update the `LaunchedEffect(state.waveType)` to call `state.clearOverrides()` for ALL wave types.
-- Ensure `state.resetSimulation()` is also called to prevent old trail paths from being drawn with the new wave type.
+- Add a helper function `clearOverrides()` that clears:
+    - `pausedHarmonics`
+    - `removedHarmonics`
+    - `harmonicFrequencies`
+    - `harmonicAmplitudes`
+    - `harmonicPhases`
+    - Increments `harmonicVersion`.
+- Call `clearOverrides()` at the start of:
+    - `calculateDFT()`
+    - `calculateDFT2D()`
+    - `calculateSVGDFT()`
+- Also call it in `resetSimulation()`? (Maybe not, user might want to reset the simulation path without losing edits).
+- Call it when `formulaString` changes to ensure new formulas start fresh.
 
 ## Verification Plan
 
@@ -28,11 +32,11 @@ The goal is to ensure that manual harmonic overrides (frequency, amplitude, phas
 - Build project: `./gradlew :app:assembleDebug`
 
 ### Manual Verification
-1. Open **Fourier series**.
-2. Select **Square** wave.
-3. In the edit menu, change the frequency of the first harmonic.
-4. Switch to **Triangle** wave.
-5. **Verify**: The Triangle wave is perfectly formed (not distorted by the previous frequency edit).
-6. **Verify**: Open the decomposition menu and check that the first harmonic frequency is back to its default (`1.0`).
-7. Switch back to **Square** and verify it is also back to default.
-8. Draw something, edit a signal, then switch to **Sawtooth**. Verify Sawtooth is clean.
+1. Open **Fourier series -> Draw -> 1D**.
+2. Draw a simple line.
+3. In the edit menu, change the frequency of the first harmonic and remove the second harmonic.
+4. **Verify**: Simulation updates and reflects these changes.
+5. Draw a *new* shape on the canvas.
+6. **Verify**: The simulation immediately reflects the new shape perfectly.
+7. **Verify**: Open the edit menu and check that the frequency is back to its default (0 for DC or 1 for first harmonic) and the second harmonic is no longer removed.
+8. Repeat for **2D Drawing** and **Formula** mode.

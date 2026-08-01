@@ -1,6 +1,6 @@
-# Tasks - Reset Overrides for All Wave Samples
+# Tasks - Reset Harmonic Overrides on New Input
 
-- `[/]` Update `FourierSeries.kt`
-    - `[ ]` Merge `waveType` LaunchedEffects
-    - `[ ]` Add `state.clearOverrides()` and `state.resetSimulation()` to the effect
-- `[ ]` Verify build and manual simulation
+- `[x]` Modify `FourierState.kt`
+    - `[x]` Implement `clearOverrides()`
+    - `[x]` Integrate `clearOverrides()` into `calculateDFT`, `calculateDFT2D`, and `calculateSVGDFT`
+- `[x]` Verify build and manual simulation

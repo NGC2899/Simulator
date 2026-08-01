@@ -33,15 +33,43 @@ fun FourierSeries() {
     
     val state = rememberFourierState(prefs, colors, scope, radiusBasePx = radiusBasePx)
 
+    // Side effects & Persistence
     LaunchedEffect(state.waveType) {
         val maxForCurrent = 250
         if (state.nTerms > maxForCurrent) state.nTerms = maxForCurrent
         state.prefs.fourierWaveType = state.waveType.name
-        
-        // Reset overrides and path when switching samples
-        state.clearOverrides()
-        state.resetSimulation()
+    }
 
+    LaunchedEffect(state.nTerms) { state.prefs.fourierNTerms = state.nTerms }
+    LaunchedEffect(state.speed) { state.prefs.fourierSpeed = state.speed }
+    LaunchedEffect(state.windingFrequency) { state.prefs.fourierWindingFrequency = state.windingFrequency }
+    LaunchedEffect(state.waveStretch) { state.prefs.fourierWaveStretch = state.waveStretch }
+    LaunchedEffect(state.showErrorGradient) { state.prefs.fourierShowErrorGradient = state.showErrorGradient }
+    LaunchedEffect(state.errorSensitivity) { state.prefs.fourierErrorSensitivity = state.errorSensitivity }
+    LaunchedEffect(state.displayMode) { state.prefs.fourierDisplayMode = state.displayMode.name }
+
+    LaunchedEffect(state.formulaString, state.waveType) {
+        state.prefs.fourierFormula = state.formulaString
+        if (state.waveType == WaveType.FORMULA) state.calculateDFT()
+    }
+
+    LaunchedEffect(state.drawingVersion) {
+        if (state.waveType == WaveType.MY_SIGNAL) {
+            kotlinx.coroutines.delay(100)
+            state.calculateDFT()
+        }
+        state.prefs.drawingPoints = state.drawingPoints.toList()
+    }
+
+    LaunchedEffect(state.drawing2DVersion) {
+        if (state.waveType == WaveType.MY_SIGNAL_2D) {
+            kotlinx.coroutines.delay(100)
+            state.calculateDFT2D()
+        }
+        state.prefs.drawingPoints2D = state.drawingPoints2D.toList()
+    }
+
+    LaunchedEffect(state.waveType) {
         when (state.waveType) {
             WaveType.MY_SIGNAL -> state.calculateDFT()
             WaveType.MY_SIGNAL_2D -> state.calculateDFT2D()

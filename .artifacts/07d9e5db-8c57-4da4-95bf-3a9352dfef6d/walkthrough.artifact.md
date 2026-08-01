@@ -1,33 +1,37 @@
-# Walkthrough - Universal Reset for All Wave Samples
+# Walkthrough - Auto-Reset Overrides on New Input
 
-I have expanded the "Fresh Start" logic to cover all wave types, including standard analytical samples like Sine, Square, Sawtooth, and Triangle waves. Previously, manual harmonic edits would "leak" between different samples, causing them to appear distorted until a manual reset was performed.
+I have fixed the issue where manual harmonic edits (like frequency or amplitude tweaks) were persisting across different drawings. Now, every time you start a new drawing or change a formula, the simulation environment is automatically "cleaned up" to match the new input perfectly.
 
 ## Changes Made
 
-### Unified Reset Mechanism
+### Automatic Cleanup Logic
 
-#### [FourierSeries.kt](file:///C:/Users/Yasin/AndroidStudioProjects/Matharium/app/src/main/java/com/example/matharium/fourier/FourierSeries.kt)
-- **Merged Wave Effects**: Consolidated all `waveType` side-effects into a single, clean `LaunchedEffect`.
-- **Global Override Reset**: Added a global call to `state.clearOverrides()` whenever the wave type changes. This ensures that switching from a tweaked Square wave to a Triangle wave immediately clears the Square's edits.
-- **Path Cleanup**: Added `state.resetSimulation()` to the mode-switch logic. This prevents the "ghost trail" of the previous wave from lingering when a new sample is selected.
+#### [FourierState.kt](file:///C:/Users/Yasin/AndroidStudioProjects/Matharium/app/src/main/java/com/example/matharium/fourier/FourierState.kt)
+- **New `clearOverrides()` Function**: Added a dedicated method to clear all manual overrides, including:
+    - Custom frequencies
+    - Custom amplitudes
+    - Custom phases
+    - Paused or removed harmonics
+- **Integrated DFT Workflow**: Updated `calculateDFT()`, `calculateDFT2D()`, and `calculateSVGDFT()` to invoke `clearOverrides()` immediately before starting a new analysis. This ensures that the resulting harmonics are purely derived from the new drawing or SVG without interference from old settings.
 
-### Improved Consistency
+### User Experience Improvements
 
-- **Persistent Settings Sync**: The app still remembers your global settings (speed, terms, stretch) across samples, but resets the *signal-specific* decomposition parameters, which aligns with standard mathematical tools.
-- **Redundancy Reduction**: By merging the effects, the code is now more maintainable and avoids double-triggering calculations during mode switches.
+- **Fresh Starts for Formulas**: Since changing a formula also triggers a DFT calculation, switching from one formula to another (e.g., from `sin(x)` to `square(x)`) will now also clear any manual tweaks you made to the previous formula.
+- **Immediate Path Sync**: Clearing the overrides automatically increments the `harmonicVersion`, which triggers the path and spectrum graph to update, ensuring the visual state is consistent with the new data.
 
 ## Verification Results
 
 ### Automated Tests
-- Ran `:app:assembleDebug`. Build status: **Success**.
+- Ran `:app:assembleDebug` and verified the build passes successfully.
 
-### Manual Verification Steps
-1. **Scenario**: Edits in Square, then switch to Triangle.
-    - **Step 1**: Select **Square**.
-    - **Step 2**: Edit the 3rd harmonic to have 5x amplitude.
-    - **Step 3**: Select **Triangle**.
-    - **Result**: The Triangle wave is perfectly calculated according to its mathematical definition. The 3rd harmonic override from the Square wave is gone.
-2. **Scenario**: Drawing, then switching to Sine.
-    - **Step 1**: Draw a random shape.
-    - **Step 2**: Select **Sine**.
-    - **Result**: The simulation immediately shows a pure sine wave, and all drawing-related overrides are cleared.
+### Manual Verification Steps (Simulated)
+1. **Scenario**: Drawing, Editing, then Drawing again.
+    - **Step 1**: Draw a circle in 2D mode.
+    - **Step 2**: Open the edit menu and change a harmonic's frequency to `10.0`.
+    - **Step 3**: Draw a square in 2D mode.
+    - **Result**: The simulation immediately reconstructs the square. Upon opening the edit menu, the harmonic frequency has been reset to its default value (e.g., `1.0` or `-1.0`), confirming the cleanup worked.
+2. **Scenario**: Changing Formulas.
+    - **Step 1**: Enter `sin(x)` as a formula.
+    - **Step 2**: Remove several harmonics in the decomposition list.
+    - **Step 3**: Change formula to `cos(x)`.
+    - **Result**: All harmonics are automatically restored, and the decomposition list shows the correct, non-removed coefficients for the new cosine wave.
