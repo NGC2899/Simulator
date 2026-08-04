@@ -16,55 +16,45 @@ object FluentIcons {
 
     private const val K = 0.55228475f // Magic number for circle approximation
 
-    val FontAwesomeWaveSquare: ImageVector
+    val PhosphorWaveSquare: ImageVector
         get() {
-            if (_FontAwesomeWaveSquare != null) return _FontAwesomeWaveSquare!!
+            if (_PhosphorWaveSquare != null) return _PhosphorWaveSquare!!
 
-            _FontAwesomeWaveSquare = ImageVector.Builder(
+            _PhosphorWaveSquare = ImageVector.Builder(
                 name = "wave-square",
                 defaultWidth = 24.dp,
                 defaultHeight = 24.dp,
-                viewportWidth = 640f,
-                viewportHeight = 512f
+                viewportWidth = 256f,
+                viewportHeight = 256f
             ).apply {
                 path(
                     fill = SolidColor(Color.Black)
                 ) {
-                    moveTo(476f, 480f)
-                    horizontalLineTo(324f)
-                    arcToRelative(36f, 36f, 0f, false, true, -36f, -36f)
-                    verticalLineTo(96f)
-                    horizontalLineToRelative(-96f)
-                    verticalLineToRelative(156f)
-                    arcToRelative(36f, 36f, 0f, false, true, -36f, 36f)
-                    horizontalLineTo(16f)
-                    arcToRelative(16f, 16f, 0f, false, true, -16f, -16f)
-                    verticalLineToRelative(-32f)
-                    arcToRelative(16f, 16f, 0f, false, true, 16f, -16f)
-                    horizontalLineToRelative(112f)
-                    verticalLineTo(68f)
-                    arcToRelative(36f, 36f, 0f, false, true, 36f, -36f)
-                    horizontalLineToRelative(152f)
-                    arcToRelative(36f, 36f, 0f, false, true, 36f, 36f)
-                    verticalLineToRelative(348f)
-                    horizontalLineToRelative(96f)
-                    verticalLineTo(260f)
-                    arcToRelative(36f, 36f, 0f, false, true, 36f, -36f)
-                    horizontalLineToRelative(140f)
-                    arcToRelative(16f, 16f, 0f, false, true, 16f, 16f)
-                    verticalLineToRelative(32f)
-                    arcToRelative(16f, 16f, 0f, false, true, -16f, 16f)
-                    horizontalLineTo(512f)
-                    verticalLineToRelative(156f)
-                    arcToRelative(36f, 36f, 0f, false, true, -36f, 36f)
+                    moveTo(240f, 128f)
+                    verticalLineToRelative(56f)
+                    arcToRelative(8f, 8f, 0f, false, true, -8f, 8f)
+                    horizontalLineTo(128f)
+                    arcToRelative(8f, 8f, 0f, false, true, -8f, -8f)
+                    verticalLineTo(80f)
+                    horizontalLineTo(32f)
+                    verticalLineToRelative(48f)
+                    arcToRelative(8f, 8f, 0f, false, true, -16f, 0f)
+                    verticalLineTo(72f)
+                    arcToRelative(8f, 8f, 0f, false, true, 8f, -8f)
+                    horizontalLineTo(128f)
+                    arcToRelative(8f, 8f, 0f, false, true, 8f, 8f)
+                    verticalLineTo(176f)
+                    horizontalLineToRelative(88f)
+                    verticalLineTo(128f)
+                    arcToRelative(8f, 8f, 0f, false, true, 16f, 0f)
                     close()
                 }
             }.build()
 
-            return _FontAwesomeWaveSquare!!
+            return _PhosphorWaveSquare!!
         }
 
-    private var _FontAwesomeWaveSquare: ImageVector? = null
+    private var _PhosphorWaveSquare: ImageVector? = null
 
     val BootstrapSoundwave: ImageVector
         get() {
@@ -144,12 +134,6 @@ object FluentIcons {
                 path(
                     fill = SolidColor(Color.Black)
                 ) {
-                    moveTo(19f, 4.5f)
-                    curveTo(18.1716f, 4.5f, 17.5f, 5.17157f, 17.5f, 6f)
-                    curveTo(17.5f, 6.82843f, 18.1716f, 7.5f, 19f, 7.5f)
-                    curveTo(19.8284f, 7.5f, 20.5f, 6.82843f, 20.5f, 6f)
-                    curveTo(20.5f, 5.17157f, 19.8284f, 4.5f, 19f, 4.5f)
-                    close()
                     moveTo(16f, 6f)
                     curveTo(16f, 4.34315f, 17.3431f, 3f, 19f, 3f)
                     curveTo(20.6569f, 3f, 22f, 4.34315f, 22f, 6f)
@@ -171,18 +155,6 @@ object FluentIcons {
                     curveTo(14.4823f, 11f, 14.938f, 11.1138f, 15.3417f, 11.316f)
                     lineTo(17.1395f, 8.35358f)
                     curveTo(16.4454f, 7.80411f, 16f, 6.95406f, 16f, 6f)
-                    close()
-                    moveTo(14f, 12.5f)
-                    curveTo(13.1716f, 12.5f, 12.5f, 13.1716f, 12.5f, 14f)
-                    curveTo(12.5f, 14.8284f, 13.1716f, 15.5f, 14f, 15.5f)
-                    curveTo(14.8284f, 15.5f, 15.5f, 14.8284f, 15.5f, 14f)
-                    curveTo(15.5f, 13.1716f, 14.8284f, 12.5f, 14f, 12.5f)
-                    close()
-                    moveTo(5f, 16.5f)
-                    curveTo(4.17157f, 16.5f, 3.5f, 17.1716f, 3.5f, 18f)
-                    curveTo(3.5f, 18.8284f, 4.17157f, 19.5f, 5f, 19.5f)
-                    curveTo(5.82843f, 19.5f, 6.5f, 18.8284f, 6.5f, 18f)
-                    curveTo(6.5f, 17.1716f, 5.82843f, 16.5f, 5f, 16.5f)
                     close()
                 }
             }.build()
@@ -657,11 +629,11 @@ object FluentIcons {
 
     private var _FluentuiSystemIconsApps: ImageVector? = null
 
-    val FluentuiSystemIconsPause: ImageVector
+    val MaterialIconsPause: ImageVector
         get() {
-            if (_FluentuiSystemIconsPause != null) return _FluentuiSystemIconsPause!!
+            if (_MaterialIconsPause != null) return _MaterialIconsPause!!
 
-            _FluentuiSystemIconsPause = ImageVector.Builder(
+            _MaterialIconsPause = ImageVector.Builder(
                 name = "pause",
                 defaultWidth = 24.dp,
                 defaultHeight = 24.dp,
@@ -671,33 +643,29 @@ object FluentIcons {
                 path(
                     fill = SolidColor(Color.Black)
                 ) {
-                    moveTo(5.74609f, 3f)
-                    curveTo(4.7796f, 3f, 3.99609f, 3.7835f, 3.99609f, 4.75f)
-                    verticalLineTo(19.25f)
-                    curveTo(3.99609f, 20.2165f, 4.7796f, 21f, 5.74609f, 21f)
-                    horizontalLineTo(9.24609f)
-                    curveTo(10.2126f, 21f, 10.9961f, 20.2165f, 10.9961f, 19.25f)
-                    verticalLineTo(4.75f)
-                    curveTo(10.9961f, 3.7835f, 10.2126f, 3f, 9.24609f, 3f)
-                    horizontalLineTo(5.74609f)
+                    moveTo(8f, 19f)
+                    curveToRelative(1.1f, 0f, 2f, -0.9f, 2f, -2f)
+                    verticalLineTo(7f)
+                    curveToRelative(0f, -1.1f, -0.9f, -2f, -2f, -2f)
+                    reflectiveCurveToRelative(-2f, 0.9f, -2f, 2f)
+                    verticalLineToRelative(10f)
+                    curveToRelative(0f, 1.1f, 0.9f, 2f, 2f, 2f)
                     close()
-                    moveTo(14.7461f, 3f)
-                    curveTo(13.7796f, 3f, 12.9961f, 3.7835f, 12.9961f, 4.75f)
-                    verticalLineTo(19.25f)
-                    curveTo(12.9961f, 20.2165f, 13.7796f, 21f, 14.7461f, 21f)
-                    horizontalLineTo(18.2461f)
-                    curveTo(19.2126f, 21f, 19.9961f, 20.2165f, 19.9961f, 19.25f)
-                    verticalLineTo(4.75f)
-                    curveTo(19.9961f, 3.7835f, 19.2126f, 3f, 18.2461f, 3f)
-                    horizontalLineTo(14.7461f)
+                    moveToRelative(6f, -12f)
+                    verticalLineToRelative(10f)
+                    curveToRelative(0f, 1.1f, 0.9f, 2f, 2f, 2f)
+                    reflectiveCurveToRelative(2f, -0.9f, 2f, -2f)
+                    verticalLineTo(7f)
+                    curveToRelative(0f, -1.1f, -0.9f, -2f, -2f, -2f)
+                    reflectiveCurveToRelative(-2f, 0.9f, -2f, 2f)
                     close()
                 }
             }.build()
 
-            return _FluentuiSystemIconsPause!!
+            return _MaterialIconsPause!!
         }
 
-    private var _FluentuiSystemIconsPause: ImageVector? = null
+    private var _MaterialIconsPause: ImageVector? = null
 
     val VscodeCodiconsTriangleRight: ImageVector
         get() {
@@ -707,8 +675,8 @@ object FluentIcons {
                 name = "triangle-right",
                 defaultWidth = 24.dp,
                 defaultHeight = 24.dp,
-                viewportWidth = 24f,
-                viewportHeight = 24f
+                viewportWidth = 16f,
+                viewportHeight = 16f
             ).apply {
                 path(
                     fill = SolidColor(Color.Black)
@@ -818,273 +786,530 @@ object FluentIcons {
 
     private var _FeatherTrash: ImageVector? = null
 
-    // _____________________ here _____________________ //
+    val FeatherChevronUp: ImageVector
+        get() {
+            if (_FeatherChevronUp != null) return _FeatherChevronUp!!
 
-    private fun ImageVector.Builder.addCircle(cx: Float, cy: Float, r: Float, color: Color) {
-        path(fill = SolidColor(color)) {
-            moveTo(cx, cy - r)
-            curveTo(cx + r * K, cy - r, cx + r, cy - r * K, cx + r, cy)
-            curveTo(cx + r, cy + r * K, cx + r * K, cy + r, cx, cy + r)
-            curveTo(cx - r * K, cy + r, cx - r, cy + r * K, cx - r, cy)
-            curveTo(cx - r, cy - r * K, cx - r * K, cy - r, cx, cy - r)
-            close()
+            _FeatherChevronUp = ImageVector.Builder(
+                name = "chevron-up",
+                defaultWidth = 24.dp,
+                defaultHeight = 24.dp,
+                viewportWidth = 24f,
+                viewportHeight = 24f
+            ).apply {
+                path(
+                    fill = SolidColor(Color.Transparent),
+                    stroke = SolidColor(Color.Black),
+                    strokeLineWidth = 2f,
+                    strokeLineCap = StrokeCap.Round,
+                    strokeLineJoin = StrokeJoin.Round
+                ) {
+                    moveTo(18f, 15f)
+                    lineTo(12f, 9f)
+                    lineTo(6f, 15f)
+                }
+            }.build()
+
+            return _FeatherChevronUp!!
         }
-    }
 
-    private fun ImageVector.Builder.addCircleOutline(cx: Float, cy: Float, r: Float, color: Color) {
-        val ir = r - 0.75f
-        path(fill = SolidColor(color)) {
-            // Outer
-            moveTo(cx, cy - r)
-            curveTo(cx + r * K, cy - r, cx + r, cy - r * K, cx + r, cy)
-            curveTo(cx + r, cy + r * K, cx + r * K, cy + r, cx, cy + r)
-            curveTo(cx - r * K, cy + r, cx - r, cy + r * K, cx - r, cy)
-            curveTo(cx - r, cy - r * K, cx - r * K, cy - r, cx, cy - r)
-            close()
-            // Inner (hole)
-            moveTo(cx, cy - ir)
-            curveTo(cx - ir * K, cy - ir, cx - ir, cy - ir * K, cx - ir, cy)
-            curveTo(cx - ir, cy + ir * K, cx - ir * K, cy + ir, cx, cy + ir)
-            curveTo(cx + ir * K, cy + ir, cx + ir, cy + ir * K, cx + ir, cy)
-            curveTo(cx + ir, cy - ir * K, cx + ir * K, cy - ir, cx, cy - ir)
-            close()
+    private var _FeatherChevronUp: ImageVector? = null
+
+    val FeatherChevronDown: ImageVector
+        get() {
+            if (_FeatherChevronDown != null) return _FeatherChevronDown!!
+
+            _FeatherChevronDown = ImageVector.Builder(
+                name = "chevron-down",
+                defaultWidth = 24.dp,
+                defaultHeight = 24.dp,
+                viewportWidth = 24f,
+                viewportHeight = 24f
+            ).apply {
+                path(
+                    fill = SolidColor(Color.Transparent),
+                    stroke = SolidColor(Color.Black),
+                    strokeLineWidth = 2f,
+                    strokeLineCap = StrokeCap.Round,
+                    strokeLineJoin = StrokeJoin.Round
+                ) {
+                    moveTo(6f, 9f)
+                    lineTo(12f, 15f)
+                    lineTo(18f, 9f)
+                }
+            }.build()
+
+            return _FeatherChevronDown!!
         }
-    }
 
-    val AppsColor: ImageVector by lazy {
-        ImageVector.Builder("AppsColor", 24.dp, 24.dp, 24f, 24f).apply {
-            addCircle(6.5f, 6.5f, 2.5f, Color(0xFF0078D4))
-            addCircle(12.0f, 6.5f, 2.5f, Color(0xFF0078D4))
-            addCircle(17.5f, 6.5f, 2.5f, Color(0xFF0078D4))
-            addCircle(6.5f, 12.0f, 2.5f, Color(0xFF00BCF2))
-            addCircle(12.0f, 12.0f, 2.5f, Color(0xFF00BCF2))
-            addCircle(17.5f, 12.0f, 2.5f, Color(0xFF00BCF2))
-            addCircle(6.5f, 17.5f, 2.5f, Color(0xFF5C2D91))
-            addCircle(12.0f, 17.5f, 2.5f, Color(0xFF5C2D91))
-            addCircle(17.5f, 17.5f, 2.5f, Color(0xFF5C2D91))
-        }.build()
-    }
+    private var _FeatherChevronDown: ImageVector? = null
 
-    val AppsRegular: ImageVector by lazy {
-        ImageVector.Builder("AppsRegular", 24.dp, 24.dp, 24f, 24f).apply {
-            val c = Color.Black
-            addCircleOutline(6.5f, 6.5f, 2.5f, c)
-            addCircleOutline(12.0f, 6.5f, 2.5f, c)
-            addCircleOutline(17.5f, 6.5f, 2.5f, c)
-            addCircleOutline(6.5f, 12.0f, 2.5f, c)
-            addCircleOutline(12.0f, 12.0f, 2.5f, c)
-            addCircleOutline(17.5f, 12.0f, 2.5f, c)
-            addCircleOutline(6.5f, 17.5f, 2.5f, c)
-            addCircleOutline(12.0f, 17.5f, 2.5f, c)
-            addCircleOutline(17.5f, 17.5f, 2.5f, c)
-        }.build()
-    }
+    val FluentuiSystemIconsSineWaveDots: ImageVector
+        get() {
+            if (_FluentuiSystemIconsSineWaveDots != null) return _FluentuiSystemIconsSineWaveDots!!
 
-    val AppsFilled: ImageVector by lazy {
-        ImageVector.Builder("AppsFilled", 24.dp, 24.dp, 24f, 24f).apply {
-            val c = Color.Black
-            addCircle(6.5f, 6.5f, 2.5f, c)
-            addCircle(12.0f, 6.5f, 2.5f, c)
-            addCircle(17.5f, 6.5f, 2.5f, c)
-            addCircle(6.5f, 12.0f, 2.5f, c)
-            addCircle(12.0f, 12.0f, 2.5f, c)
-            addCircle(17.5f, 12.0f, 2.5f, c)
-            addCircle(6.5f, 17.5f, 2.5f, c)
-            addCircle(12.0f, 17.5f, 2.5f, c)
-            addCircle(17.5f, 17.5f, 2.5f, c)
-        }.build()
-    }
+            _FluentuiSystemIconsSineWaveDots = ImageVector.Builder(
+                name = "sine-wave-dots",
+                defaultWidth = 24.dp,
+                defaultHeight = 24.dp,
+                viewportWidth = 24f,
+                viewportHeight = 24f
+            ).apply {
+                path(
+                    fill = SolidColor(Color.Black)
+                ) {
+                    moveTo(8.6084f, 1.97949f)
+                    curveTo(9.45527f, 1.97952f, 10.0793f, 2.48271f, 10.5156f, 3.09961f)
+                    curveTo(10.9464f, 3.7088f, 11.2716f, 4.52759f, 11.5352f, 5.42285f)
+                    curveTo(12.0641f, 7.2194f, 12.4186f, 9.59186f, 12.7627f, 11.8857f)
+                    curveTo(13.1124f, 14.2168f, 13.452f, 16.4694f, 13.9443f, 18.1416f)
+                    curveTo(14.1914f, 18.9805f, 14.4586f, 19.6073f, 14.7432f, 20.0098f)
+                    curveTo(15.0222f, 20.4044f, 15.2365f, 20.4795f, 15.3916f, 20.4795f)
+                    curveTo(15.5309f, 20.4795f, 15.7048f, 20.4217f, 15.9316f, 20.1514f)
+                    curveTo(16.1702f, 19.8671f, 16.4091f, 19.4097f, 16.6377f, 18.7666f)
+                    curveTo(17.0935f, 17.4842f, 17.428f, 15.7004f, 17.7393f, 13.7295f)
+                    curveTo(17.7398f, 13.7263f, 17.7397f, 13.7229f, 17.7402f, 13.7197f)
+                    curveTo(16.7135f, 13.2433f, 16f, 12.2064f, 16f, 11f)
+                    curveTo(16f, 9.34315f, 17.3431f, 8f, 19f, 8f)
+                    curveTo(20.6569f, 8f, 22f, 9.34315f, 22f, 11f)
+                    curveTo(22f, 12.5693f, 20.7949f, 13.8556f, 19.2598f, 13.9873f)
+                    curveTo(18.9506f, 15.943f, 18.5991f, 17.8529f, 18.0908f, 19.2832f)
+                    curveTo(17.8366f, 19.9984f, 17.5224f, 20.6539f, 17.1123f, 21.1426f)
+                    curveTo(16.6906f, 21.645f, 16.1197f, 22.0205f, 15.3916f, 22.0205f)
+                    curveTo(14.5447f, 22.0205f, 13.9207f, 21.5173f, 13.4844f, 20.9004f)
+                    curveTo(13.0536f, 20.2912f, 12.7285f, 19.4724f, 12.4648f, 18.5771f)
+                    curveTo(11.9359f, 16.7806f, 11.5814f, 14.4081f, 11.2373f, 12.1143f)
+                    curveTo(10.8876f, 9.7832f, 10.548f, 7.53056f, 10.0557f, 5.8584f)
+                    curveTo(9.80864f, 5.01946f, 9.54142f, 4.39275f, 9.25684f, 3.99023f)
+                    curveTo(8.97775f, 3.59557f, 8.76349f, 3.52053f, 8.6084f, 3.52051f)
+                    curveTo(8.46908f, 3.52051f, 8.29523f, 3.57829f, 8.06836f, 3.84863f)
+                    curveTo(7.82983f, 4.13291f, 7.59087f, 4.59029f, 7.3623f, 5.2334f)
+                    curveTo(6.90655f, 6.5158f, 6.57203f, 8.2996f, 6.26074f, 10.2705f)
+                    curveTo(6.26027f, 10.2735f, 6.25929f, 10.2763f, 6.25879f, 10.2793f)
+                    curveTo(5.0484f, 8.05629f, 5.40093f, 6.1469f, 5.90918f, 4.7168f)
+                    curveTo(6.16337f, 4.0016f, 6.47764f, 3.34612f, 6.8877f, 2.85742f)
+                    curveTo(7.30939f, 2.35502f, 7.88027f, 1.97949f, 8.6084f, 1.97949f)
+                    close()
+                }
+            }.build()
 
-    val MicRegular: ImageVector by lazy {
-        ImageVector.Builder("MicRegular", 24.dp, 24.dp, 24f, 24f).apply {
-            path(fill = SolidColor(Color.Black)) {
-                moveTo(12f, 2f)
-                curveTo(9.79f, 2f, 8f, 3.79f, 8f, 6f)
-                verticalLineTo(11f)
-                curveTo(8f, 13.21f, 9.79f, 15f, 12f, 15f)
-                curveTo(14.21f, 15f, 16f, 13.21f, 16f, 11f)
-                verticalLineTo(6f)
-                curveTo(16f, 3.79f, 14.21f, 2f, 12f, 2f)
-                close()
-                moveTo(14.5f, 6f)
-                verticalLineTo(11f)
-                curveTo(14.5f, 12.38f, 13.38f, 13.5f, 12f, 13.5f)
-                curveTo(10.62f, 13.5f, 9.5f, 12.38f, 9.5f, 11f)
-                verticalLineTo(6f)
-                curveTo(9.5f, 4.62f, 10.62f, 3.5f, 12f, 3.5f)
-                curveTo(13.38f, 3.5f, 14.5f, 4.62f, 14.5f, 6f)
-                close()
-            }
-            path(fill = SolidColor(Color.Black)) {
-                moveTo(19f, 11f)
-                curveTo(19f, 11.41f, 18.66f, 11.75f, 18.25f, 11.75f)
-                curveTo(17.84f, 11.75f, 17.5f, 11.41f, 17.5f, 11f)
-                curveTo(17.5f, 14.04f, 15.04f, 16.5f, 12f, 16.5f)
-                curveTo(8.96f, 16.5f, 6.5f, 14.04f, 6.5f, 11f)
-                curveTo(6.5f, 10.59f, 6.16f, 10.25f, 5.75f, 10.25f)
-                curveTo(5.34f, 10.25f, 5f, 10.59f, 5f, 11f)
-                curveTo(5f, 14.51f, 7.64f, 17.41f, 11f, 17.93f)
-                verticalLineTo(21f)
-                curveTo(11f, 21.41f, 11.34f, 21.75f, 11.75f, 21.75f)
-                curveTo(12.16f, 21.75f, 12.5f, 21.41f, 12.5f, 21f)
-                verticalLineTo(17.93f)
-                curveTo(15.86f, 17.41f, 18.5f, 14.51f, 18.5f, 11f)
-            }
-        }.build()
-    }
+            return _FluentuiSystemIconsSineWaveDots!!
+        }
 
-    val CubeRegular: ImageVector by lazy {
-        ImageVector.Builder("CubeRegular", 24.dp, 24.dp, 24f, 24f).apply {
-            path(fill = SolidColor(Color.Black)) {
-                moveTo(11.57f, 2.14f)
-                curveTo(11.83f, 2.01f, 12.17f, 2.01f, 12.43f, 2.14f)
-                lineTo(19.86f, 5.92f)
-                curveTo(20.19f, 6.09f, 20.4f, 6.43f, 20.4f, 6.81f)
-                verticalLineTo(15.19f)
-                curveTo(20.4f, 15.57f, 20.19f, 15.91f, 19.86f, 16.08f)
-                lineTo(12.43f, 19.86f)
-                curveTo(12.17f, 19.99f, 11.83f, 19.99f, 11.57f, 19.86f)
-                lineTo(4.14f, 16.08f)
-                curveTo(3.81f, 15.91f, 3.6f, 15.57f, 3.6f, 15.19f)
-                verticalLineTo(6.81f)
-                curveTo(3.6f, 6.43f, 3.81f, 6.09f, 4.14f, 5.92f)
-                lineTo(11.57f, 2.14f)
-                close()
-                moveTo(12f, 3.33f)
-                lineTo(5.66f, 6.55f)
-                lineTo(12f, 9.77f)
-                lineTo(18.34f, 6.55f)
-                lineTo(12f, 3.33f)
-                close()
-                moveTo(4.99f, 8.04f)
-                verticalLineTo(15.7f)
-                lineTo(11.25f, 18.88f)
-                verticalLineTo(11.22f)
-                lineTo(4.99f, 8.04f)
-                close()
-                moveTo(12.75f, 18.88f)
-                lineTo(19.01f, 15.7f)
-                verticalLineTo(8.04f)
-                lineTo(12.75f, 11.22f)
-                verticalLineTo(18.88f)
-                close()
-            }
-        }.build()
-    }
+    private var _FluentuiSystemIconsSineWaveDots: ImageVector? = null
 
-    val BranchRegular: ImageVector by lazy {
-        ImageVector.Builder("BranchRegular", 24.dp, 24.dp, 24f, 24f).apply {
-            path(fill = SolidColor(Color.Black)) {
-                moveTo(6f, 8.965f)
-                curveTo(7.933f, 8.965f, 9.5f, 7.398f, 9.5f, 5.465f)
-                curveTo(9.5f, 3.532f, 7.933f, 1.965f, 6f, 1.965f)
-                curveTo(4.067f, 1.965f, 2.5f, 3.532f, 2.5f, 5.465f)
-                curveTo(2.5f, 7.398f, 4.067f, 8.965f, 6f, 8.965f)
-                close()
-                moveTo(6f, 15.035f)
-                curveTo(4.067f, 15.035f, 2.5f, 16.602f, 2.5f, 18.535f)
-                curveTo(2.5f, 20.468f, 4.067f, 22.035f, 6f, 22.035f)
-                curveTo(7.933f, 22.035f, 9.5f, 20.468f, 9.5f, 18.535f)
-                curveTo(9.5f, 16.602f, 7.933f, 15.035f, 6f, 15.035f)
-                close()
-                moveTo(18f, 15.035f)
-                curveTo(16.067f, 15.035f, 14.5f, 16.602f, 14.5f, 18.535f)
-                curveTo(14.5f, 20.468f, 16.067f, 22.035f, 18f, 22.035f)
-                curveTo(19.933f, 22.035f, 21.5f, 20.468f, 21.5f, 18.535f)
-                curveTo(21.5f, 16.602f, 19.933f, 15.035f, 18f, 15.035f)
-                close()
-            }
-            path(stroke = SolidColor(Color.Black), strokeLineWidth = 1.5f, strokeLineCap = StrokeCap.Round, strokeLineJoin = StrokeJoin.Round) {
-                moveTo(6f, 8.965f)
-                lineTo(6f, 15.035f)
-                moveTo(6f, 12f)
-                curveTo(12f, 12f, 12f, 15f, 18f, 15.035f)
-            }
-        }.build()
-    }
+    val TablerBrandSpeedtest: ImageVector
+        get() {
+            if (_TablerBrandSpeedtest != null) return _TablerBrandSpeedtest!!
 
-    val SettingsRegular: ImageVector by lazy {
-        ImageVector.Builder("SettingsRegular", 24.dp, 24.dp, 24f, 24f).apply {
-            path(fill = SolidColor(Color.Black)) {
-                moveTo(12f, 1f)
-                curveTo(13.1f, 1f, 14f, 1.9f, 14f, 3f)
-                verticalLineTo(3.09f)
-                curveTo(14f, 3.57f, 14.3f, 3.99f, 14.75f, 4.16f)
-                lineTo(14.83f, 4.19f)
-                curveTo(15.28f, 4.36f, 15.79f, 4.29f, 16.17f, 3.99f)
-                lineTo(16.23f, 3.94f)
-                curveTo(17.06f, 3.29f, 18.25f, 3.39f, 18.96f, 4.16f)
-                lineTo(19.84f, 5.04f)
-                curveTo(20.61f, 5.75f, 20.71f, 6.94f, 20.06f, 7.77f)
-                lineTo(20.02f, 7.83f)
-                curveTo(19.72f, 8.21f, 19.65f, 8.72f, 19.82f, 9.17f)
-                lineTo(19.84f, 9.25f)
-                curveTo(20.01f, 9.7f, 20.43f, 10f, 20.91f, 10f)
-                horizontalLineTo(21f)
-                curveTo(22.1f, 10f, 23f, 10.9f, 23f, 12f)
-                verticalLineTo(13f)
-                curveTo(23f, 14.1f, 22.1f, 15f, 21f, 15f)
-                horizontalLineTo(20.91f)
-                curveTo(20.43f, 15f, 20.01f, 15.3f, 19.84f, 15.75f)
-                lineTo(19.82f, 15.83f)
-                curveTo(19.65f, 16.28f, 19.72f, 16.79f, 20.02f, 17.17f)
-                lineTo(20.07f, 17.23f)
-                curveTo(20.72f, 18.06f, 20.62f, 19.25f, 19.85f, 19.96f)
-                lineTo(18.97f, 20.84f)
-                curveTo(18.26f, 21.61f, 17.07f, 21.71f, 16.24f, 21.06f)
-                lineTo(16.18f, 21.02f)
-                curveTo(15.8f, 20.72f, 15.29f, 20.65f, 14.84f, 20.82f)
-                lineTo(14.76f, 20.84f)
-                curveTo(14.31f, 21.01f, 14f, 21.43f, 14f, 21.91f)
-                verticalLineTo(22f)
-                curveTo(14f, 23.1f, 13.1f, 24f, 12f, 24f)
-                horizontalLineTo(11f)
-                curveTo(9.9f, 24f, 9f, 23.1f, 9f, 22f)
-                verticalLineTo(21.91f)
-                curveTo(9f, 21.43f, 8.7f, 21.01f, 8.25f, 20.84f)
-                lineTo(8.17f, 20.81f)
-                curveTo(7.72f, 20.64f, 7.21f, 20.71f, 6.83f, 21.01f)
-                lineTo(6.77f, 21.06f)
-                curveTo(5.94f, 21.71f, 4.75f, 21.61f, 4.04f, 20.84f)
-                lineTo(3.16f, 19.96f)
-                curveTo(2.39f, 19.25f, 2.29f, 18.06f, 2.94f, 17.23f)
-                lineTo(2.98f, 17.17f)
-                curveTo(3.28f, 16.79f, 3.35f, 16.28f, 3.18f, 15.83f)
-                lineTo(3.16f, 15.75f)
-                curveTo(2.99f, 15.3f, 2.57f, 15f, 2.09f, 15f)
-                horizontalLineTo(2f)
-                curveTo(0.9f, 15f, 0f, 14.1f, 0f, 13f)
-                verticalLineTo(12f)
-                curveTo(0f, 10.9f, 0.9f, 10f, 2f, 10f)
-                horizontalLineTo(2.09f)
-                curveTo(2.57f, 10f, 2.99f, 9.7f, 3.16f, 9.25f)
-                lineTo(3.18f, 9.17f)
-                curveTo(3.35f, 8.72f, 3.28f, 8.21f, 2.98f, 7.83f)
-                lineTo(2.93f, 7.77f)
-                curveTo(2.28f, 6.94f, 2.38f, 5.75f, 3.15f, 5.04f)
-                lineTo(4.03f, 4.16f)
-                curveTo(4.74f, 3.39f, 5.93f, 3.29f, 6.76f, 3.94f)
-                lineTo(6.82f, 3.98f)
-                curveTo(7.2f, 4.28f, 7.71f, 4.35f, 8.16f, 4.18f)
-                lineTo(8.24f, 4.16f)
-                curveTo(8.69f, 3.99f, 9f, 3.57f, 9f, 3.09f)
-                verticalLineTo(3f)
-                curveTo(9f, 1.9f, 9.9f, 1f, 11f, 1f)
-                horizontalLineTo(12f)
-                close()
-                moveTo(12f, 8f)
-                curveTo(9.79f, 8f, 8f, 9.79f, 8f, 12f)
-                curveTo(8f, 14.21f, 9.79f, 16f, 12f, 16f)
-                curveTo(14.21f, 16f, 16f, 14.21f, 16f, 12f)
-                curveTo(16f, 9.79f, 14.21f, 8f, 12f, 8f)
-                close()
-                moveTo(12f, 9.5f)
-                curveTo(13.38f, 9.5f, 14.5f, 10.62f, 14.5f, 12f)
-                curveTo(14.5f, 13.38f, 13.38f, 14.5f, 12f, 14.5f)
-                curveTo(10.62f, 14.5f, 9.5f, 13.38f, 9.5f, 12f)
-                curveTo(9.5f, 10.62f, 10.62f, 9.5f, 12f, 9.5f)
-                close()
-            }
-        }.build()
-    }
+            _TablerBrandSpeedtest = ImageVector.Builder(
+                name = "brand-speedtest",
+                defaultWidth = 24.dp,
+                defaultHeight = 24.dp,
+                viewportWidth = 24f,
+                viewportHeight = 24f
+            ).apply {
+                path(
+                    fill = SolidColor(Color.Transparent),
+                    stroke = SolidColor(Color.Black),
+                    strokeLineWidth = 2f,
+                    strokeLineCap = StrokeCap.Round,
+                    strokeLineJoin = StrokeJoin.Round
+                ) {
+                    moveTo(5.636f, 19.364f)
+                    arcToRelative(9f, 9f, 0f, true, true, 12.728f, 0f)
+                }
+                path(
+                    fill = SolidColor(Color.Transparent),
+                    stroke = SolidColor(Color.Black),
+                    strokeLineWidth = 2f,
+                    strokeLineCap = StrokeCap.Round,
+                    strokeLineJoin = StrokeJoin.Round
+                ) {
+                    moveTo(16f, 9f)
+                    lineToRelative(-4f, 4f)
+                }
+            }.build()
+
+            return _TablerBrandSpeedtest!!
+        }
+
+    private var _TablerBrandSpeedtest: ImageVector? = null
+
+    val BootstrapStars: ImageVector
+        get() {
+            if (_BootstrapStars != null) return _BootstrapStars!!
+
+            _BootstrapStars = ImageVector.Builder(
+                name = "stars",
+                defaultWidth = 24.dp,
+                defaultHeight = 24.dp,
+                viewportWidth = 16f,
+                viewportHeight = 16f
+            ).apply {
+                path(
+                    fill = SolidColor(Color.Black)
+                ) {
+                    moveTo(7.657f, 6.247f)
+                    curveToRelative(0.11f, -0.33f, 0.576f, -0.33f, 0.686f, 0f)
+                    lineToRelative(0.645f, 1.937f)
+                    arcToRelative(2.89f, 2.89f, 0f, false, false, 1.829f, 1.828f)
+                    lineToRelative(1.936f, 0.645f)
+                    curveToRelative(0.33f, 0.11f, 0.33f, 0.576f, 0f, 0.686f)
+                    lineToRelative(-1.937f, 0.645f)
+                    arcToRelative(2.89f, 2.89f, 0f, false, false, -1.828f, 1.829f)
+                    lineToRelative(-0.645f, 1.936f)
+                    arcToRelative(0.361f, 0.361f, 0f, false, true, -0.686f, 0f)
+                    lineToRelative(-0.645f, -1.937f)
+                    arcToRelative(2.89f, 2.89f, 0f, false, false, -1.828f, -1.828f)
+                    lineToRelative(-1.937f, -0.645f)
+                    arcToRelative(0.361f, 0.361f, 0f, false, true, 0f, -0.686f)
+                    lineToRelative(1.937f, -0.645f)
+                    arcToRelative(2.89f, 2.89f, 0f, false, false, 1.828f, -1.828f)
+                    close()
+                    moveTo(3.794f, 1.148f)
+                    arcToRelative(0.217f, 0.217f, 0f, false, true, 0.412f, 0f)
+                    lineToRelative(0.387f, 1.162f)
+                    curveToRelative(0.173f, 0.518f, 0.579f, 0.924f, 1.097f, 1.097f)
+                    lineToRelative(1.162f, 0.387f)
+                    arcToRelative(0.217f, 0.217f, 0f, false, true, 0f, 0.412f)
+                    lineToRelative(-1.162f, 0.387f)
+                    arcTo(1.73f, 1.73f, 0f, false, false, 4.593f, 5.69f)
+                    lineToRelative(-0.387f, 1.162f)
+                    arcToRelative(0.217f, 0.217f, 0f, false, true, -0.412f, 0f)
+                    lineTo(3.407f, 5.69f)
+                    arcTo(1.73f, 1.73f, 0f, false, false, 2.31f, 4.593f)
+                    lineToRelative(-1.162f, -0.387f)
+                    arcToRelative(0.217f, 0.217f, 0f, false, true, 0f, -0.412f)
+                    lineToRelative(1.162f, -0.387f)
+                    arcTo(1.73f, 1.73f, 0f, false, false, 3.407f, 2.31f)
+                    close()
+                    moveTo(10.863f, 0.099f)
+                    arcToRelative(0.145f, 0.145f, 0f, false, true, 0.274f, 0f)
+                    lineToRelative(0.258f, 0.774f)
+                    curveToRelative(0.115f, 0.346f, 0.386f, 0.617f, 0.732f, 0.732f)
+                    lineToRelative(0.774f, 0.258f)
+                    arcToRelative(0.145f, 0.145f, 0f, false, true, 0f, 0.274f)
+                    lineToRelative(-0.774f, 0.258f)
+                    arcToRelative(1.16f, 1.16f, 0f, false, false, -0.732f, 0.732f)
+                    lineToRelative(-0.258f, 0.774f)
+                    arcToRelative(0.145f, 0.145f, 0f, false, true, -0.274f, 0f)
+                    lineToRelative(-0.258f, -0.774f)
+                    arcToRelative(1.16f, 1.16f, 0f, false, false, -0.732f, -0.732f)
+                    lineTo(9.1f, 2.137f)
+                    arcToRelative(0.145f, 0.145f, 0f, false, true, 0f, -0.274f)
+                    lineToRelative(0.774f, -0.258f)
+                    curveToRelative(0.346f, -0.115f, 0.617f, -0.386f, 0.732f, -0.732f)
+                    close()
+                }
+            }.build()
+
+            return _BootstrapStars!!
+        }
+
+    private var _BootstrapStars: ImageVector? = null
+
+    val BubbleMultiple: ImageVector
+        get() {
+            if (_FluentuiSystemIconsBubbleMultiple != null) return _FluentuiSystemIconsBubbleMultiple!!
+
+            _FluentuiSystemIconsBubbleMultiple = ImageVector.Builder(
+                name = "bubble-multiple",
+                defaultWidth = 24.dp,
+                defaultHeight = 24.dp,
+                viewportWidth = 20f,
+                viewportHeight = 20f
+            ).apply {
+                path(
+                    fill = SolidColor(Color.Black)
+                ) {
+                    moveTo(15.5f, 2f)
+                    curveTo(14.1193f, 2f, 13f, 3.11929f, 13f, 4.5f)
+                    curveTo(13f, 5.88071f, 14.1193f, 7f, 15.5f, 7f)
+                    curveTo(16.8807f, 7f, 18f, 5.88071f, 18f, 4.5f)
+                    curveTo(18f, 3.11929f, 16.8807f, 2f, 15.5f, 2f)
+                    close()
+                    moveTo(12f, 4.5f)
+                    curveTo(12f, 2.567f, 13.567f, 1f, 15.5f, 1f)
+                    curveTo(17.433f, 1f, 19f, 2.567f, 19f, 4.5f)
+                    curveTo(19f, 6.433f, 17.433f, 8f, 15.5f, 8f)
+                    curveTo(13.567f, 8f, 12f, 6.433f, 12f, 4.5f)
+                    close()
+                    moveTo(3f, 10f)
+                    curveTo(3f, 7.79086f, 4.79086f, 6f, 7f, 6f)
+                    curveTo(9.20914f, 6f, 11f, 7.79086f, 11f, 10f)
+                    curveTo(11f, 12.2091f, 9.20914f, 14f, 7f, 14f)
+                    curveTo(4.79086f, 14f, 3f, 12.2091f, 3f, 10f)
+                    close()
+                    moveTo(7f, 5f)
+                    curveTo(4.23858f, 5f, 2f, 7.23858f, 2f, 10f)
+                    curveTo(2f, 12.7614f, 4.23858f, 15f, 7f, 15f)
+                    curveTo(9.76142f, 15f, 12f, 12.7614f, 12f, 10f)
+                    curveTo(12f, 7.23858f, 9.76142f, 5f, 7f, 5f)
+                    close()
+                    moveTo(12.4989f, 17.9989f)
+                    curveTo(10.9484f, 17.9989f, 9.63342f, 16.9907f, 9.17368f, 15.5941f)
+                    curveTo(9.49109f, 15.4707f, 9.7954f, 15.3211f, 10.0839f, 15.1478f)
+                    curveTo(10.3697f, 16.2139f, 11.3426f, 16.9989f, 12.4989f, 16.9989f)
+                    curveTo(13.8796f, 16.9989f, 14.9989f, 15.8796f, 14.9989f, 14.4989f)
+                    curveTo(14.9989f, 13.1713f, 13.9642f, 12.0855f, 12.6572f, 12.0038f)
+                    curveTo(12.769f, 11.6882f, 12.8552f, 11.3605f, 12.9131f, 11.0231f)
+                    curveTo(14.6509f, 11.228f, 15.9989f, 12.706f, 15.9989f, 14.4989f)
+                    curveTo(15.9989f, 16.4319f, 14.4319f, 17.9989f, 12.4989f, 17.9989f)
+                    close()
+                    moveTo(7.66662f, 7.20046f)
+                    curveTo(7.40626f, 7.10843f, 7.1206f, 7.24489f, 7.02858f, 7.50525f)
+                    curveTo(6.93656f, 7.76561f, 7.07302f, 8.05127f, 7.33338f, 8.14329f)
+                    curveTo(8.04309f, 8.39414f, 8.6065f, 8.95737f, 8.85759f, 9.66698f)
+                    curveTo(8.9497f, 9.92731f, 9.23541f, 10.0637f, 9.49574f, 9.97155f)
+                    curveTo(9.75606f, 9.87944f, 9.89242f, 9.59373f, 9.80031f, 9.33341f)
+                    curveTo(9.44849f, 8.33911f, 8.66108f, 7.55195f, 7.66662f, 7.20046f)
+                    close()
+                }
+            }.build()
+
+            return _FluentuiSystemIconsBubbleMultiple!!
+        }
+
+    private var _FluentuiSystemIconsBubbleMultiple: ImageVector? = null
+
+    val BootstrapFiletypeSvg: ImageVector
+        get() {
+            if (_BootstrapFiletypeSvg != null) return _BootstrapFiletypeSvg!!
+
+            _BootstrapFiletypeSvg = ImageVector.Builder(
+                name = "filetype-svg",
+                defaultWidth = 24.dp,
+                defaultHeight = 24.dp,
+                viewportWidth = 16f,
+                viewportHeight = 16f
+            ).apply {
+                path(
+                    fill = SolidColor(Color.Black)
+                ) {
+                    moveTo(14f, 4.5f)
+                    verticalLineTo(14f)
+                    arcToRelative(2f, 2f, 0f, false, true, -2f, 2f)
+                    verticalLineToRelative(-1f)
+                    arcToRelative(1f, 1f, 0f, false, false, 1f, -1f)
+                    verticalLineTo(4.5f)
+                    horizontalLineToRelative(-2f)
+                    arcTo(1.5f, 1.5f, 0f, false, true, 9.5f, 3f)
+                    verticalLineTo(1f)
+                    horizontalLineTo(4f)
+                    arcToRelative(1f, 1f, 0f, false, false, -1f, 1f)
+                    verticalLineToRelative(9f)
+                    horizontalLineTo(2f)
+                    verticalLineTo(2f)
+                    arcToRelative(2f, 2f, 0f, false, true, 2f, -2f)
+                    horizontalLineToRelative(5.5f)
+                    close()
+                    moveTo(0f, 14.841f)
+                    arcToRelative(1.13f, 1.13f, 0f, false, false, 0.401f, 0.823f)
+                    quadToRelative(0.194f, 0.162f, 0.478f, 0.252f)
+                    quadToRelative(0.285f, 0.091f, 0.665f, 0.091f)
+                    quadToRelative(0.507f, 0f, 0.858f, -0.158f)
+                    quadToRelative(0.355f, -0.158f, 0.54f, -0.44f)
+                    arcToRelative(1.17f, 1.17f, 0f, false, false, 0.187f, -0.656f)
+                    quadToRelative(0f, -0.336f, -0.135f, -0.56f)
+                    arcToRelative(1f, 1f, 0f, false, false, -0.375f, -0.357f)
+                    arcToRelative(2f, 2f, 0f, false, false, -0.565f, -0.21f)
+                    lineToRelative(-0.621f, -0.144f)
+                    arcToRelative(1f, 1f, 0f, false, true, -0.405f, -0.176f)
+                    arcToRelative(0.37f, 0.37f, 0f, false, true, -0.143f, -0.299f)
+                    quadToRelative(0f, -0.234f, 0.184f, -0.384f)
+                    quadToRelative(0.187f, -0.152f, 0.513f, -0.152f)
+                    quadToRelative(0.214f, 0f, 0.37f, 0.068f)
+                    arcToRelative(0.6f, 0.6f, 0f, false, true, 0.245f, 0.181f)
+                    arcToRelative(0.56f, 0.56f, 0f, false, true, 0.12f, 0.258f)
+                    horizontalLineToRelative(0.75f)
+                    arcToRelative(1.1f, 1.1f, 0f, false, false, -0.199f, -0.566f)
+                    arcToRelative(1.2f, 1.2f, 0f, false, false, -0.5f, -0.41f)
+                    arcToRelative(1.8f, 1.8f, 0f, false, false, -0.78f, -0.152f)
+                    quadToRelative(-0.44f, 0f, -0.776f, 0.15f)
+                    quadToRelative(-0.337f, 0.149f, -0.528f, 0.421f)
+                    quadToRelative(-0.19f, 0.273f, -0.19f, 0.639f)
+                    quadToRelative(0f, 0.302f, 0.123f, 0.524f)
+                    reflectiveQuadToRelative(0.351f, 0.367f)
+                    quadToRelative(0.229f, 0.143f, 0.54f, 0.213f)
+                    lineToRelative(0.618f, 0.144f)
+                    quadToRelative(0.31f, 0.073f, 0.462f, 0.193f)
+                    arcToRelative(0.39f, 0.39f, 0f, false, true, 0.153f, 0.326f)
+                    arcToRelative(0.5f, 0.5f, 0f, false, true, -0.085f, 0.29f)
+                    arcToRelative(0.56f, 0.56f, 0f, false, true, -0.256f, 0.193f)
+                    quadToRelative(-0.167f, 0.07f, -0.413f, 0.07f)
+                    quadToRelative(-0.176f, 0f, -0.32f, -0.04f)
+                    arcToRelative(0.8f, 0.8f, 0f, false, true, -0.248f, -0.115f)
+                    arcToRelative(0.58f, 0.58f, 0f, false, true, -0.255f, -0.384f)
+                    close()
+                    moveToRelative(4.575f, 1.09f)
+                    horizontalLineToRelative(0.952f)
+                    lineToRelative(1.327f, -3.999f)
+                    horizontalLineToRelative(-0.879f)
+                    lineToRelative(-0.887f, 3.138f)
+                    horizontalLineTo(5.05f)
+                    lineToRelative(-0.897f, -3.138f)
+                    horizontalLineToRelative(-0.917f)
+                    close()
+                    moveToRelative(5.483f, -3.293f)
+                    quadToRelative(0.114f, 0.228f, 0.14f, 0.492f)
+                    horizontalLineToRelative(-0.776f)
+                    arcToRelative(0.8f, 0.8f, 0f, false, false, -0.096f, -0.249f)
+                    arcToRelative(0.7f, 0.7f, 0f, false, false, -0.17f, -0.19f)
+                    arcToRelative(0.7f, 0.7f, 0f, false, false, -0.237f, -0.126f)
+                    arcToRelative(1f, 1f, 0f, false, false, -0.3f, -0.044f)
+                    quadToRelative(-0.427f, 0f, -0.664f, 0.302f)
+                    quadToRelative(-0.235f, 0.3f, -0.235f, 0.85f)
+                    verticalLineToRelative(0.497f)
+                    quadToRelative(0f, 0.352f, 0.097f, 0.616f)
+                    arcToRelative(0.9f, 0.9f, 0f, false, false, 0.305f, 0.413f)
+                    arcToRelative(0.87f, 0.87f, 0f, false, false, 0.518f, 0.146f)
+                    arcToRelative(1f, 1f, 0f, false, false, 0.457f, -0.097f)
+                    arcToRelative(0.67f, 0.67f, 0f, false, false, 0.273f, -0.263f)
+                    quadToRelative(0.09f, -0.164f, 0.09f, -0.364f)
+                    verticalLineToRelative(-0.254f)
+                    horizontalLineToRelative(-0.823f)
+                    verticalLineToRelative(-0.59f)
+                    horizontalLineToRelative(1.576f)
+                    verticalLineToRelative(0.798f)
+                    quadToRelative(0f, 0.29f, -0.096f, 0.55f)
+                    arcToRelative(1.3f, 1.3f, 0f, false, true, -0.293f, 0.457f)
+                    arcToRelative(1.4f, 1.4f, 0f, false, true, -0.495f, 0.314f)
+                    quadToRelative(-0.296f, 0.111f, -0.698f, 0.111f)
+                    arcToRelative(2f, 2f, 0f, false, true, -0.752f, -0.132f)
+                    arcToRelative(1.45f, 1.45f, 0f, false, true, -0.534f, -0.377f)
+                    arcToRelative(1.6f, 1.6f, 0f, false, true, -0.319f, -0.58f)
+                    arcToRelative(2.5f, 2.5f, 0f, false, true, -0.105f, -0.745f)
+                    verticalLineToRelative(-0.507f)
+                    quadToRelative(0f, -0.54f, 0.199f, -0.949f)
+                    quadToRelative(0.202f, -0.406f, 0.583f, -0.633f)
+                    quadToRelative(0.383f, -0.228f, 0.926f, -0.228f)
+                    quadToRelative(0.357f, 0f, 0.635f, 0.1f)
+                    quadToRelative(0.282f, 0.1f, 0.48f, 0.275f)
+                    quadToRelative(0.2f, 0.176f, 0.314f, 0.407f)
+                }
+            }.build()
+
+            return _BootstrapFiletypeSvg!!
+        }
+
+    private var _BootstrapFiletypeSvg: ImageVector? = null
+
+    val FluentuiSystemIconsAppsAddIn: ImageVector
+        get() {
+            if (_FluentuiSystemIconsAppsAddIn != null) return _FluentuiSystemIconsAppsAddIn!!
+
+            _FluentuiSystemIconsAppsAddIn = ImageVector.Builder(
+                name = "apps-add-in",
+                defaultWidth = 24.dp,
+                defaultHeight = 24.dp,
+                viewportWidth = 24f,
+                viewportHeight = 24f
+            ).apply {
+                path(
+                    fill = SolidColor(Color.Black)
+                ) {
+                    moveTo(10.5f, 3f)
+                    curveTo(11.7426f, 3f, 12.75f, 4.00736f, 12.75f, 5.25f)
+                    verticalLineTo(11.25f)
+                    horizontalLineTo(18.75f)
+                    curveTo(19.9926f, 11.25f, 21f, 12.2574f, 21f, 13.5f)
+                    verticalLineTo(18.75f)
+                    curveTo(21f, 19.9926f, 19.9926f, 21f, 18.75f, 21f)
+                    horizontalLineTo(5.25f)
+                    curveTo(4.00736f, 21f, 3f, 19.9926f, 3f, 18.75f)
+                    verticalLineTo(5.25f)
+                    curveTo(3f, 4.00736f, 4.00736f, 3f, 5.25f, 3f)
+                    horizontalLineTo(10.5f)
+                    close()
+                    moveTo(11.25f, 12.75f)
+                    horizontalLineTo(4.5f)
+                    verticalLineTo(18.75f)
+                    curveTo(4.5f, 19.1642f, 4.83579f, 19.5f, 5.25f, 19.5f)
+                    horizontalLineTo(11.249f)
+                    lineTo(11.25f, 12.75f)
+                    close()
+                    moveTo(18.75f, 12.75f)
+                    horizontalLineTo(12.749f)
+                    verticalLineTo(19.5f)
+                    horizontalLineTo(18.75f)
+                    curveTo(19.1642f, 19.5f, 19.5f, 19.1642f, 19.5f, 18.75f)
+                    verticalLineTo(13.5f)
+                    curveTo(19.5f, 13.0858f, 19.1642f, 12.75f, 18.75f, 12.75f)
+                    close()
+                    moveTo(10.5f, 4.5f)
+                    horizontalLineTo(5.25f)
+                    curveTo(4.83579f, 4.5f, 4.5f, 4.83579f, 4.5f, 5.25f)
+                    verticalLineTo(11.25f)
+                    horizontalLineTo(11.25f)
+                    verticalLineTo(5.25f)
+                    curveTo(11.25f, 4.83579f, 10.9142f, 4.5f, 10.5f, 4.5f)
+                    close()
+                    moveTo(17.8982f, 2.00685f)
+                    lineTo(18f, 2f)
+                    curveTo(18.3797f, 2f, 18.6935f, 2.28215f, 18.7432f, 2.64823f)
+                    lineTo(18.75f, 2.75f)
+                    verticalLineTo(5.25f)
+                    horizontalLineTo(21.25f)
+                    curveTo(21.6297f, 5.25f, 21.9435f, 5.53215f, 21.9932f, 5.89823f)
+                    lineTo(22f, 6f)
+                    curveTo(22f, 6.3797f, 21.7178f, 6.69349f, 21.3518f, 6.74315f)
+                    lineTo(21.25f, 6.75f)
+                    horizontalLineTo(18.75f)
+                    verticalLineTo(9.25f)
+                    curveTo(18.75f, 9.6297f, 18.4678f, 9.94349f, 18.1018f, 9.99315f)
+                    lineTo(18f, 10f)
+                    curveTo(17.6203f, 10f, 17.3065f, 9.71785f, 17.2568f, 9.35177f)
+                    lineTo(17.25f, 9.25f)
+                    verticalLineTo(6.75f)
+                    horizontalLineTo(14.75f)
+                    curveTo(14.3703f, 6.75f, 14.0565f, 6.46785f, 14.0068f, 6.10177f)
+                    lineTo(14f, 6f)
+                    curveTo(14f, 5.6203f, 14.2822f, 5.30651f, 14.6482f, 5.25685f)
+                    lineTo(14.75f, 5.25f)
+                    horizontalLineTo(17.25f)
+                    verticalLineTo(2.75f)
+                    curveTo(17.25f, 2.3703f, 17.5322f, 2.05651f, 17.8982f, 2.00685f)
+                    close()
+                }
+            }.build()
+
+            return _FluentuiSystemIconsAppsAddIn!!
+        }
+
+    private var _FluentuiSystemIconsAppsAddIn: ImageVector? = null
+
+    val HeroiconsCloud: ImageVector
+        get() {
+            if (_HeroiconsCloud != null) return _HeroiconsCloud!!
+
+            _HeroiconsCloud = ImageVector.Builder(
+                name = "cloud",
+                defaultWidth = 24.dp,
+                defaultHeight = 24.dp,
+                viewportWidth = 24f,
+                viewportHeight = 24f
+            ).apply {
+                path(
+                    fill = SolidColor(Color.Transparent),
+                    stroke = SolidColor(Color.Black),
+                    strokeLineWidth = 1.5f,
+                    strokeLineJoin = StrokeJoin.Miter
+                ) {
+                    moveTo(2.25f, 15f)
+                    arcToRelative(4.5f, 4.5f, 0f, false, false, 4.5f, 4.5f)
+                    horizontalLineTo(18f)
+                    arcToRelative(3.75f, 3.75f, 0f, false, false, 1.332f, -7.257f)
+                    arcToRelative(3f, 3f, 0f, false, false, -3.758f, -3.848f)
+                    arcToRelative(5.25f, 5.25f, 0f, false, false, -10.233f, 2.33f)
+                    arcTo(4.502f, 4.502f, 0f, false, false, 2.25f, 15f)
+                    close()
+                }
+            }.build()
+
+            return _HeroiconsCloud!!
+        }
+
+    private var _HeroiconsCloud: ImageVector? = null
+
 }

@@ -195,9 +195,7 @@ fun DoublePendulum() {
                 )
             ) {
                 Icon(
-                    if (running) painterResource(id = R.drawable.pause_outline) else painterResource(
-                        id = R.drawable.caret_forward_outline
-                    ),
+                    imageVector = if (running) FluentIcons.MaterialIconsPause else FluentIcons.VscodeCodiconsTriangleRight,
                     null,
                     tint = colors.textOnAccent,
                     modifier = Modifier.size(AppDesign.iconSmall)

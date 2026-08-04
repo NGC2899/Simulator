@@ -396,7 +396,7 @@ private fun SpectrumVisualizer(
 private fun BulletPoint(text: String) {
     val colors = LocalAppColors.current
     Row(modifier = Modifier.padding(vertical = 4.dp)) {
-        Text("•", color = colors.accentCyan, fontWeight = FontWeight.Bold)
+        Text("•", color = colors.textSecondary, fontWeight = FontWeight.Bold)
         Spacer(Modifier.width(8.dp))
         Text(text, color = colors.textSecondary, fontSize = 13.sp, lineHeight = 18.sp)
     }

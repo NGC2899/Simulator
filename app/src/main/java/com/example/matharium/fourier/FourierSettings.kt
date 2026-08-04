@@ -42,19 +42,17 @@ fun FourierSettingsCard(
                     fontWeight = FontWeight.Bold
                 )
                 Icon(
-                    if (isSettingsExpanded) painterResource(id = R.drawable.chevron_up_outline) else painterResource(id = R.drawable.chevron_down_outline),
+                    imageVector = if (isSettingsExpanded) FluentIcons.FeatherChevronUp else FluentIcons.FeatherChevronDown,
                     null,
                     tint = colors.textSecondary,
                     modifier = Modifier.size(AppDesign.iconSmall)
                 )
             }
 
+            WaveTypeSelector(state, svgPickerLauncher)
+
             AnimatedVisibility(visible = isSettingsExpanded) {
-                Column(modifier = Modifier.padding(top = AppDesign.radiusLarge)) {
-                    WaveTypeSelector(state, svgPickerLauncher)
-
-                    Spacer(modifier = Modifier.height(AppDesign.spacingLarge))
-
+                Column {
                     when (state.waveType) {
                         WaveType.MY_SIGNAL, WaveType.MY_SIGNAL_2D -> DrawingCanvas(state)
                         WaveType.PURE_SIGNAL, WaveType.FORMULA -> CustomSignalSettings(state)
@@ -63,7 +61,6 @@ fun FourierSettingsCard(
                     }
 
                     AnimatedVisibility(visible = state.displayMode == FourierDisplayMode.WRAPPING) {
-                        HorizontalDivider(color = colors.cardBorder.copy(alpha = 0.2f))
                         LabeledSlider(
                             label = "Winding Frequency",
                             valueDisplay = String.format(Locale.US, "%.2f Hz", state.windingFrequency),

@@ -174,10 +174,10 @@ fun FourierSeries() {
 
         Column(modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(AppDesign.spacingLarge)) {
 
+            FourierSettingsCard(state, svgPickerLauncher)
+
             SimulatorEnvironmentSettings(state)
 
-            FourierSettingsCard(state, svgPickerLauncher)
-            
             when (state.displayMode) {
                 FourierDisplayMode.WRAPPING -> FrequencyDomainGraph(spectrumData = state.spectrumData, colors = colors, currentWindingFreq = state.windingFrequency, time = state.time)
                 FourierDisplayMode.COMPLEX -> ComplexHarmonicComponents(

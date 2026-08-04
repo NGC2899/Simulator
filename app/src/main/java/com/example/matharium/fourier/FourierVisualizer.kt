@@ -10,7 +10,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.*
@@ -23,7 +22,6 @@ import androidx.compose.ui.layout.layout
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.matharium.R
 import com.example.matharium.app.*
 import kotlin.math.PI
@@ -471,7 +469,7 @@ fun FourierVisualizerBox(
             verticalArrangement = Arrangement.spacedBy(AppDesign.spacingSmall + AppDesign.spacingExtraSmall / 2f)
         ) {
             DisplayModeButton(
-                icon = FluentIcons.TablerCirclesRelation,
+                imageVector = FluentIcons.TablerCirclesRelation,
                 selected = displayMode == FourierDisplayMode.CIRCULAR,
                 colors = colors
             ) {
@@ -480,7 +478,7 @@ fun FourierVisualizerBox(
             }
 
             DisplayModeButton(
-                icon = Icons.Default.Adjust,
+                imageVector = Icons.Default.Adjust,
                 selected = displayMode == FourierDisplayMode.WRAPPING,
                 colors = colors
             ) {
@@ -489,7 +487,7 @@ fun FourierVisualizerBox(
             }
 
             DisplayModeButton(
-                icon = FluentIcons.MaterialSymbolsCircles,
+                imageVector = FluentIcons.MaterialSymbolsCircles,
                 selected = displayMode == FourierDisplayMode.COMPLEX,
                 colors = colors
             ) {
@@ -500,7 +498,7 @@ fun FourierVisualizerBox(
             Spacer(Modifier.height(AppDesign.spacingSmall + AppDesign.spacingExtraSmall / 2f))
 
             SidebarActionButton(
-                icon = painterResource(id = R.drawable.add_outline),
+                imageVector = FluentIcons.TablerClearAll,
                 colors = colors,
                 onClick = { onClearPath() }
             )

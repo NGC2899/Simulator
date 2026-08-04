@@ -50,7 +50,7 @@ fun FourierActionControls(
             )
         ) {
             Icon(
-                painter = if (running) painterResource(id = R.drawable.pause_outline) else painterResource(id = R.drawable.caret_forward_outline),
+                imageVector = if (running) FluentIcons.VscodeCodiconsTriangleRight else FluentIcons.MaterialIconsPause,
                 contentDescription = null,
                 tint = colors.textOnAccent,
                 modifier = Modifier.size(AppDesign.iconSmallMedium)

@@ -45,9 +45,7 @@ fun DoublePendulumEnvironment(
                     fontWeight = FontWeight.Bold,
                 )
                 Icon(
-                    if (isEnvExpanded) painterResource(id = R.drawable.chevron_up_outline) else painterResource(
-                        id = R.drawable.chevron_down_outline
-                    ),
+                    imageVector = if (isEnvExpanded) FluentIcons.FeatherChevronUp else FluentIcons.FeatherChevronDown,
                     null,
                     tint = colors.textSecondary,
                     modifier = Modifier.size(AppDesign.iconSmall)

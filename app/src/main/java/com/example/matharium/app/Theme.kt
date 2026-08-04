@@ -58,7 +58,7 @@ object AppDesign {
     val canvasHeightSmall = 300.dp
     val sidebarButtonSize = 42.dp
     val navBarHeight = 60.dp
-    val welcomeHeaderHeight = 100.dp
+    val welcomeHeaderHeight = 150.dp
     val welcomeSectionSpacing = 25.dp
     val welcomeGridSpacing = 60.dp
     val termsBoxHeight = 280.dp
@@ -71,7 +71,7 @@ object AppDesign {
     val iconSmallMedium = 18.dp
     val iconMedium = 20.dp
     val iconLarge = 24.dp
-    val iconWelcome = 80.dp
+    val iconWelcome = 50.dp
 
     val textCaption = 9.sp
     val textOverline = 10.sp
@@ -134,10 +134,14 @@ object DarkColors : AppColors {
     override val fieldLabel:     Color = Color(0xFF7A8BB0)
 
     // Pendulum canvas
-    override val pendulum:   Color = Color(0xFFEEEEEE)
+    override val pendulum:        Color = Color(0xFFEEEEEE)
     override val trailStart:     Color = Color(0x8000F5D4)   // trail fade-in
     override val trailEnd:       Color = Color(0x00000000)   // trail fade-out
     override val pivot:          Color = Color(0xFFFFFFFF)
+
+    override val yellow:         Color = Color(0xFFFFEB3B)
+
+    override val gray:           Color = Color(0xFFCBCBCB)
 
     override val isDark:         Boolean = true
 }
@@ -167,10 +171,13 @@ object LightColors : AppColors {
     override val fieldLabel:     Color = Color(0xFF64748B)
 
     // Pendulum canvas
-    override val pendulum:   Color = Color(0xFF151515)
+    override val pendulum:       Color = Color(0xFF151515)
     override val trailStart:     Color = Color(0x800891B2)
     override val trailEnd:       Color = Color(0x00000000)
     override val pivot:          Color = Color(0xFF1E293B)
+
+    override val yellow:         Color = Color(0xFFDECC2D)
+    override val gray:           Color = Color(0xFFA2A2A2)
 
     override val isDark:         Boolean = false
 }
@@ -193,10 +200,12 @@ interface AppColors {
     val fieldBorder:    Color
     val fieldFocused:   Color
     val fieldLabel:     Color
-    val pendulum:   Color
+    val pendulum:       Color
     val trailStart:     Color
     val trailEnd:       Color
     val pivot:          Color
+    val yellow:         Color
+    val gray:           Color
     val isDark:         Boolean
 }
 
@@ -488,7 +497,7 @@ fun Modifier.hapticClickable(
     onClick: () -> Unit
 ): Modifier = this.composed {
     val vibrate = rememberAppVibrator()
-    
+
     this.clickable(
         enabled = enabled,
         onClick = {
@@ -500,7 +509,7 @@ fun Modifier.hapticClickable(
 
 @Composable
 fun DisplayModeButton(
-    icon: ImageVector,
+    imageVector: ImageVector,
     selected: Boolean,
     colors: AppColors,
     modifier: Modifier = Modifier,
@@ -521,7 +530,7 @@ fun DisplayModeButton(
     ) {
         Box(contentAlignment = Alignment.Center) {
             Icon(
-                imageVector = icon,
+                imageVector = imageVector,
                 contentDescription = null,
                 modifier = Modifier.size(AppDesign.iconMedium),
                 tint = if (selected) colors.accentCyan else colors.textSecondary
@@ -532,7 +541,7 @@ fun DisplayModeButton(
 
 @Composable
 fun SidebarActionButton(
-    icon: Painter,
+    imageVector: ImageVector,
     colors: AppColors,
     modifier: Modifier = Modifier,
     tint: Color = colors.accentHell,
@@ -551,7 +560,7 @@ fun SidebarActionButton(
     ) {
         Box(contentAlignment = Alignment.Center) {
             Icon(
-                painter = icon,
+                imageVector = imageVector,
                 contentDescription = null,
                 modifier = Modifier.size(AppDesign.iconMedium),
                 tint = tint

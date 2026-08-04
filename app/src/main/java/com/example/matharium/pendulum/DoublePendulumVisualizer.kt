@@ -289,19 +289,19 @@ fun DoublePendulumVisualizer(
             verticalArrangement = Arrangement.spacedBy(AppDesign.spacingMedium)
         ) {
             DisplayModeButton(
-                icon = Icons.Default.Timeline,
+                imageVector = FluentIcons.FluentuiSystemIconsDataLine,
                 selected = displayMode == DisplayMode.SIMULATION,
                 colors = colors
             ) { onDisplayModeChange(DisplayMode.SIMULATION) }
 
             DisplayModeButton(
-                icon = Icons.AutoMirrored.Filled.ShowChart,
+                imageVector = FluentIcons.FluentuiSystemIconsSineWaveDots,
                 selected = displayMode == DisplayMode.GRAPH,
                 colors = colors
             ) { onDisplayModeChange(DisplayMode.GRAPH) }
 
             DisplayModeButton(
-                icon = Icons.Default.AllInclusive,
+                imageVector = FluentIcons.TablerBrandSpeedtest,
                 selected = displayMode == DisplayMode.COMPLEX,
                 colors = colors
             ) { onDisplayModeChange(DisplayMode.COMPLEX) }
@@ -310,7 +310,7 @@ fun DoublePendulumVisualizer(
 
             // Clear Trails Button
             SidebarActionButton(
-                icon = painterResource(id = R.drawable.trash_outline),
+                imageVector = FluentIcons.TablerClearAll,
                 colors = colors,
                 onClick = { pendulums.forEach { it.trail.clear(); it.angleTrail.clear() } }
             )

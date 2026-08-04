@@ -37,7 +37,9 @@ fun WaveTypeSelector(
     svgPickerLauncher: ManagedActivityResultLauncher<String, Uri?>
 ) {
     val colors = state.colors
+    Spacer(modifier = Modifier.height(AppDesign.spacingLarge))
     Text("Wave Type", color = colors.textSecondary, fontSize = AppDesign.textBody)
+    Spacer(modifier = Modifier.height(AppDesign.spacingSmall))
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -103,7 +105,7 @@ fun WaveTypeSelector(
 @Composable
 fun DrawingCanvas(state: FourierState) {
     val colors = state.colors
-    Column {
+    Column(modifier = Modifier.padding(top = AppDesign.radiusLarge)) {
         Row(
             modifier = Modifier.fillMaxWidth().height(AppDesign.chipHeight + 8.dp),
             horizontalArrangement = Arrangement.spacedBy(AppDesign.spacingSmall),
@@ -239,7 +241,7 @@ fun DrawingCanvas(state: FourierState) {
             contentAlignment = Alignment.Center
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = AppDesign.spacingMedium)) {
-                Icon(painter = painterResource(id = R.drawable.trash_outline), null, tint = colors.accentHell, modifier = Modifier.size(AppDesign.iconSmall))
+                Icon(imageVector = FluentIcons.FeatherTrash, null, tint = colors.accentHell, modifier = Modifier.size(AppDesign.iconSmall))
                 Spacer(Modifier.width(AppDesign.spacingSmall))
                 Text("Clear Drawing", fontSize = AppDesign.textSmall, color = colors.accentHell, fontWeight = FontWeight.Bold)
             }
@@ -250,7 +252,7 @@ fun DrawingCanvas(state: FourierState) {
 @Composable
 fun CustomSignalSettings(state: FourierState) {
     val colors = state.colors
-    Column {
+    Column(modifier = Modifier.padding(top = AppDesign.radiusLarge)) {
         Row(
             modifier = Modifier.fillMaxWidth().height(AppDesign.chipHeight + 8.dp),
             horizontalArrangement = Arrangement.spacedBy(AppDesign.spacingSmall),
@@ -305,7 +307,7 @@ fun CustomSignalSettings(state: FourierState) {
                     contentAlignment = Alignment.Center
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
-                        Icon(painter = painterResource(id = R.drawable.trash_outline), null, tint = colors.accentHell, modifier = Modifier.size(AppDesign.iconSmall))
+                        Icon(imageVector = FluentIcons.FeatherTrash, null, tint = colors.accentHell, modifier = Modifier.size(AppDesign.iconSmall))
                         Spacer(Modifier.width(4.dp))
                         Text("Clear", fontSize = AppDesign.textBody, color = colors.accentHell, fontWeight = FontWeight.Bold)
                     }
@@ -348,7 +350,7 @@ fun SVGSettings(
 ) {
     val colors = state.colors
     val density = androidx.compose.ui.platform.LocalContext.current.resources.displayMetrics.density
-    Column {
+    Column(modifier = Modifier.padding(top = AppDesign.radiusLarge)) {
         Text("SVG Path Preview", color = colors.accentCyan, fontSize = AppDesign.textBody, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(AppDesign.radiusSmall))
         Box(modifier = Modifier.fillMaxWidth().height(AppDesign.drawingAreaHeight).background(colors.cardSurface.copy(alpha = 0.2f), RoundedCornerShape(AppDesign.radiusSmall)).border(AppDesign.borderThin, colors.cardBorder.copy(alpha = 0.3f), RoundedCornerShape(AppDesign.radiusSmall))) {
@@ -383,7 +385,7 @@ fun SVGSettings(
                 contentAlignment = Alignment.Center
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = AppDesign.spacingMedium)) {
-                    Icon(painter = painterResource(id = R.drawable.cloud), null, tint = colors.accentCyan, modifier = Modifier.size(AppDesign.iconSmall))
+                    Icon(imageVector = FluentIcons.BootstrapFiletypeSvg, null, tint = colors.accentCyan, modifier = Modifier.size(AppDesign.iconSmall))
                     Spacer(Modifier.width(AppDesign.spacingSmall))
                     Text(if (state.svgPoints.isEmpty()) "Import SVG" else "Change SVG", fontSize = AppDesign.textSmall, color = colors.accentCyan, fontWeight = FontWeight.Bold)
                 }
@@ -401,7 +403,7 @@ fun SVGSettings(
                 contentAlignment = Alignment.Center
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = AppDesign.spacingMedium)) {
-                    Icon(painter = painterResource(id = R.drawable.trash_outline), null, tint = colors.accentHell, modifier = Modifier.size(AppDesign.iconSmall))
+                    Icon(imageVector = FluentIcons.FeatherTrash, null, tint = colors.accentHell, modifier = Modifier.size(AppDesign.iconSmall))
                     Spacer(Modifier.width(AppDesign.spacingSmall))
                     Text("Clear SVG", fontSize = AppDesign.textSmall, color = colors.accentHell, fontWeight = FontWeight.Bold)
                 }
@@ -418,7 +420,7 @@ fun SimulatorEnvironmentSettings(state: FourierState) {
         Column(modifier = Modifier.padding(AppDesign.spacingLarge).animateContentSize()) {
             Row(modifier = Modifier.fillMaxWidth().clickable { isExpanded = !isExpanded }, horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text("Simulator Settings", fontSize = AppDesign.textHeadline, fontWeight = FontWeight.Bold)
-                Icon(if (isExpanded) painterResource(id = R.drawable.chevron_up_outline) else painterResource(id = R.drawable.chevron_down_outline), null, tint = colors.textSecondary, modifier = Modifier.size(AppDesign.iconSmall))
+                Icon(imageVector = if (isExpanded) FluentIcons.FeatherChevronUp else FluentIcons.FeatherChevronDown, null, tint = colors.textSecondary, modifier = Modifier.size(AppDesign.iconSmall))
             }
             AnimatedVisibility(visible = isExpanded) {
                 Column {
@@ -450,7 +452,7 @@ fun SymmetryMessage(result: FourierLogic.SymmetryResult?, colors: AppColors) {
     if (message != null) {
         Card(modifier = Modifier.fillMaxWidth().padding(vertical = AppDesign.spacingSmall), colors = CardDefaults.cardColors(containerColor = colors.accentCyan.copy(alpha = 0.08f)), border = BorderStroke(1.dp, colors.accentCyan.copy(alpha = 0.2f)), shape = RoundedCornerShape(AppDesign.radiusSmall)) {
             Row(modifier = Modifier.padding(AppDesign.spacingMedium), verticalAlignment = Alignment.CenterVertically) {
-                Icon(painter = painterResource(id = R.drawable.cloud), null, tint = colors.accentCyan, modifier = Modifier.size(16.dp))
+                Icon(imageVector = FluentIcons.BootstrapStars, null, tint = colors.accentCyan, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(AppDesign.spacingSmall))
                 Text(text = message, color = colors.textPrimary, fontSize = AppDesign.textSmall, lineHeight = 16.sp, fontWeight = FontWeight.Medium)
             }
@@ -469,13 +471,13 @@ fun SignalSettingsCard(signal: SignalInstance, colors: AppColors, showDel: Boole
                     Text("Component #${signal.id}", color = colors.textPrimary, fontSize = AppDesign.textHeadline, fontWeight = FontWeight.Bold)
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = { signal.isPaused = !signal.isPaused; onParameterChange() }, modifier = Modifier.size(AppDesign.iconLarge + 4.dp)) { Icon(painter = if (signal.isPaused) painterResource(id = R.drawable.caret_forward_outline) else painterResource(id = R.drawable.pause_outline), contentDescription = null, tint = colors.textSecondary, modifier = Modifier.size(AppDesign.iconSmallMedium)) }
+                    IconButton(onClick = { signal.isPaused = !signal.isPaused; onParameterChange() }, modifier = Modifier.size(AppDesign.iconLarge + 4.dp)) { Icon(imageVector = if (signal.isPaused) FluentIcons.MaterialIconsPause else FluentIcons.VscodeCodiconsTriangleRight, contentDescription = null, tint = colors.textSecondary, modifier = Modifier.size(AppDesign.iconSmallMedium)) }
                     if (showDel) {
                         Spacer(Modifier.width(AppDesign.spacingExtraSmall))
-                        IconButton(onClick = onDel, modifier = Modifier.size(AppDesign.iconLarge + 4.dp)) { Icon(painterResource(id = R.drawable.trash_outline), null, tint = colors.accentHell.copy(alpha = 0.8f), modifier = Modifier.size(AppDesign.iconSmallMedium)) }
+                        IconButton(onClick = onDel, modifier = Modifier.size(AppDesign.iconLarge + 4.dp)) { Icon(imageVector = FluentIcons.FeatherTrash, null, tint = colors.accentHell.copy(alpha = 0.8f), modifier = Modifier.size(AppDesign.iconSmallMedium)) }
                     }
                     Spacer(Modifier.width(AppDesign.spacingExtraSmall))
-                    Icon(if (signal.isExpanded) painterResource(id = R.drawable.chevron_up_outline) else painterResource(id = R.drawable.chevron_down_outline), null, tint = colors.textSecondary, modifier = Modifier.size(AppDesign.iconSmall))
+                    Icon(imageVector = if (signal.isExpanded) FluentIcons.FeatherChevronUp else FluentIcons.FeatherChevronDown, null, tint = colors.textSecondary, modifier = Modifier.size(AppDesign.iconSmall))
                 }
             }
             AnimatedVisibility(visible = signal.isExpanded) {

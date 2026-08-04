@@ -56,14 +56,12 @@ fun DoublePendulumManager(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    "Pendulum Manager",
+                    "Pendulum Management",
                     fontSize = AppDesign.textHeadline,
                     fontWeight = FontWeight.Bold
                 )
                 Icon(
-                    if (isPendulumManagerExpanded) painterResource(id = R.drawable.chevron_up_outline) else painterResource(
-                        id = R.drawable.chevron_down_outline
-                    ),
+                    imageVector = if (isPendulumManagerExpanded) FluentIcons.FeatherChevronUp else FluentIcons.FeatherChevronDown,
                     null,
                     tint = colors.textSecondary,
                     modifier = Modifier.size(AppDesign.iconSmall)
@@ -166,7 +164,7 @@ fun DoublePendulumManager(
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            painter = painterResource(id = R.drawable.cloud),
+                            imageVector = FluentIcons.HeroiconsCloud,
                             null,
                             modifier = Modifier.size(AppDesign.iconSmall),
                             tint = colors.accentViolet
@@ -203,7 +201,7 @@ fun DoublePendulumManager(
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            painter = painterResource(id = R.drawable.trash_outline),
+                            imageVector = FluentIcons.FeatherTrash,
                             null,
                             tint = colors.accentHell,
                             modifier = Modifier.size(AppDesign.iconSmall)

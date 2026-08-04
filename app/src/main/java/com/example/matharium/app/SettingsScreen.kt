@@ -55,6 +55,13 @@ fun SettingsScreen(
                     colors = colors
                 )
 
+                Text(
+                    text = "Controls whether the background blobs move. Disabling this can save battery.",
+                    color = colors.textSecondary,
+                    fontSize = 12.sp,
+                    modifier = Modifier.padding(horizontal = AppDesign.spacingExtraSmall)
+                )
+
                 Spacer(modifier = Modifier.height(AppDesign.spacingSmall))
 
                 ToggleRow(
@@ -62,13 +69,6 @@ fun SettingsScreen(
                     checked = hapticEnabled,
                     onCheckedChange = onToggleHaptic,
                     colors = colors
-                )
-                
-                Text(
-                    text = "Controls whether the background blobs move. Disabling this can save battery.",
-                    color = colors.textSecondary,
-                    fontSize = 12.sp,
-                    modifier = Modifier.padding(horizontal = AppDesign.spacingExtraSmall)
                 )
             }
         }
