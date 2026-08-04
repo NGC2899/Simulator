@@ -310,7 +310,7 @@ fun DoublePendulumVisualizer(
 
             // Clear Trails Button
             SidebarActionButton(
-                icon = painterResource(id = R.drawable.trash_line_outline),
+                icon = painterResource(id = R.drawable.trash_outline),
                 colors = colors,
                 onClick = { pendulums.forEach { it.trail.clear(); it.angleTrail.clear() } }
             )

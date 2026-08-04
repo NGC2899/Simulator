@@ -1,49 +1,23 @@
-# Implementation Plan - Performance Optimization and Bug Fixing
+# Implementation Plan - High-Precision Microsoft Icons (Manual)
 
-This plan focuses on optimizing the Fourier simulation engine and UI, improving mathematical expression evaluation, and ensuring the app is production-ready.
-
-## User Review Required
-
-> [!IMPORTANT]
-> Enabling R8 (minifyEnabled) may impact debugging. I will enable it only for the `release` build type as per standard practice.
+Due to current build environment restrictions (Offline Mode), external libraries like `io.github.niyajali:fluentui-system-icons` cannot be downloaded. Instead, I will provide a high-precision, optimized manual implementation of the required Fluent UI icons.
 
 ## Proposed Changes
 
-### Core Logic & Mathematics
+### [MODIFY] [FluentIcons.kt](file:///C:/Users/Yasin/AndroidStudioProjects/Matharium/app/src/main/java/com/example/matharium/app/FluentIcons.kt)
 
-#### [MODIFY] [FourierExpression.kt](file:///C:/Users/Yasin/AndroidStudioProjects/Matharium/app/src/main/java/com/example/matharium/fourier/FourierExpression.kt)
-- Refactor `FourierExpressionEvaluator` to separate **parsing** from **evaluation**.
-- Implement a simple AST (Abstract Syntax Tree) to allow compiled expressions to be evaluated multiple times without re-parsing.
+Refactor the manual implementation to support the four variants requested, using a shared coordinate system and helper functions for precision.
 
-#### [MODIFY] [FourierLogic.kt](file:///C:/Users/Yasin/AndroidStudioProjects/Matharium/app/src/main/java/com/example/matharium/fourier/FourierLogic.kt)
-- Compile the `tokenRegex` in `extractPointsFromSVG` once instead of every time it matches a path.
-- Add better error handling to `getIdealValue` for edge cases.
-
-### State Management & Performance
-
-#### [MODIFY] [FourierState.kt](file:///C:/Users/Yasin/AndroidStudioProjects/Matharium/app/src/main/java/com/example/matharium/fourier/FourierState.kt)
-- Introduce a unified `activeHarmonics` state that stores precomputed frequency, amplitude, and phase for the current wave type.
-- Update this list only when the wave type, coefficients, or formula changes.
-- Use `derivedStateOf` for UI-dependent properties like `isSimulationEnabled`.
-- Integrate the new compiled expression logic for `FORMULA` mode.
-
-#### [MODIFY] [FourierVisualizer.kt](file:///C:/Users/Yasin/AndroidStudioProjects/Matharium/app/src/main/java/com/example/matharium/fourier/FourierVisualizer.kt)
-- Simplify the drawing loop in `FourierVisualizerBox`. Instead of a massive `when` block inside the loop, it will iterate over `state.activeHarmonics`.
-- This will significantly reduce the CPU load during drawing, especially with 250+ terms.
-
-### Build & Configuration
-
-#### [MODIFY] [build.gradle.kts](file:///C:/Users/Yasin/AndroidStudioProjects/Matharium/app/build.gradle.kts)
-- Set `isMinifyEnabled = true` in the `release` build type.
-- Set `isShrinkResources = true` to remove unused resources.
+- **Apps Icon**: Support `Color`, `Regular` (Outline), and `Filled`.
+- **Other Feature Icons**: Implement `MicRegular`, `CubeRegular`, `BranchRegular`, and `SettingsRegular` using verified SVG paths from the Fluent library.
+- **Switching Logic**: Maintain the current structure that allows switching by simply changing the `imageVector` property.
 
 ## Verification Plan
 
 ### Automated Tests
-- Run existing `FourierLogicTest`.
-- Add a new test for the AST-based `FourierExpressionEvaluator` to ensure mathematical correctness.
+- Run `assembleDebug` to ensure all `ImageVector` definitions are valid and compile correctly.
 
 ### Manual Verification
-- Verify that all wave types (Sine, Square, Triangle, Sawtooth, Formula, Draw, SVG) still work correctly.
-- Compare UI responsiveness (FPS) before and after optimization, especially in `FORMULA` mode with complex expressions.
-- Verify that the app still builds and runs in both `debug` and `release` modes.
+1.  **Welcome Screen**: Verify all cards display the correct Microsoft icon.
+2.  **Top Navigation Bar**: Confirm the Apps icon is vibrant and correctly sized.
+3.  **Visual Quality**: Confirm icons are perfectly round and symmetric (addressing the "disorder" feedback).

@@ -17,7 +17,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -95,7 +96,8 @@ fun WelcomeScreen(
                         title = "Fourier\nSeries",
                         colors = colors,
                         onClick = onNavigateToFourierSeries,
-                        iconRes = R.drawable.menu_outline
+                        imageVector = FluentIcons.FontAwesomeWaveSquare,
+                        tint = colors.accentCyan
                     )
                 }
             }
@@ -107,7 +109,7 @@ fun WelcomeScreen(
                         title = "Voice\nProcessing",
                         colors = colors,
                         onClick = onNavigateToVoiceProcessing,
-                        iconRes = R.drawable.mic_outline
+                        imageVector = FluentIcons.BootstrapSoundwave
                     )
                 }
             }
@@ -119,7 +121,7 @@ fun WelcomeScreen(
                         title = "Double\nPendulum",
                         colors = colors,
                         onClick = onNavigateToDoublePendulum,
-                        iconRes = R.drawable.pendulum_menu
+                        imageVector = FluentIcons.FluentuiSystemIconsDataLine
                     )
                 }
             }
@@ -131,7 +133,7 @@ fun WelcomeScreen(
                         title = "4D\nSimulation",
                         colors = colors,
                         onClick = onNavigateToFourD,
-                        iconRes = R.drawable.grid_outline
+                        imageVector = FluentIcons.FluentuiSystemIconsCubeMultiple
                     )
                 }
             }
@@ -143,7 +145,7 @@ fun WelcomeScreen(
                         title = "Settings",
                         colors = colors,
                         onClick = onNavigateToSettings,
-                        iconRes = R.drawable.moon_outline // Temporary until we have a real settings icon
+                        imageVector = FluentIcons.FluentuiSystemIconsSettingsCogMultiple
                     )
                 }
             }
@@ -186,7 +188,8 @@ fun SimulationCard(
     title: String,
     colors: AppColors,
     onClick: () -> Unit,
-    iconRes: Int
+    imageVector: ImageVector,
+    tint: androidx.compose.ui.graphics.Color = colors.accentCyan
 ) {
     Box(
         modifier = Modifier
@@ -206,9 +209,9 @@ fun SimulationCard(
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             Icon(
-                painter = painterResource(id = iconRes),
+                imageVector = imageVector,
                 contentDescription = null,
-                tint = colors.accentCyan,
+                tint = tint,
                 modifier = Modifier.size(40.dp)
             )
 
@@ -236,7 +239,7 @@ fun EmptyCard(colors: AppColors) {
         contentAlignment = Alignment.Center
     ) {
         Icon(
-            painter = painterResource(id = R.drawable.add_outline),
+            imageVector = FluentIcons.AppsRegular,
             contentDescription = null,
             tint = colors.textSecondary.copy(alpha = 0.2f),
             modifier = Modifier.size(32.dp)

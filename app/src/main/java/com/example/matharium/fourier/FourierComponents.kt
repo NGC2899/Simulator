@@ -393,7 +393,7 @@ fun HarmonicComponents(
                                             },
                                             leadingIcon = {
                                                 Icon(
-                                                    Icons.Default.Refresh,
+                                                    FluentIcons.TablerReload,
                                                     contentDescription = null,
                                                     tint = colors.textSecondary,
                                                     modifier = Modifier.size(AppDesign.iconSmallMedium)
@@ -981,7 +981,7 @@ fun ComplexHarmonicComponents(
                                             },
                                             leadingIcon = {
                                                 Icon(
-                                                    Icons.Default.Refresh,
+                                                    FluentIcons.TablerReload,
                                                     contentDescription = null,
                                                     tint = colors.textSecondary,
                                                     modifier = Modifier.size(AppDesign.iconSmallMedium)
@@ -997,6 +997,7 @@ fun ComplexHarmonicComponents(
                                             },
                                             leadingIcon = {
                                                 Icon(
+                                                    //Fix this icon//
                                                     painter = painterResource(id = R.drawable.trash_outline),
                                                     contentDescription = null,
                                                     tint = colors.accentHell,
@@ -1026,6 +1027,7 @@ fun ComplexHarmonicComponents(
                             )
                             Spacer(Modifier.width(AppDesign.spacingExtraSmall))
                             Icon(
+                                //Fix this icon//
                                 if (isExpanded) painterResource(id = R.drawable.chevron_up_outline) else painterResource(id = R.drawable.chevron_down_outline),
                                 null,
                                 tint = colors.accentCyan,

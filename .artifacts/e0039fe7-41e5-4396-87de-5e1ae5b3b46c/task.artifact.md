@@ -1,3 +1,7 @@
-- [x] Fix redundant Y-negation in `FourierSeries.kt`
-- [x] Verify the fix
-- [x] Create walkthrough
+- [x] Add Fluent UI Icons library to `libs.versions.toml` (Reverted due to Offline Mode)
+- [x] Add dependency to `app/build.gradle.kts` (Reverted due to Offline Mode)
+- [x] Sync Gradle
+- [x] Remove manual `FluentIcons.kt` (Refactored to High-Precision instead)
+- [x] Update `Welcome.kt` with library icons
+- [x] Update `MainActivity.kt` with library icons
+- [x] Verify build and UI

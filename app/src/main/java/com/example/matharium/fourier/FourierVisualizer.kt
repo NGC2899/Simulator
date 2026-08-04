@@ -471,7 +471,7 @@ fun FourierVisualizerBox(
             verticalArrangement = Arrangement.spacedBy(AppDesign.spacingSmall + AppDesign.spacingExtraSmall / 2f)
         ) {
             DisplayModeButton(
-                icon = Icons.Default.Timeline,
+                icon = FluentIcons.TablerCirclesRelation,
                 selected = displayMode == FourierDisplayMode.CIRCULAR,
                 colors = colors
             ) {
@@ -489,7 +489,7 @@ fun FourierVisualizerBox(
             }
 
             DisplayModeButton(
-                icon = Icons.Default.Hub,
+                icon = FluentIcons.MaterialSymbolsCircles,
                 selected = displayMode == FourierDisplayMode.COMPLEX,
                 colors = colors
             ) {
@@ -500,7 +500,7 @@ fun FourierVisualizerBox(
             Spacer(Modifier.height(AppDesign.spacingSmall + AppDesign.spacingExtraSmall / 2f))
 
             SidebarActionButton(
-                icon = painterResource(id = R.drawable.trash_line_outline),
+                icon = painterResource(id = R.drawable.add_outline),
                 colors = colors,
                 onClick = { onClearPath() }
             )
