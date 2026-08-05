@@ -50,7 +50,7 @@ fun FourierActionControls(
             )
         ) {
             Icon(
-                imageVector = if (running) FluentIcons.VscodeCodiconsTriangleRight else FluentIcons.MaterialIconsPause,
+                imageVector = if (running) FluentIcons.MaterialIconsPause else FluentIcons.VscodeCodiconsTriangleRight,
                 contentDescription = null,
                 tint = colors.textOnAccent,
                 modifier = Modifier.size(AppDesign.iconSmallMedium)

@@ -1,0 +1,5 @@
+- [ ] Add SVG background to `WelcomeScreen` in `Welcome.kt`
+    - [x] Select placeholder SVG from resources
+    - [ ] Wrap `WelcomeScreen` content in a `Box`
+    - [ ] Add `Image` with the SVG background
+    - [ ] Verify layout and build

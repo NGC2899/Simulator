@@ -22,10 +22,12 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -49,10 +51,33 @@ fun WelcomeScreen(
         showContent = true
     }
 
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        androidx.compose.foundation.Image(
+            painter = painterResource(id = R.drawable.welcomenav),
+            contentDescription = null,
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.TopStart),
+//                .offset(x = 20.dp, y = (-30).dp)
+//                .rotate(-28f),
+            contentScale = ContentScale.Fit,
+//            alpha = 0.7f
+        )
+
+        androidx.compose.foundation.Image(
+            painter = painterResource(id = R.drawable.welcomefooter),
+            contentDescription = null,
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.BottomCenter),
+            contentScale = ContentScale.Fit,
+            alpha = 0.3f
+        )
+
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
         Spacer(modifier = Modifier.height(AppDesign.welcomeSectionSpacing))
 
         Column(
@@ -109,7 +134,7 @@ fun WelcomeScreen(
 
         LazyVerticalGrid(
             columns = GridCells.Fixed(2),
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(AppDesign.radiusCard)),
             verticalArrangement = Arrangement.spacedBy(AppDesign.spacingLarge),
             horizontalArrangement = Arrangement.spacedBy(AppDesign.spacingLarge),
             contentPadding = PaddingValues(bottom = AppDesign.spacingLarge)
@@ -191,6 +216,7 @@ fun WelcomeScreen(
                 }
             }
         }
+    }
     }
 }
 
