@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -138,13 +139,7 @@ fun ScreenTransition(
     AnimatedContent(
         targetState = currentScreen,
         transitionSpec = {
-            if (targetState != Screen.Welcome) {
-                (slideInHorizontally { it } + fadeIn()).togetherWith(
-                    slideOutHorizontally { -it } + fadeOut())
-            } else {
-                (slideInHorizontally { -it } + fadeIn()).togetherWith(
-                    slideOutHorizontally { it } + fadeOut())
-            } using SizeTransform(clip = false)
+            fadeIn(tween(400)) togetherWith fadeOut(tween(400))
         }, label = "screenTransition",
         modifier = Modifier.fillMaxSize()
     ) { screen ->

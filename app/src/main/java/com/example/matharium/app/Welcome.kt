@@ -236,8 +236,7 @@ fun EntranceAnimation(
 
     AnimatedVisibility(
         visible = animatedVisible,
-        enter = fadeIn(tween(800, easing = EaseOutCubic)) +
-                slideInVertically(tween(600, easing = EaseOutCubic)) { it / 2 },
+        enter = fadeIn(tween(800, easing = EaseOutCubic)),
     ) {
         content()
     }
