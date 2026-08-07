@@ -180,9 +180,23 @@ fun WelcomeScreen(
                 }
             }
 
-            // Settings Card
+            // 4D simulator Card
             item {
                 EntranceAnimation(visible = showContent, index = 3) {
+                    SimulationCard(
+                        title = "4D Simulator",
+                        colors = colors,
+                        onClick = onNavigateToSettings,
+                        imageVector = FluentIcons.FluentuiSystemIconsCubeMultiple,
+                        tint = colors.accentHell,
+                        definition = "Step into the world beyond your imagination"
+                    )
+                }
+            }
+
+            // Settings Card
+            item {
+                EntranceAnimation(visible = showContent, index = 4) {
                     SimulationCard(
                         title = "Settings",
                         colors = colors,
@@ -196,7 +210,7 @@ fun WelcomeScreen(
 
             // Future Placeholder
             item {
-                EntranceAnimation(visible = showContent, index = 4) {
+                EntranceAnimation(visible = showContent, index = 5) {
                     EmptyCard(colors = colors)
                 }
             }
