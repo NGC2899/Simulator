@@ -1,4 +1,4 @@
-package com.example.matharium.fourier
+package com.example.matharium.fourier.ui
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
@@ -29,6 +29,9 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import com.example.matharium.R
 import com.example.matharium.app.*
+import com.example.matharium.fourier.engine.FourierExportLogic
+import com.example.matharium.fourier.engine.FourierLogic
+import com.example.matharium.fourier.state.*
 import java.util.Locale
 import kotlin.math.PI
 import kotlin.math.cos

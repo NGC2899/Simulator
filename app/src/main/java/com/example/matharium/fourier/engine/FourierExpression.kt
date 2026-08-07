@@ -1,4 +1,4 @@
-package com.example.matharium.fourier
+package com.example.matharium.fourier.engine
 
 import kotlin.math.*
 

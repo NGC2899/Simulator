@@ -1,8 +1,9 @@
-package com.example.matharium.pendulum
+package com.example.matharium.pendulum.state
 
 import androidx.compose.runtime.*
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import com.example.matharium.pendulum.engine.DoublePendulumLogic
 import kotlin.math.PI
 
 class PendulumInstance(
@@ -68,5 +69,5 @@ class PendulumInstance(
     }
 }
 
-enum class DragTarget { NONE, BOB1, BOB2, ANGLE_DOT }
-enum class DisplayMode { SIMULATION, GRAPH, COMPLEX }
+enum class PendulumDragTarget { NONE, BOB1, BOB2, ANGLE_DOT }
+enum class PendulumDisplayMode { SIMULATION, GRAPH, COMPLEX }

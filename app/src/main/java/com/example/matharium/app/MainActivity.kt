@@ -20,10 +20,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.example.matharium.fourier.FourierSeries
-import com.example.matharium.fourier.VoiceProcessing
-import com.example.matharium.pendulum.DoublePendulum
-import com.example.matharium.R
+import com.example.matharium.fourier.ui.FourierSeries
+import com.example.matharium.voice.VoiceProcessing
+import com.example.matharium.pendulum.ui.DoublePendulum
 
 enum class Screen {
     Welcome,

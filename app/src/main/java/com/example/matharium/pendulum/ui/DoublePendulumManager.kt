@@ -1,4 +1,4 @@
-package com.example.matharium.pendulum
+package com.example.matharium.pendulum.ui
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
@@ -26,6 +26,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import com.example.matharium.R
 import com.example.matharium.app.*
+import com.example.matharium.pendulum.engine.DoublePendulumConstants
+import com.example.matharium.pendulum.state.PendulumInstance
 import java.util.Locale
 import kotlin.random.Random
 

@@ -1,7 +1,8 @@
-package com.example.matharium.fourier
+package com.example.matharium.fourier.engine
 
 import android.util.Log
 import androidx.compose.ui.geometry.Offset
+import com.example.matharium.fourier.state.*
 import kotlin.math.*
 
 object FourierLogic {

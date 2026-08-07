@@ -1,5 +1,6 @@
-package com.example.matharium.fourd
+package com.example.matharium.fourd.engine
 
+import com.example.matharium.fourd.state.*
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt

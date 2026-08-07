@@ -5,8 +5,8 @@ import android.content.SharedPreferences
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
-import com.example.matharium.fourier.SignalInstance
-import com.example.matharium.pendulum.PendulumInstance
+import com.example.matharium.fourier.state.SignalInstance
+import com.example.matharium.pendulum.state.PendulumInstance
 
 class AppPreferences(context: Context) {
     private val prefs: SharedPreferences = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
@@ -98,25 +98,25 @@ class AppPreferences(context: Context) {
     private fun unescape(s: String) = s.replace("%7C", "|").replace("%3B", ";").replace("%25", "%")
 
     fun saveFourierSignals(signals: List<SignalInstance>) {
-        val serialized = signals.joinToString(";") { "${it.id}|${it.color.toArgb()}|${escape(it.freq)}|${escape(it.amp)}|${escape(it.phase)}" }
+        val serialized = signals.joinToString(";") { "${it.id}|${it.colorArgb}|${escape(it.freq)}|${escape(it.amp)}|${escape(it.phase)}" }
         prefs.edit().putString("fourier_signals", serialized).apply()
     }
 
-    fun loadFourierSignals(accentColor: Color): List<SignalInstance> {
-        val data = prefs.getString("fourier_signals", null) ?: return listOf(SignalInstance(0, accentColor))
+    fun loadFourierSignals(defaultColorArgb: Int): List<SignalInstance> {
+        val data = prefs.getString("fourier_signals", null) ?: return listOf(SignalInstance(0, defaultColorArgb))
         return try {
             data.split(";").filter { it.isNotEmpty() }.map {
                 val parts = it.split("|")
                 SignalInstance(
                     id = parts.getOrNull(0)?.toIntOrNull() ?: 0,
-                    color = Color(parts.getOrNull(1)?.toIntOrNull() ?: accentColor.toArgb()),
+                    colorArgb = parts.getOrNull(1)?.toIntOrNull() ?: defaultColorArgb,
                     initialFreq = unescape(parts.getOrNull(2) ?: "1.0"),
                     initialAmp = unescape(parts.getOrNull(3) ?: "0.5"),
                     initialPhase = unescape(parts.getOrNull(4) ?: "0.0")
                 )
             }
         } catch (e: Exception) {
-            listOf(SignalInstance(0, accentColor))
+            listOf(SignalInstance(0, defaultColorArgb))
         }
     }
 
@@ -135,7 +135,7 @@ class AppPreferences(context: Context) {
         }
         set(value) = prefs.edit().putString("custom_coeffs", value.joinToString(";") { "${it.first},${it.second}" }).apply()
 
-    var customCoefficients2D: List<com.example.matharium.fourier.FourierLogic.ComplexCoeff>
+    var customCoefficients2D: List<com.example.matharium.fourier.engine.FourierLogic.ComplexCoeff>
         get() {
             val data = prefs.getString("custom_coeffs_2d", "") ?: ""
             if (data.isEmpty()) return emptyList()
@@ -145,7 +145,7 @@ class AppPreferences(context: Context) {
                     val freq = parts[0].toIntOrNull()
                     val amp = parts[1].toFloatOrNull()
                     val phase = parts[2].toFloatOrNull()
-                    if (freq != null && amp != null && phase != null) com.example.matharium.fourier.FourierLogic.ComplexCoeff(freq, amp, phase) else null
+                    if (freq != null && amp != null && phase != null) com.example.matharium.fourier.engine.FourierLogic.ComplexCoeff(freq, amp, phase) else null
                 } else null
             }
         }

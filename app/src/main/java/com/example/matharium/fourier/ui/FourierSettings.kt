@@ -1,4 +1,4 @@
-package com.example.matharium.fourier
+package com.example.matharium.fourier.ui
 
 import android.net.Uri
 import androidx.activity.compose.ManagedActivityResultLauncher
@@ -13,6 +13,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import com.example.matharium.R
 import com.example.matharium.app.*
+import com.example.matharium.fourier.state.*
 import java.util.Locale
 
 @Composable
@@ -21,7 +22,7 @@ fun FourierSettingsCard(
     svgPickerLauncher: ManagedActivityResultLauncher<String, Uri?>
 ) {
     var isSettingsExpanded by remember { mutableStateOf(false) }
-    val colors = state.colors
+    val colors = LocalAppColors.current
 
     GlassCard(colors = colors) {
         Column(

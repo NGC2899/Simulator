@@ -1,4 +1,4 @@
-package com.example.matharium.pendulum
+package com.example.matharium.pendulum.ui
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -29,6 +29,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.matharium.R
 import com.example.matharium.app.*
+import com.example.matharium.pendulum.engine.*
+import com.example.matharium.pendulum.state.*
 import java.util.Locale
 import kotlin.math.PI
 import kotlin.math.atan2
@@ -39,14 +41,14 @@ fun DoublePendulumVisualizer(
     pendulums: SnapshotStateList<PendulumInstance>,
     running: Boolean,
     onHasStartedChange: (Boolean) -> Unit,
-    displayMode: DisplayMode,
-    onDisplayModeChange: (DisplayMode) -> Unit,
+    displayMode: com.example.matharium.pendulum.state.PendulumDisplayMode,
+    onDisplayModeChange: (com.example.matharium.pendulum.state.PendulumDisplayMode) -> Unit,
     scale: Float,
     onScaleChange: (Float) -> Unit,
     prefs: AppPreferences
 ) {
     var draggingPendulumId by remember { mutableStateOf<Int?>(null) }
-    var draggingBobType by remember { mutableStateOf(DragTarget.NONE) }
+    var draggingBobType by remember { mutableStateOf(com.example.matharium.pendulum.state.PendulumDragTarget.NONE) }
 
     val density = androidx.compose.ui.platform.LocalDensity.current
     val vectorLineScalePx = with(density) { DoublePendulumConstants.VECTOR_LINE_SCALE.dp.toPx() }
@@ -73,18 +75,18 @@ fun DoublePendulumVisualizer(
                             val center = Offset(size.width / 2f, size.height / 2f)
                             val touch = offset - center
 
-                            if (displayMode == DisplayMode.SIMULATION || displayMode == DisplayMode.COMPLEX) {
+                            if (displayMode == com.example.matharium.pendulum.state.PendulumDisplayMode.SIMULATION || displayMode == com.example.matharium.pendulum.state.PendulumDisplayMode.COMPLEX) {
                                 for (p in pendulums.asReversed()) {
                                     if ((touch - p.bob1 * scale).getDistance() < AppDesign.sidebarButtonSize.toPx() * DoublePendulumConstants.COLOR_SATURATION_ALT) {
                                         draggingPendulumId = p.id; draggingBobType =
-                                            DragTarget.BOB1; onHasStartedChange(false); return@detectDragGestures
+                                            com.example.matharium.pendulum.state.PendulumDragTarget.BOB1; onHasStartedChange(false); return@detectDragGestures
                                     }
                                     if ((touch - p.bob2 * scale).getDistance() < AppDesign.sidebarButtonSize.toPx() * DoublePendulumConstants.COLOR_SATURATION_ALT) {
                                         draggingPendulumId = p.id; draggingBobType =
-                                            DragTarget.BOB2; onHasStartedChange(false); return@detectDragGestures
+                                            com.example.matharium.pendulum.state.PendulumDragTarget.BOB2; onHasStartedChange(false); return@detectDragGestures
                                     }
                                 }
-                            } else if (displayMode == DisplayMode.GRAPH) {
+                            } else if (displayMode == com.example.matharium.pendulum.state.PendulumDisplayMode.GRAPH) {
                                 val graphScale = scale * DoublePendulumConstants.GRAPH_RENDER_SCALE
                                 for (p in pendulums.asReversed()) {
                                     val currentPos = Offset(
@@ -93,7 +95,7 @@ fun DoublePendulumVisualizer(
                                     )
                                     if ((touch - currentPos * graphScale).getDistance() < AppDesign.sidebarButtonSize.toPx() * DoublePendulumConstants.COLOR_SATURATION_ALT) {
                                         draggingPendulumId = p.id
-                                        draggingBobType = DragTarget.ANGLE_DOT
+                                        draggingBobType = com.example.matharium.pendulum.state.PendulumDragTarget.ANGLE_DOT
                                         onHasStartedChange(false)
                                         return@detectDragGestures
                                     }
@@ -107,9 +109,9 @@ fun DoublePendulumVisualizer(
                             val p = pendulums.find { it.id == draggingPendulumId }
                                 ?: return@detectDragGestures
 
-                            if (displayMode == DisplayMode.SIMULATION || displayMode == DisplayMode.COMPLEX) {
+                            if (displayMode == com.example.matharium.pendulum.state.PendulumDisplayMode.SIMULATION || displayMode == com.example.matharium.pendulum.state.PendulumDisplayMode.COMPLEX) {
                                 val touchScaled = touch / scale
-                                if (draggingBobType == DragTarget.BOB1) {
+                                if (draggingBobType == com.example.matharium.pendulum.state.PendulumDragTarget.BOB1) {
                                     p.t1 = String.format(
                                         Locale.US,
                                         "%.1f",
@@ -127,7 +129,7 @@ fun DoublePendulumVisualizer(
                                     )
                                 }
                                 p.updatePositions()
-                            } else if (displayMode == DisplayMode.GRAPH) {
+                            } else if (displayMode == com.example.matharium.pendulum.state.PendulumDisplayMode.GRAPH) {
                                 val graphScale = scale * DoublePendulumConstants.GRAPH_RENDER_SCALE
                                 val touchScaled = touch / graphScale
                                 p.t1 =
@@ -138,20 +140,20 @@ fun DoublePendulumVisualizer(
                             }
                         },
                         onDragEnd = {
-                            draggingPendulumId = null; draggingBobType = DragTarget.NONE
+                            draggingPendulumId = null; draggingBobType = com.example.matharium.pendulum.state.PendulumDragTarget.NONE
                             prefs.savePendulums(pendulums.toList())
                         },
                         onDragCancel = {
-                            draggingPendulumId = null; draggingBobType = DragTarget.NONE
+                            draggingPendulumId = null; draggingBobType = com.example.matharium.pendulum.state.PendulumDragTarget.NONE
                         }
                     )
                 }
         ) {
             when (displayMode) {
-                DisplayMode.SIMULATION, DisplayMode.COMPLEX -> {
+                com.example.matharium.pendulum.state.PendulumDisplayMode.SIMULATION, com.example.matharium.pendulum.state.PendulumDisplayMode.COMPLEX -> {
                     translate(size.width / 2f, size.height / 2f) {
                         pendulums.forEach { p ->
-                            if (displayMode != DisplayMode.COMPLEX) {
+                            if (displayMode != com.example.matharium.pendulum.state.PendulumDisplayMode.COMPLEX) {
                                 drawChaosTrail(p.trail, p.currentColor, scale)
                             }
                             drawLine(
@@ -179,7 +181,7 @@ fun DoublePendulumVisualizer(
                                 p.bob2 * scale
                             )
 
-                            if (displayMode == DisplayMode.COMPLEX) {
+                            if (displayMode == com.example.matharium.pendulum.state.PendulumDisplayMode.COMPLEX) {
                                 // Draw velocity vectors
                                 val v1x =
                                     p.logic.lengthOne * p.logic.omegaOne * kotlin.math.cos(p.logic.thetaOne)
@@ -224,7 +226,7 @@ fun DoublePendulumVisualizer(
                     }
                 }
 
-                DisplayMode.GRAPH -> {
+                com.example.matharium.pendulum.state.PendulumDisplayMode.GRAPH -> {
                     translate(size.width / 2f, size.height / 2f) {
                         // Draw Grid/Axes
                         val axisColor = colors.textSecondary.copy(AppDesign.opacityMedium)
@@ -290,21 +292,21 @@ fun DoublePendulumVisualizer(
         ) {
             DisplayModeButton(
                 imageVector = FluentIcons.FluentuiSystemIconsDataLine,
-                selected = displayMode == DisplayMode.SIMULATION,
+                selected = displayMode == com.example.matharium.pendulum.state.PendulumDisplayMode.SIMULATION,
                 colors = colors
-            ) { onDisplayModeChange(DisplayMode.SIMULATION) }
+            ) { onDisplayModeChange(com.example.matharium.pendulum.state.PendulumDisplayMode.SIMULATION) }
 
             DisplayModeButton(
                 imageVector = FluentIcons.FluentuiSystemIconsSineWaveDots,
-                selected = displayMode == DisplayMode.GRAPH,
+                selected = displayMode == com.example.matharium.pendulum.state.PendulumDisplayMode.GRAPH,
                 colors = colors
-            ) { onDisplayModeChange(DisplayMode.GRAPH) }
+            ) { onDisplayModeChange(com.example.matharium.pendulum.state.PendulumDisplayMode.GRAPH) }
 
             DisplayModeButton(
                 imageVector = FluentIcons.TablerBrandSpeedtest,
-                selected = displayMode == DisplayMode.COMPLEX,
+                selected = displayMode == com.example.matharium.pendulum.state.PendulumDisplayMode.COMPLEX,
                 colors = colors
-            ) { onDisplayModeChange(DisplayMode.COMPLEX) }
+            ) { onDisplayModeChange(com.example.matharium.pendulum.state.PendulumDisplayMode.COMPLEX) }
 
             Spacer(Modifier.height(AppDesign.spacingSmall))
 

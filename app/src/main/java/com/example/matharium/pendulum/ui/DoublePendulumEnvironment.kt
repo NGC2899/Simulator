@@ -1,4 +1,4 @@
-package com.example.matharium.pendulum
+package com.example.matharium.pendulum.ui
 
 import androidx.compose.animation.*
 import androidx.compose.foundation.clickable
@@ -12,6 +12,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import com.example.matharium.R
 import com.example.matharium.app.*
+import com.example.matharium.pendulum.engine.DoublePendulumConstants
 import java.util.Locale
 
 @Composable

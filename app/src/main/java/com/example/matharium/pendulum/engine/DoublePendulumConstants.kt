@@ -1,4 +1,4 @@
-package com.example.matharium.pendulum
+package com.example.matharium.pendulum.engine
 
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp

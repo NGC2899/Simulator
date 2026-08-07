@@ -1,4 +1,4 @@
-package com.example.matharium.fourier
+package com.example.matharium.fourier.ui
 
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -24,6 +24,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.matharium.R
 import com.example.matharium.app.*
+import com.example.matharium.fourier.engine.FourierLogic
+import com.example.matharium.fourier.state.*
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
@@ -315,7 +317,7 @@ fun FourierVisualizerBox(
                         val nextX = x + (amp * radiusBasePx) * cos(totalAngle)
                         val nextY = y - (amp * radiusBasePx) * sin(totalAngle)
 
-                        val termColor = (if (waveType == WaveType.PURE_SIGNAL && i < customFunctionSignals.size) customFunctionSignals[i].color else colors.accentCyan)
+                        val termColor = (if (waveType == WaveType.PURE_SIGNAL && i < customFunctionSignals.size) Color(customFunctionSignals[i].colorArgb) else colors.accentCyan)
                         drawCircle(
                             color = termColor.copy(alpha = AppDesign.opacityLow * 2f),
                             radius = kotlin.math.abs(amp * radiusBasePx),

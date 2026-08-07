@@ -1,4 +1,4 @@
-package com.example.matharium.fourd
+package com.example.matharium.fourd.state
 
 enum class FourDShape {
     CUBE,

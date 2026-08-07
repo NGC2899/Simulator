@@ -1,4 +1,4 @@
-package com.example.matharium.fourd
+package com.example.matharium.fourd.ui
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -11,77 +11,36 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import com.example.matharium.app.AppColors
 import com.example.matharium.app.AppDesign
+import com.example.matharium.fourd.state.*
 
+/**
+ * Rendering Layer for 4D Objects.
+ * Only responsible for drawing pre-projected points.
+ */
 @Composable
 fun FourDVisualizer(
-    shape: FourDShape,
-    dimensions: Int,
-    isRotating: Boolean,
+    state: FourDState,
     colors: AppColors
 ) {
-    // Current accumulated rotation matrix
-    var rotationMatrix by remember { 
-        mutableStateOf(doubleArrayOf(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0)) 
-    }
-    var autoAngle by remember { mutableDoubleStateOf(0.0) }
-
-    // Reset rotation when shape or dimensions change significantly? 
-    // Usually better to keep it unless the user explicitly resets.
-
-    // Animation frame for automatic rotation
-    LaunchedEffect(isRotating) {
-        if (isRotating) {
-            while (true) {
-                withFrameNanos {
-                    autoAngle += 0.006
-                }
-            }
-        }
-    }
-
-    // Geometry data
-    val (baseVertices, edges, faces) = remember(dimensions, shape) {
-        FourDLogic.generateShape(shape, dimensions)
-    }
-
     Canvas(
         modifier = Modifier
             .fillMaxSize()
             .pointerInput(Unit) {
                 detectDragGestures { change, dragAmount ->
                     change.consume()
-                    
-                    // Virtual Trackball Logic:
-                    // A drag in X should rotate around the screen's Y axis.
-                    // A drag in Y should rotate around the screen's X axis.
-                    val sensitivity = 0.01
-                    val deltaX = dragAmount.x.toDouble() * sensitivity
-                    val deltaY = dragAmount.y.toDouble() * sensitivity
-                    
-                    // Create small rotation matrices for this frame's delta
-                    val rotX = FourDLogic.rotationMatrix(1.0, 0.0, 0.0, -deltaY)
-                    val rotY = FourDLogic.rotationMatrix(0.0, 1.0, 0.0, -deltaX)
-                    
-                    // Update global rotation matrix (Accumulate)
-                    val deltaRot = FourDLogic.multiplyMatrices(rotY, rotX)
-                    rotationMatrix = FourDLogic.multiplyMatrices(deltaRot, rotationMatrix)
+                    state.rotateUser(dragAmount.x.toDouble(), dragAmount.y.toDouble())
                 }
             }
     ) {
         val centerX = size.width / 2f
         val centerY = size.height / 2f
-        val scale = 80.dp.toPx() // Canvas already provides Density
+        val scale = 80.dp.toPx()
 
-        // 1. Apply N-Dimensional automatic rotation first
-        val autoRotated = FourDLogic.rotateHigherDims(baseVertices, dimensions, autoAngle)
-        
-        // 2. Apply the user-controlled 3D rotation matrix
-        val userRotated = autoRotated.map { p ->
-            FourDLogic.transform3D(p, rotationMatrix)
-        }
-        
-        // 3. Project to 2D
-        val projected = FourDLogic.projectNDto2D(userRotated, dimensions)
+        val projected = state.projectedPoints
+        val edges = state.edges
+        val faces = state.faces
+
+        if (projected.isEmpty()) return@Canvas
 
         // Draw edges
         edges.forEach { edge ->
@@ -133,8 +92,8 @@ fun FourDVisualizer(
             }
         }
 
-        // Draw vertices (only for CUBE, or as small dots if needed)
-        if (shape == FourDShape.CUBE) {
+        // Draw vertices (only for CUBE)
+        if (state.selectedShape == FourDShape.CUBE) {
             projected.forEach { p ->
                 drawCircle(
                     color = colors.accentViolet,

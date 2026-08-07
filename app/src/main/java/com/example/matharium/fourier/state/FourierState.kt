@@ -1,16 +1,18 @@
-package com.example.matharium.fourier
+package com.example.matharium.fourier.state
 
 import androidx.compose.runtime.*
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.toArgb
 import com.example.matharium.app.*
+import com.example.matharium.fourier.engine.*
 import kotlinx.coroutines.*
 
 class FourierState(
     val prefs: AppPreferences,
-    val colors: AppColors,
     val scope: CoroutineScope,
     val samplesCount: Int,
-    val radiusBasePx: Float
+    val radiusBasePx: Float,
+    val defaultSignalColorArgb: Int
 ) {
     var nTerms by mutableIntStateOf(prefs.fourierNTerms)
     var waveType by mutableStateOf(
@@ -82,7 +84,7 @@ class FourierState(
     var baseSvgCoefficients by mutableStateOf<List<FourierLogic.ComplexCoeff>>(emptyList())
 
     val customFunctionSignals = mutableStateListOf<SignalInstance>().apply {
-        addAll(prefs.loadFourierSignals(colors.accentCyan))
+        addAll(prefs.loadFourierSignals(defaultSignalColorArgb))
     }
     var nextSignalId by mutableIntStateOf(customFunctionSignals.maxOfOrNull { it.id }?.plus(1) ?: 1)
     var isSignalsExpanded by mutableStateOf(false)
@@ -307,7 +309,22 @@ class FourierState(
         }
     }
 
-    fun updatePhysics(frameTime: Long, lastTime: Long) {
+    /**
+     * Simulation Heartbeat.
+     * Runs the physics loop using the frame clock.
+     */
+    suspend fun runSimulation() {
+        if (!running) return
+        var lastTime = System.nanoTime()
+        while (running) {
+            withFrameNanos { frameTime ->
+                updatePhysics(frameTime, lastTime)
+                lastTime = frameTime
+            }
+        }
+    }
+
+    private fun updatePhysics(frameTime: Long, lastTime: Long) {
         val elapsedSeconds = (frameTime - lastTime) / 1e9f
         val substeps = 2
         val subDt = elapsedSeconds / substeps
@@ -469,7 +486,8 @@ fun rememberFourierState(
     samplesCount: Int = 1000,
     radiusBasePx: Float
 ): FourierState {
+    val defaultColorArgb = colors.accentCyan.toArgb()
     return remember {
-        FourierState(prefs, colors, scope, samplesCount, radiusBasePx)
+        FourierState(prefs, scope, samplesCount, radiusBasePx, defaultColorArgb)
     }
 }

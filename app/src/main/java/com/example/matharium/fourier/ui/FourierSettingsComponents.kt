@@ -1,4 +1,4 @@
-package com.example.matharium.fourier
+package com.example.matharium.fourier.ui
 
 import androidx.compose.animation.*
 import androidx.compose.foundation.*
@@ -27,6 +27,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.matharium.R
 import com.example.matharium.app.*
+import com.example.matharium.fourier.state.*
+import com.example.matharium.fourier.engine.FourierLogic
 import java.util.Locale
 import android.net.Uri
 import androidx.activity.compose.ManagedActivityResultLauncher
@@ -36,7 +38,7 @@ fun WaveTypeSelector(
     state: FourierState,
     svgPickerLauncher: ManagedActivityResultLauncher<String, Uri?>
 ) {
-    val colors = state.colors
+    val colors = LocalAppColors.current
     Spacer(modifier = Modifier.height(AppDesign.spacingLarge))
     Text("Wave Type", color = colors.textSecondary, fontSize = AppDesign.textBody)
     Spacer(modifier = Modifier.height(AppDesign.spacingSmall))
@@ -104,7 +106,7 @@ fun WaveTypeSelector(
 
 @Composable
 fun DrawingCanvas(state: FourierState) {
-    val colors = state.colors
+    val colors = LocalAppColors.current
     Column(modifier = Modifier.padding(top = AppDesign.radiusLarge)) {
         Row(
             modifier = Modifier.fillMaxWidth().height(AppDesign.chipHeight + 8.dp),
@@ -251,7 +253,7 @@ fun DrawingCanvas(state: FourierState) {
 
 @Composable
 fun CustomSignalSettings(state: FourierState) {
-    val colors = state.colors
+    val colors = LocalAppColors.current
     Column(modifier = Modifier.padding(top = AppDesign.radiusLarge)) {
         Row(
             modifier = Modifier.fillMaxWidth().height(AppDesign.chipHeight + 8.dp),
@@ -289,7 +291,8 @@ fun CustomSignalSettings(state: FourierState) {
                         .border(BorderStroke(AppDesign.borderThin, Brush.linearGradient(listOf(colors.accentCyan, colors.accentViolet))), RoundedCornerShape(AppDesign.radiusButton))
                         .clickable {
                             val last = state.customFunctionSignals.lastOrNull()
-                            state.customFunctionSignals.add(SignalInstance(state.nextSignalId, Color.hsv(kotlin.random.Random.nextFloat() * 360f, 0.7f, 0.9f), last?.freq ?: "1.0", last?.amp ?: "0.5", last?.phase ?: "0.0"))
+                            val color = Color.hsv(kotlin.random.Random.nextFloat() * 360f, 0.7f, 0.9f)
+                            state.customFunctionSignals.add(SignalInstance(state.nextSignalId, color.toArgb(), last?.freq ?: "1.0", last?.amp ?: "0.5", last?.phase ?: "0.0"))
                             state.nextSignalId++
                         },
                     contentAlignment = Alignment.Center
@@ -348,7 +351,7 @@ fun SVGSettings(
     state: FourierState,
     svgPickerLauncher: ManagedActivityResultLauncher<String, Uri?>
 ) {
-    val colors = state.colors
+    val colors = LocalAppColors.current
     val density = androidx.compose.ui.platform.LocalContext.current.resources.displayMetrics.density
     Column(modifier = Modifier.padding(top = AppDesign.radiusLarge)) {
         Text("SVG Path Preview", color = colors.accentCyan, fontSize = AppDesign.textBody, fontWeight = FontWeight.Bold)
@@ -414,7 +417,7 @@ fun SVGSettings(
 
 @Composable
 fun SimulatorEnvironmentSettings(state: FourierState) {
-    val colors = state.colors
+    val colors = LocalAppColors.current
     var isExpanded by remember { mutableStateOf(false) }
     GlassCard(colors = colors) {
         Column(modifier = Modifier.padding(AppDesign.spacingLarge).animateContentSize()) {
@@ -466,7 +469,8 @@ fun SignalSettingsCard(signal: SignalInstance, colors: AppColors, showDel: Boole
         Column(modifier = Modifier.padding(AppDesign.spacingMedium).animateContentSize()) {
             Row(modifier = Modifier.fillMaxWidth().clickable { signal.isExpanded = !signal.isExpanded }, horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                    Box(modifier = Modifier.size(AppDesign.coloredIndicator).background(signal.color, CircleShape).border(1.dp, signal.color.copy(alpha = 0.4f), CircleShape))
+                    val color = Color(signal.colorArgb)
+                    Box(modifier = Modifier.size(AppDesign.coloredIndicator).background(color, CircleShape).border(1.dp, color.copy(alpha = 0.4f), CircleShape))
                     Spacer(Modifier.width(AppDesign.spacingSmall))
                     Text("Component #${signal.id}", color = colors.textPrimary, fontSize = AppDesign.textHeadline, fontWeight = FontWeight.Bold)
                 }

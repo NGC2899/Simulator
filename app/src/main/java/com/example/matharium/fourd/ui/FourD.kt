@@ -1,4 +1,4 @@
-package com.example.matharium.fourd
+package com.example.matharium.fourd.ui
 
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
@@ -24,16 +24,25 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.matharium.app.*
 import com.example.matharium.R
+import com.example.matharium.fourd.state.*
 
 @Composable
 fun FourDScreen() {
     val colors = LocalAppColors.current
     val scrollState = rememberScrollState()
+    val state = rememberFourDState()
 
-    var selectedShape by remember { mutableStateOf(FourDShape.CUBE) }
-    var isRotating by remember { mutableStateOf(false) }
-    var dimensions by remember { mutableIntStateOf(4) }
     var isSettingsExpanded by remember { mutableStateOf(true) }
+
+    // Sync automatic rotation loop
+    LaunchedEffect(state.isRotating) {
+        state.runRotationLoop()
+    }
+
+    // React to shape changes
+    LaunchedEffect(state.selectedShape, state.dimensions) {
+        state.updateShape()
+    }
 
     Column(
         modifier = Modifier
@@ -81,10 +90,10 @@ fun FourDScreen() {
                             horizontalArrangement = Arrangement.spacedBy(AppDesign.spacingSmall)
                         ) {
                             FourDShape.entries.forEach { shape ->
-                                val selected = selectedShape == shape
+                                val selected = state.selectedShape == shape
                                 FilterChip(
                                     selected = selected,
-                                    onClick = { selectedShape = shape },
+                                    onClick = { state.selectedShape = shape },
                                     label = {
                                         Text(
                                             shape.name.lowercase().replace("_", " ").split(" ").joinToString(" ") { it.replaceFirstChar { char -> char.uppercase() } })
@@ -108,8 +117,8 @@ fun FourDScreen() {
                         // Rotation Toggle Row
                         ToggleRow(
                             label = "Enable N-Dimensional Rotation",
-                            checked = isRotating,
-                            onCheckedChange = { isRotating = it },
+                            checked = state.isRotating,
+                            onCheckedChange = { state.isRotating = it },
                             colors = colors
                         )
                     }
@@ -136,9 +145,7 @@ fun FourDScreen() {
                 contentAlignment = Alignment.Center
             ) {
                 FourDVisualizer(
-                    shape = selectedShape,
-                    dimensions = dimensions,
-                    isRotating = isRotating,
+                    state = state,
                     colors = colors
                 )
             }
@@ -173,7 +180,7 @@ fun FourDScreen() {
                         verticalArrangement = Arrangement.SpaceBetween,
                         modifier = Modifier.fillMaxHeight()
                     ) {
-                        IconButton(onClick = { if (dimensions < 10) dimensions++ }) {
+                        IconButton(onClick = { if (state.dimensions < 10) state.dimensions++ }) {
                             Icon(
                                 imageVector = Icons.Default.Add,
                                 contentDescription = "Add Dimension",
@@ -183,8 +190,8 @@ fun FourDScreen() {
                         }
 
                         Slider(
-                            value = dimensions.toFloat(),
-                            onValueChange = { dimensions = it.toInt() },
+                            value = state.dimensions.toFloat(),
+                            onValueChange = { state.dimensions = it.toInt() },
                             valueRange = 2f..10f,
                             modifier = Modifier
                                 .weight(1f)
@@ -213,7 +220,7 @@ fun FourDScreen() {
                             )
                         )
 
-                        IconButton(onClick = { if (dimensions > 2) dimensions-- }) {
+                        IconButton(onClick = { if (state.dimensions > 2) state.dimensions-- }) {
                             Icon(
                                 imageVector = Icons.Default.Remove,
                                 contentDescription = "Remove Dimension",
@@ -223,7 +230,7 @@ fun FourDScreen() {
                         }
 
                         Text(
-                            text = "${dimensions}D",
+                            text = "${state.dimensions}D",
                             color = colors.textPrimary,
                             fontSize = AppDesign.textCaption,
                             fontWeight = FontWeight.Bold,

@@ -1,4 +1,4 @@
-package com.example.matharium.fourier
+package com.example.matharium.fourier.ui
 
 import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
@@ -10,9 +10,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import com.example.matharium.R
 import com.example.matharium.app.*
 
 @Composable

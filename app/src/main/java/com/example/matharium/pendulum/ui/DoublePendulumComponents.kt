@@ -1,4 +1,4 @@
-package com.example.matharium.pendulum
+package com.example.matharium.pendulum.ui
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
@@ -30,6 +30,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.matharium.app.*
 import com.example.matharium.R
+import com.example.matharium.pendulum.engine.DoublePendulumConstants
+import com.example.matharium.pendulum.state.PendulumInstance
 
 @Composable
 fun EnergyDashboard(

@@ -1,8 +1,7 @@
-package com.example.matharium.fourier
+package com.example.matharium.fourier.state
 
 import androidx.compose.runtime.*
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 
 enum class WaveType {
     MY_SIGNAL, MY_SIGNAL_2D, PURE_SIGNAL, FORMULA, SVG, SQUARE, SINE, SAWTOOTH, TRIANGLE
@@ -14,7 +13,7 @@ enum class FourierDisplayMode {
 
 class SignalInstance(
     val id: Int,
-    var color: Color,
+    var colorArgb: Int,
     val initialFreq: String = "1.0",
     val initialAmp: String = "0.5",
     val initialPhase: String = "0.0"
