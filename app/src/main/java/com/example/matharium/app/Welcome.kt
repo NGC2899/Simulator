@@ -200,13 +200,6 @@ fun WelcomeScreen(
                     EmptyCard(colors = colors)
                 }
             }
-
-            // Future Placeholder
-            item {
-                EntranceAnimation(visible = showContent, index = 5) {
-                    EmptyCard(colors = colors)
-                }
-            }
         }
     }
     }

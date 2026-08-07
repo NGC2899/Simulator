@@ -1,0 +1,4 @@
+- [x] Fix `Persistence.kt` (Serialization/Deserialization)
+- [x] Fix `FourierSettingsComponents.kt` (Component creation and card rendering)
+- [x] Fix `FourierVisualizer.kt` (Visualization loop)
+- [x] Verify build and tests

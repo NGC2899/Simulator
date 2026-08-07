@@ -292,7 +292,7 @@ fun CustomSignalSettings(state: FourierState) {
                         .clickable {
                             val last = state.customFunctionSignals.lastOrNull()
                             val color = Color.hsv(kotlin.random.Random.nextFloat() * 360f, 0.7f, 0.9f)
-                            state.customFunctionSignals.add(SignalInstance(state.nextSignalId, color.toArgb(), last?.freq ?: "1.0", last?.amp ?: "0.5", last?.phase ?: "0.0"))
+                            state.customFunctionSignals.add(SignalInstance(state.nextSignalId, color, last?.freq ?: "1.0", last?.amp ?: "0.5", last?.phase ?: "0.0"))
                             state.nextSignalId++
                         },
                     contentAlignment = Alignment.Center
@@ -469,7 +469,7 @@ fun SignalSettingsCard(signal: SignalInstance, colors: AppColors, showDel: Boole
         Column(modifier = Modifier.padding(AppDesign.spacingMedium).animateContentSize()) {
             Row(modifier = Modifier.fillMaxWidth().clickable { signal.isExpanded = !signal.isExpanded }, horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                    val color = Color(signal.colorArgb)
+                    val color = signal.colorArgb
                     Box(modifier = Modifier.size(AppDesign.coloredIndicator).background(color, CircleShape).border(1.dp, color.copy(alpha = 0.4f), CircleShape))
                     Spacer(Modifier.width(AppDesign.spacingSmall))
                     Text("Component #${signal.id}", color = colors.textPrimary, fontSize = AppDesign.textHeadline, fontWeight = FontWeight.Bold)

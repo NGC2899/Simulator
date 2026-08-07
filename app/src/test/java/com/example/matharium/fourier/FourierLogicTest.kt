@@ -1,6 +1,11 @@
 package com.example.matharium.fourier
 
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import com.example.matharium.fourier.engine.FourierLogic
+import com.example.matharium.fourier.state.FourierDisplayMode
+import com.example.matharium.fourier.state.SignalInstance
+import com.example.matharium.fourier.state.WaveType
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -70,7 +75,7 @@ class FourierLogicTest {
 
     @Test
     fun testGetIdealValue_PureSignalDynamic() {
-        val signal = SignalInstance(0, androidx.compose.ui.graphics.Color.Red, "1.0", "1.0", "0.0")
+        val signal = SignalInstance(0, Color.Red, "1.0", "1.0", "0.0")
         signal.updateCache()
         val customSignals = listOf(signal)
         val harmonicAmplitudes = mapOf(0 to 2.0f) // Override amplitude

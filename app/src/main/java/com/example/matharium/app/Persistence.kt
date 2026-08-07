@@ -98,25 +98,26 @@ class AppPreferences(context: Context) {
     private fun unescape(s: String) = s.replace("%7C", "|").replace("%3B", ";").replace("%25", "%")
 
     fun saveFourierSignals(signals: List<SignalInstance>) {
-        val serialized = signals.joinToString(";") { "${it.id}|${it.colorArgb}|${escape(it.freq)}|${escape(it.amp)}|${escape(it.phase)}" }
+        val serialized = signals.joinToString(";") { "${it.id}|${it.colorArgb.toArgb()}|${escape(it.freq)}|${escape(it.amp)}|${escape(it.phase)}" }
         prefs.edit().putString("fourier_signals", serialized).apply()
     }
 
     fun loadFourierSignals(defaultColorArgb: Int): List<SignalInstance> {
-        val data = prefs.getString("fourier_signals", null) ?: return listOf(SignalInstance(0, defaultColorArgb))
+        val defaultColor = Color(defaultColorArgb)
+        val data = prefs.getString("fourier_signals", null) ?: return listOf(SignalInstance(0, defaultColor))
         return try {
             data.split(";").filter { it.isNotEmpty() }.map {
                 val parts = it.split("|")
                 SignalInstance(
                     id = parts.getOrNull(0)?.toIntOrNull() ?: 0,
-                    colorArgb = parts.getOrNull(1)?.toIntOrNull() ?: defaultColorArgb,
+                    colorArgb = Color(parts.getOrNull(1)?.toIntOrNull() ?: defaultColorArgb),
                     initialFreq = unescape(parts.getOrNull(2) ?: "1.0"),
                     initialAmp = unescape(parts.getOrNull(3) ?: "0.5"),
                     initialPhase = unescape(parts.getOrNull(4) ?: "0.0")
                 )
             }
         } catch (e: Exception) {
-            listOf(SignalInstance(0, defaultColorArgb))
+            listOf(SignalInstance(0, defaultColor))
         }
     }
 

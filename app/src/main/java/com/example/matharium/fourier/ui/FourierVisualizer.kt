@@ -317,7 +317,7 @@ fun FourierVisualizerBox(
                         val nextX = x + (amp * radiusBasePx) * cos(totalAngle)
                         val nextY = y - (amp * radiusBasePx) * sin(totalAngle)
 
-                        val termColor = (if (waveType == WaveType.PURE_SIGNAL && i < customFunctionSignals.size) Color(customFunctionSignals[i].colorArgb) else colors.accentCyan)
+                        val termColor = (if (waveType == WaveType.PURE_SIGNAL && i < customFunctionSignals.size) customFunctionSignals[i].colorArgb else colors.accentCyan)
                         drawCircle(
                             color = termColor.copy(alpha = AppDesign.opacityLow * 2f),
                             radius = kotlin.math.abs(amp * radiusBasePx),

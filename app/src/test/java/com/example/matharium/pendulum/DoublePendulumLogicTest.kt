@@ -1,5 +1,6 @@
 package com.example.matharium.pendulum
 
+import com.example.matharium.pendulum.engine.DoublePendulumLogic
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Test
