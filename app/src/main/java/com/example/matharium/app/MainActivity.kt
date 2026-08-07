@@ -23,7 +23,6 @@ import androidx.compose.ui.unit.dp
 import com.example.matharium.fourier.FourierSeries
 import com.example.matharium.fourier.VoiceProcessing
 import com.example.matharium.pendulum.DoublePendulum
-import com.example.matharium.fourd.FourDScreen
 import com.example.matharium.R
 
 enum class Screen {
@@ -31,7 +30,6 @@ enum class Screen {
     FourierSeries,
     DoublePendulum,
     VoiceProcessing,
-    FourD,
     Settings,
 }
 
@@ -155,7 +153,6 @@ fun ScreenTransition(
                         Screen.FourierSeries -> "Fourier Series"
                         Screen.DoublePendulum -> "Double Pendulum"
                         Screen.VoiceProcessing -> "Voice Processing"
-                        Screen.FourD -> "4D Simulation"
                         Screen.Settings -> "Settings"
                         else -> ""
                     },
@@ -177,14 +174,12 @@ fun ScreenTransition(
                         },
                         onNavigateToFourierSeries = { onNavigate(Screen.FourierSeries) },
                         onNavigateToVoiceProcessing = { onNavigate(Screen.VoiceProcessing) },
-                        onNavigateToFourD = { onNavigate(Screen.FourD) },
                         onNavigateToSettings = { onNavigate(Screen.Settings) }
                     )
 
                     Screen.FourierSeries -> FourierSeries()
                     Screen.DoublePendulum -> DoublePendulum()
                     Screen.VoiceProcessing -> VoiceProcessing()
-                    Screen.FourD -> FourDScreen()
                     Screen.Settings -> SettingsScreen(
                         isAnimatedBg = isAnimatedBg,
                         onToggleAnimatedBg = onToggleAnimatedBg,

@@ -41,7 +41,6 @@ fun WelcomeScreen(
     onNavigateToDoublePendulum: () -> Unit,
     onNavigateToFourierSeries: () -> Unit,
     onNavigateToVoiceProcessing: () -> Unit,
-    onNavigateToFourD: () -> Unit,
     onNavigateToSettings: () -> Unit
 ) {
     val colors = LocalAppColors.current
@@ -181,23 +180,9 @@ fun WelcomeScreen(
                 }
             }
 
-            // 4D Simulation Card
-            item {
-                EntranceAnimation(visible = showContent, index = 3) {
-                    SimulationCard(
-                        title = "4D\nSimulation",
-                        colors = colors,
-                        onClick = onNavigateToFourD,
-                        imageVector = FluentIcons.FluentuiSystemIconsCubeMultiple,
-                        tint = colors.accentHell,
-                        definition = "Step into the world beyond your imagination"
-                    )
-                }
-            }
-
             // Settings Card
             item {
-                EntranceAnimation(visible = showContent, index = 4) {
+                EntranceAnimation(visible = showContent, index = 3) {
                     SimulationCard(
                         title = "Settings",
                         colors = colors,
@@ -206,6 +191,13 @@ fun WelcomeScreen(
                         tint = colors.gray,
                         definition = "Customize your experience"
                     )
+                }
+            }
+
+            // Future Placeholder
+            item {
+                EntranceAnimation(visible = showContent, index = 4) {
+                    EmptyCard(colors = colors)
                 }
             }
 

@@ -81,7 +81,7 @@ fun FourierSeries() {
         }
     }
 
-    LaunchedEffect(state.customFunctionSignals.toList()) { 
+    LaunchedEffect(state.harmonicVersion, state.customFunctionSignals.size) { 
         state.prefs.saveFourierSignals(state.customFunctionSignals.toList()) 
     }
 
@@ -95,7 +95,7 @@ fun FourierSeries() {
         }
     }
 
-    LaunchedEffect(state.waveType, state.drawingVersion, state.drawing2DVersion, state.harmonicVersion, state.formulaString, state.customFunctionSignals.toList()) {
+    LaunchedEffect(state.waveType, state.drawingVersion, state.drawing2DVersion, state.harmonicVersion, state.formulaString) {
         if (state.waveType == WaveType.MY_SIGNAL || state.waveType == WaveType.MY_SIGNAL_2D) {
             kotlinx.coroutines.delay(500)
         }
@@ -103,7 +103,7 @@ fun FourierSeries() {
     }
 
     // Physics Loop
-    LaunchedEffect(state.running, state.speed, state.nTerms, state.waveType, state.customCoefficients, state.formulaCoefficients, state.customFunctionSignals.size) {
+    LaunchedEffect(state.running, state.speed, state.nTerms, state.waveType, state.harmonicVersion) {
         if (!state.running) return@LaunchedEffect
         var lastTime = System.nanoTime()
         while (state.running) {
@@ -143,13 +143,18 @@ fun FourierSeries() {
         }
     }
 
-    val isSimulationEnabled = when (state.waveType) {
-        WaveType.MY_SIGNAL -> state.drawingPoints.any { it != 0f }
-        WaveType.MY_SIGNAL_2D -> state.drawingPoints2D.isNotEmpty()
-        WaveType.PURE_SIGNAL -> state.customFunctionSignals.isNotEmpty()
-        WaveType.FORMULA -> state.formulaCoefficients.isNotEmpty()
-        WaveType.SVG -> state.svgCoefficients.isNotEmpty()
-        else -> true
+    // OPTIMIZATION: derivedStateOf for isSimulationEnabled to avoid unnecessary recompositions
+    val isSimulationEnabled by remember {
+        derivedStateOf {
+            when (state.waveType) {
+                WaveType.MY_SIGNAL -> state.drawingPoints.any { it != 0f }
+                WaveType.MY_SIGNAL_2D -> state.drawingPoints2D.isNotEmpty()
+                WaveType.PURE_SIGNAL -> state.customFunctionSignals.isNotEmpty()
+                WaveType.FORMULA -> state.formulaCoefficients.isNotEmpty()
+                WaveType.SVG -> state.svgCoefficients.isNotEmpty()
+                else -> true
+            }
+        }
     }
 
     Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(AppDesign.spacingLarge)) {
@@ -180,9 +185,10 @@ fun FourierSeries() {
 
             SimulatorEnvironmentSettings(state)
 
-            when (state.displayMode) {
-                FourierDisplayMode.WRAPPING -> FrequencyDomainGraph(spectrumData = state.spectrumData, colors = colors, currentWindingFreq = state.windingFrequency, time = state.time)
-                FourierDisplayMode.COMPLEX -> ComplexHarmonicComponents(
+            if (state.displayMode == FourierDisplayMode.WRAPPING) {
+                FrequencyDomainGraph(spectrumData = state.spectrumData, colors = colors, currentWindingFreq = state.windingFrequency, time = state.time)
+            } else if (state.displayMode == FourierDisplayMode.COMPLEX) {
+                ComplexHarmonicComponents(
                     nTerms = state.nTerms, waveType = state.waveType, time = state.time, colors = colors,
                     customCoefficients = state.customCoefficients, customCoefficients2D = state.customCoefficients2D,
                     formulaCoefficients = state.formulaCoefficients, svgCoefficients = state.svgCoefficients,
@@ -200,7 +206,8 @@ fun FourierSeries() {
                     onResetHarmonic = { i -> state.pausedHarmonics.remove(i); state.removedHarmonics.remove(i); state.harmonicFrequencies.remove(i); state.harmonicAmplitudes.remove(i); state.harmonicPhases.remove(i); if (state.waveType == WaveType.PURE_SIGNAL) { val s = state.customFunctionSignals[i]; s.freq = s.initialFreq; s.amp = s.initialAmp; s.phase = s.initialPhase; s.isPaused = false; s.updateCache() }; state.harmonicVersion++; state.path.clear(); state.time = 0f },
                     onResetHarmonics = { state.pausedHarmonics.clear(); state.removedHarmonics.clear(); state.harmonicFrequencies.clear(); state.harmonicAmplitudes.clear(); state.harmonicPhases.clear(); when (state.waveType) { WaveType.MY_SIGNAL -> state.customCoefficients = state.baseCustomCoefficients; WaveType.MY_SIGNAL_2D -> state.customCoefficients2D = state.baseCustomCoefficients2D; WaveType.SVG -> state.svgCoefficients = state.baseSvgCoefficients; WaveType.FORMULA -> state.formulaCoefficients = state.baseFormulaCoefficients; WaveType.PURE_SIGNAL -> { state.customFunctionSignals.clear(); state.customFunctionSignals.addAll(state.prefs.loadFourierSignals(colors.accentCyan)) } else -> {} }; state.harmonicVersion++; state.path.clear(); state.time = 0f }
                 )
-                else -> HarmonicComponents(
+            } else {
+                HarmonicComponents(
                     nTerms = state.nTerms, waveType = state.waveType, time = state.time, colors = colors,
                     customCoefficients = state.customCoefficients, customCoefficients2D = state.customCoefficients2D,
                     formulaCoefficients = state.formulaCoefficients, svgCoefficients = state.svgCoefficients,
