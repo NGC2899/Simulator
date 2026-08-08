@@ -25,5 +25,12 @@ We have optimized the Fourier visualizer to distinguish between **Signal Analysi
 - **Test**: Change Formula.
 - **Result**: "Analyzing Signal..." spinner appears briefly as a new DFT is required.
 
+### 4. Expression Compilation (AST)
+- **High Performance**: The `FourierExpressionEvaluator` now compiles formulas into an Abstract Syntax Tree (AST) rather than parsing the string on every call. This makes background wavetable generation and UI-thread fallbacks significantly faster.
+
+### 5. Immediate UI Synchronization
+- **No Overlap Glitches**: When switching wave types or changing terms, the internal harmonics list is updated immediately. This prevents the "ghosting" effect where the simulation would show the old signal for a few hundred milliseconds while the background cache was rebuilding.
+- **Target Reset**: The ideal wavetable is cleared instantly when changing modes, ensuring the error gradient doesn't calculate against stale data.
+
 ---
-*Note: The performance gain is most noticeable on lower-end devices where re-generating the ideal wavetable on every slider move could cause micro-stutters.*
+*Note: The combined optimizations result in a simulation that feels "native" and responsive, with zero perceived latency during interaction.*

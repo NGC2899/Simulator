@@ -128,6 +128,49 @@ class FourierState(
         // during the debounce period. This ensures instant feedback on nTerms change.
         reconstructionWavetable = emptyArray()
         
+        // Immediate Harmonics Calculation for non-full rebuilds (e.g. nTerms change)
+        // This ensures the manual fallback uses the latest coefficients without delay.
+        if (!fullRebuild) {
+            val maxTerms = 250
+            val harmonics = mutableListOf<FourierLogic.Harmonic>()
+            when (waveType) {
+                WaveType.SINE, WaveType.SQUARE, WaveType.SAWTOOTH, WaveType.TRIANGLE -> {
+                    harmonics.addAll(FourierLogic.calculateStandardHarmonics(waveType, maxTerms))
+                }
+                WaveType.MY_SIGNAL -> {
+                    customCoefficients.forEachIndexed { i, c ->
+                        harmonics.add(FourierLogic.Harmonic(i.toFloat(), c.first, -c.second + (kotlin.math.PI.toFloat() / 2f)))
+                    }
+                }
+                WaveType.FORMULA -> {
+                    formulaCoefficients.forEachIndexed { i, c ->
+                        harmonics.add(FourierLogic.Harmonic(i.toFloat(), c.first, -c.second + (kotlin.math.PI.toFloat() / 2f)))
+                    }
+                }
+                WaveType.MY_SIGNAL_2D -> {
+                    customCoefficients2D.forEach { c ->
+                        harmonics.add(FourierLogic.Harmonic(c.freq.toFloat(), c.amp, c.phase))
+                    }
+                }
+                WaveType.SVG -> {
+                    svgCoefficients.forEach { c ->
+                        harmonics.add(FourierLogic.Harmonic(c.freq.toFloat(), c.amp, c.phase))
+                    }
+                }
+                WaveType.PURE_SIGNAL -> {
+                    customFunctionSignals.forEachIndexed { i, s ->
+                        harmonics.add(FourierLogic.Harmonic(
+                            harmonicFrequencies[i] ?: (s.freq.toFloatOrNull() ?: 0f),
+                            harmonicAmplitudes[i] ?: (s.amp.toFloatOrNull() ?: 0f),
+                            harmonicPhases[i] ?: s.cachedPhase,
+                            s.colorArgb.toArgb()
+                        ))
+                    }
+                }
+            }
+            cachedHarmonics = harmonics
+        }
+
         cacheJob?.cancel()
         cacheJob = scope.launch(Dispatchers.Default) {
             isSynthesizing = true

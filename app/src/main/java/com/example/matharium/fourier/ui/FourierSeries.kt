@@ -41,6 +41,7 @@ fun FourierSeries() {
     // Side effects & Persistence
     LaunchedEffect(state.waveType) {
         state.clearOverrides()
+        state.idealWavetable = emptyArray() // Clear old target signal immediately
         val maxForCurrent = 250
         if (state.nTerms > maxForCurrent) state.nTerms = maxForCurrent
         state.prefs.fourierWaveType = state.waveType.name

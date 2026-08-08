@@ -4,112 +4,159 @@ import kotlin.math.*
 
 /**
  * A simple recursive descent parser for mathematical expressions.
- * Supports: +, -, *, /, ^, %, sin, cos, tan, abs, sqrt, exp, log, floor, ceil, pi, e, x
+ * Compiles expressions into a tree for high-performance evaluation.
  */
 object FourierExpressionEvaluator {
 
+    interface Node {
+        fun eval(x: Double): Double
+    }
+
+    class Constant(val value: Double) : Node {
+        override fun eval(x: Double) = value
+    }
+
+    class Variable : Node {
+        override fun eval(x: Double) = x
+    }
+
+    class Unary(val op: Char, val child: Node) : Node {
+        override fun eval(x: Double) = when (op) {
+            '+' -> child.eval(x)
+            '-' -> -child.eval(x)
+            else -> Double.NaN
+        }
+    }
+
+    class Binary(val op: Char, val left: Node, val right: Node) : Node {
+        override fun eval(x: Double): Double {
+            val a = left.eval(x)
+            val b = right.eval(x)
+            return when (op) {
+                '+' -> a + b
+                '-' -> a - b
+                '*' -> a * b
+                '/' -> a / b
+                '%' -> a % b
+                '^' -> a.pow(b)
+                else -> Double.NaN
+            }
+        }
+    }
+
+    class Function(val name: String, val child: Node) : Node {
+        override fun eval(x: Double): Double {
+            val v = child.eval(x)
+            return when (name) {
+                "sqrt" -> sqrt(v)
+                "sin" -> sin(v)
+                "cos" -> cos(v)
+                "tan" -> tan(v)
+                "abs" -> abs(v)
+                "exp" -> exp(v)
+                "log", "ln" -> ln(v)
+                "floor" -> floor(v)
+                "ceil" -> ceil(v)
+                else -> Double.NaN
+            }
+        }
+    }
+
+    private val cache = mutableMapOf<String, Node?>()
+
+    fun compile(expression: String): Node? {
+        if (expression.isBlank()) return null
+        val clean = expression.lowercase(java.util.Locale.US).replace(" ", "")
+        return cache.getOrPut(clean) {
+            try {
+                Parser(clean).parse()
+            } catch (e: Exception) {
+                null
+            }
+        }
+    }
+
     fun evaluate(expression: String, x: Double): Double {
-        if (expression.isBlank()) return Double.NaN
-        val lowerExpr = expression.lowercase(java.util.Locale.US).replace(" ", "")
-        return try {
-            object : Any() {
-                var pos = -1
-                var ch = 0
+        val node = compile(expression) ?: return Double.NaN
+        return node.eval(x)
+    }
 
-                fun nextChar() {
-                    ch = if (++pos < lowerExpr.length) lowerExpr[pos].code else -1
-                }
+    private class Parser(val input: String) {
+        var pos = -1
+        var ch = 0
 
-                fun eat(charToEat: Int): Boolean {
-                    if (ch == charToEat) {
-                        nextChar()
-                        return true
-                    }
-                    return false
-                }
+        fun nextChar() {
+            ch = if (++pos < input.length) input[pos].code else -1
+        }
 
-                fun parse(): Double {
-                    nextChar()
-                    val xVal = parseExpression()
-                    if (pos < lowerExpr.length) return Double.NaN
-                    return if (xVal.isFinite()) xVal else 0.0
-                }
+        fun eat(charToEat: Int): Boolean {
+            if (ch == charToEat) {
+                nextChar()
+                return true
+            }
+            return false
+        }
 
-                fun parseExpression(): Double {
-                    var xVal = parseTerm()
-                    while (true) {
-                        if (eat('+'.code)) xVal += parseTerm() // addition
-                        else if (eat('-'.code)) xVal -= parseTerm() // subtraction
-                        else return xVal
-                    }
-                }
+        fun parse(): Node {
+            nextChar()
+            val node = parseExpression()
+            if (pos < input.length) throw Exception("Unexpected char")
+            return node
+        }
 
-                fun parseTerm(): Double {
-                    var xVal = parseFactor()
-                    while (true) {
-                        if (eat('*'.code)) xVal *= parseFactor() // explicit multiplication
-                        else if (eat('/'.code)) xVal /= parseFactor() // division
-                        else if (eat('%'.code)) xVal %= parseFactor() // modulo
-                        // Implicit multiplication: if the next char is the start of a factor
-                        else if (ch == '('.code || (ch >= '0'.code && ch <= '9'.code) || ch == '.'.code || (ch >= 'a'.code && ch <= 'z'.code)) {
-                            xVal *= parseFactor()
-                        }
-                        else return xVal
-                    }
-                }
+        fun parseExpression(): Node {
+            var node = parseTerm()
+            while (true) {
+                if (eat('+'.code)) node = Binary('+', node, parseTerm())
+                else if (eat('-'.code)) node = Binary('-', node, parseTerm())
+                else return node
+            }
+        }
 
-                fun parseFactor(): Double {
-                    if (eat('+'.code)) return parseFactor() // unary plus
-                    if (eat('-'.code)) return -parseFactor() // unary minus
+        fun parseTerm(): Node {
+            var node = parseFactor()
+            while (true) {
+                if (eat('*'.code)) node = Binary('*', node, parseFactor())
+                else if (eat('/'.code)) node = Binary('/', node, parseFactor())
+                else if (eat('%'.code)) node = Binary('%', node, parseFactor())
+                else if (ch == '('.code || (ch >= '0'.code && ch <= '9'.code) || ch == '.'.code || (ch >= 'a'.code && ch <= 'z'.code)) {
+                    node = Binary('*', node, parseFactor()) // Implicit mult
+                } else return node
+            }
+        }
 
-                    var xVal: Double
-                    val startPos = pos
-                    if (eat('('.code)) { // parentheses
-                        xVal = parseExpression()
+        fun parseFactor(): Node {
+            if (eat('+'.code)) return Unary('+', parseFactor())
+            if (eat('-'.code)) return Unary('-', parseFactor())
+
+            var node: Node
+            val startPos = pos
+            if (eat('('.code)) {
+                node = parseExpression()
+                eat(')'.code)
+            } else if (ch >= '0'.code && ch <= '9'.code || ch == '.'.code) {
+                while (ch >= '0'.code && ch <= '9'.code || ch == '.'.code) nextChar()
+                node = Constant(input.substring(startPos, pos).toDouble())
+            } else if (ch >= 'a'.code && ch <= 'z'.code) {
+                while (ch >= 'a'.code && ch <= 'z'.code) nextChar()
+                val func = input.substring(startPos, pos)
+                if (func == "x" || func == "t") {
+                    node = Variable()
+                } else if (func == "pi") {
+                    node = Constant(PI)
+                } else if (func == "e") {
+                    node = Constant(E)
+                } else {
+                    if (eat('('.code)) {
+                        node = Function(func, parseExpression())
                         eat(')'.code)
-                    } else if (ch >= '0'.code && ch <= '9'.code || ch == '.'.code) { // numbers
-                        while (ch >= '0'.code && ch <= '9'.code || ch == '.'.code) nextChar()
-                        xVal = lowerExpr.substring(startPos, pos).toDouble()
-                    } else if (ch >= 'a'.code && ch <= 'z'.code) { // functions
-                        while (ch >= 'a'.code && ch <= 'z'.code) nextChar()
-                        val func = lowerExpr.substring(startPos, pos)
-                        if (func == "x" || func == "t") {
-                            xVal = x
-                        } else if (func == "pi") {
-                            xVal = PI
-                        } else if (func == "e") {
-                            xVal = E
-                        } else {
-                            if (eat('('.code)) {
-                                xVal = parseExpression()
-                                eat(')'.code)
-                                xVal = when (func) {
-                                    "sqrt" -> sqrt(xVal)
-                                    "sin" -> sin(xVal)
-                                    "cos" -> cos(xVal)
-                                    "tan" -> tan(xVal)
-                                    "abs" -> abs(xVal)
-                                    "exp" -> exp(xVal)
-                                    "log", "ln" -> ln(xVal)
-                                    "floor" -> floor(xVal)
-                                    "ceil" -> ceil(xVal)
-                                    else -> Double.NaN
-                                }
-                            } else {
-                                xVal = Double.NaN
-                            }
-                        }
-                    } else {
-                        return Double.NaN
-                    }
-
-                    if (eat('^'.code)) xVal = xVal.pow(parseFactor()) // exponentiation
-
-                    return xVal
+                    } else throw Exception("Invalid function")
                 }
-            }.parse()
-        } catch (e: Exception) {
-            Double.NaN
+            } else throw Exception("Unexpected char")
+
+            if (eat('^'.code)) node = Binary('^', node, parseFactor())
+
+            return node
         }
     }
 }

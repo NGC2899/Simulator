@@ -73,10 +73,10 @@ fun WaveTypeSelector(
                         RoundedCornerShape(AppDesign.radiusSmall)
                     )
                     .clickable {
+                        state.running = false // Stop simulation when changing type
                         state.waveType = type
                         state.path.clear()
                         if (type == WaveType.SVG) {
-                            state.running = false
                             state.time = 0f
                             svgPickerLauncher.launch("image/svg+xml")
                         }
@@ -122,7 +122,11 @@ fun DrawingCanvas(state: FourierState) {
                         .clip(RoundedCornerShape(AppDesign.radiusSmall))
                         .background(if (selected) colors.accentCyan.copy(0.1f) else Color.Transparent)
                         .border(AppDesign.borderThin, if (selected) colors.accentCyan else colors.cardBorder.copy(0.3f), RoundedCornerShape(AppDesign.radiusSmall))
-                        .clickable { state.waveType = type; state.path.clear() },
+                        .clickable { 
+                            state.running = false
+                            state.waveType = type
+                            state.path.clear() 
+                        },
                     contentAlignment = Alignment.Center
                 ) {
                     Text(label, color = if (selected) colors.accentCyan else colors.textSecondary, fontSize = AppDesign.textSmall, fontWeight = FontWeight.Bold)
@@ -172,8 +176,7 @@ fun DrawingCanvas(state: FourierState) {
                             },
                             onDragEnd = { 
                                 state.prefs.drawingPoints = state.drawingPoints.toList()
-                                state.running = true
-                                state.hasStarted = true
+                                // Removed auto-start running = true
                             }
                         )
                     } else {
@@ -195,8 +198,7 @@ fun DrawingCanvas(state: FourierState) {
                             },
                             onDragEnd = { 
                                 state.prefs.drawingPoints2D = state.drawingPoints2D.toList()
-                                state.running = true
-                                state.hasStarted = true
+                                // Removed auto-start running = true
                             }
                         )
                     }
