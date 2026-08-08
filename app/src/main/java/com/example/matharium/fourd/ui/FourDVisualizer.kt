@@ -10,7 +10,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import com.example.matharium.app.AppColors
-import com.example.matharium.app.AppDesign
+import com.example.matharium.app.*
 import com.example.matharium.fourd.state.*
 
 /**
@@ -57,7 +57,7 @@ fun FourDVisualizer(
                     centerX + p2[0].toFloat() * scale,
                     centerY + p2[1].toFloat() * scale
                 ),
-                strokeWidth = AppDesign.strokeStandard.toPx(),
+                strokeWidth = AppDesign.strokeThick.toPx(),
                 cap = StrokeCap.Round
             )
         }

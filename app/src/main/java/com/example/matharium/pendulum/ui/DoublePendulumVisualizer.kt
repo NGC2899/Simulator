@@ -29,6 +29,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.matharium.R
 import com.example.matharium.app.*
+import com.example.matharium.fourier.ui.DisplayModeButton
+import com.example.matharium.fourier.ui.SidebarActionButton
 import com.example.matharium.pendulum.engine.*
 import com.example.matharium.pendulum.state.*
 import java.util.Locale

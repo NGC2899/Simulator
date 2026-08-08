@@ -444,140 +444,18 @@ fun FourierVisualizerBox(
         }
 
         // Sidebar Navigation
-        Column(
-            modifier = Modifier
-                .align(Alignment.CenterStart)
-                .padding(start = AppDesign.spacingMedium),
-            verticalArrangement = Arrangement.spacedBy(AppDesign.spacingSmall + AppDesign.spacingExtraSmall / 2f)
-        ) {
-            DisplayModeButton(
-                imageVector = FluentIcons.TablerCirclesRelation,
-                selected = displayMode == FourierDisplayMode.CIRCULAR,
-                colors = colors
-            ) {
-                if (displayMode != FourierDisplayMode.CIRCULAR) onClearPath()
-                onDisplayModeChange(FourierDisplayMode.CIRCULAR)
-            }
-
-            DisplayModeButton(
-                imageVector = Icons.Default.Adjust,
-                selected = displayMode == FourierDisplayMode.WRAPPING,
-                colors = colors
-            ) {
-                if (displayMode != FourierDisplayMode.WRAPPING) onClearPath()
-                onDisplayModeChange(FourierDisplayMode.WRAPPING)
-            }
-
-            DisplayModeButton(
-                imageVector = FluentIcons.MaterialSymbolsCircles,
-                selected = displayMode == FourierDisplayMode.COMPLEX,
-                colors = colors
-            ) {
-                if (displayMode != FourierDisplayMode.COMPLEX) onClearPath()
-                onDisplayModeChange(FourierDisplayMode.COMPLEX)
-            }
-
-            Spacer(Modifier.height(AppDesign.spacingSmall + AppDesign.spacingExtraSmall / 2f))
-
-            SidebarActionButton(
-                imageVector = FluentIcons.TablerClearAll,
-                colors = colors,
-                onClick = { onClearPath() }
-            )
-        }
+        FourierLeftSidebar(
+            displayMode = displayMode,
+            onDisplayModeChange = onDisplayModeChange,
+            onClearPath = onClearPath,
+            colors = colors
+        )
 
         // Terms Handler (Right Sidebar)
-        Column(
-            modifier = Modifier
-                .align(Alignment.CenterEnd)
-                .padding(end = AppDesign.spacingMedium)
-                .width(AppDesign.sidebarButtonSize)
-                .fillMaxHeight(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Box(
-                modifier = Modifier
-                    .height(AppDesign.termsBoxHeight)
-                    .background(
-                        colors.cardSurface.copy(alpha = AppDesign.opacityMedium),
-                        RoundedCornerShape(AppDesign.radiusCard)
-                    )
-                    .border(
-                        AppDesign.borderThin,
-                        colors.cardBorder.copy(alpha = AppDesign.opacityLow * 2f),
-                        RoundedCornerShape(AppDesign.radiusCard)
-                    )
-                    .padding(vertical = AppDesign.spacingMedium),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxHeight()
-                ) {
-                    IconButton(
-                        onClick = { if (nTerms < 250) onNTermsChange(nTerms + 1) },
-                        modifier = Modifier.size(AppDesign.iconSmallMedium)
-                    ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.add_outline),
-                            null,
-                            tint = colors.accentCyan,
-                        )
-                    }
-
-                    Slider(
-                        value = nTerms.toFloat(),
-                        onValueChange = { onNTermsChange(it.toInt()) },
-                        valueRange = 1f..250f,
-                        modifier = Modifier
-                            .weight(1f)
-                            .layout { measurable: Measurable, constraints ->
-                                val placeable = measurable.measure(
-                                    constraints.copy(
-                                        minWidth = constraints.minHeight,
-                                        maxWidth = constraints.maxHeight,
-                                        minHeight = constraints.minWidth,
-                                        maxHeight = constraints.maxWidth
-                                    )
-                                )
-                                layout(placeable.height, placeable.width) {
-                                    placeable.placeWithLayer(
-                                        x = -(placeable.width - placeable.height) / 2,
-                                        y = (placeable.width - placeable.height) / 2
-                                    ) {
-                                        rotationZ = -90f
-                                    }
-                                }
-                            },
-                        colors = SliderDefaults.colors(
-                            thumbColor = colors.accentCyan,
-                            activeTrackColor = colors.accentCyan,
-                            inactiveTrackColor = colors.fieldBorder.copy(alpha = AppDesign.opacityLow * 2f)
-                        )
-                    )
-
-                    IconButton(
-                        onClick = { if (nTerms > 1) onNTermsChange(nTerms - 1) },
-                        modifier = Modifier.size(AppDesign.iconSmallMedium)
-                    ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.remove),
-                            null,
-                            tint = colors.accentCyan,
-                        )
-                    }
-
-                    Text(
-                        text = nTerms.toString(),
-                        color = colors.textPrimary,
-                        fontSize = AppDesign.textCaption,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(top = AppDesign.spacingTiny)
-                    )
-                }
-            }
-        }
+        FourierRightSidebar(
+            nTerms = nTerms,
+            onNTermsChange = onNTermsChange,
+            colors = colors
+        )
     }
 }
