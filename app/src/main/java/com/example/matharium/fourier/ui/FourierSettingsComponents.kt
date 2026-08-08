@@ -75,7 +75,7 @@ fun WaveTypeSelector(
                     .clickable {
                         state.running = false // Stop simulation when changing type
                         state.waveType = type
-                        state.path.clear()
+                        state.clearPath()
                         if (type == WaveType.SVG) {
                             state.time = 0f
                             svgPickerLauncher.launch("image/svg+xml")
@@ -125,7 +125,7 @@ fun DrawingCanvas(state: FourierState) {
                         .clickable { 
                             state.running = false
                             state.waveType = type
-                            state.path.clear() 
+                            state.clearPath() 
                         },
                     contentAlignment = Alignment.Center
                 ) {
@@ -152,7 +152,7 @@ fun DrawingCanvas(state: FourierState) {
                             onDragStart = { offset ->
                                 state.clearOverrides()
                                 state.running = false
-                                state.path.clear()
+                                state.clearPath()
                                 state.time = 0f
                                 lastIndex = ((offset.x / size.width.toFloat()) * state.samplesCount).toInt().coerceIn(0, state.samplesCount - 1)
                                 lastY = (offset.y - size.height / 2f).coerceIn(-size.height / 2f, size.height / 2f)
@@ -184,20 +184,20 @@ fun DrawingCanvas(state: FourierState) {
                             onDragStart = { offset ->
                                 state.clearOverrides()
                                 state.running = false
-                                state.path.clear()
+                                state.clearPath()
                                 state.time = 0f
                                 state.drawingPoints2D.clear()
-                                state.drawingPoints2D.add(offset - Offset(size.width / 2f, size.height / 2f))
+                                state.drawingPoints2D.add(FourierLogic.MathPoint(offset.x - size.width / 2f, offset.y - size.height / 2f))
                                 state.drawing2DVersion++
                             },
                             onDrag = { change, _ ->
                                 val halfWidth = size.width / 2f
                                 val halfHeight = size.height / 2f
-                                state.drawingPoints2D.add(Offset((change.position.x - halfWidth).coerceIn(-halfWidth, halfWidth), (change.position.y - halfHeight).coerceIn(-halfHeight, halfHeight)))
+                                state.drawingPoints2D.add(FourierLogic.MathPoint((change.position.x - halfWidth).coerceIn(-halfWidth, halfWidth), (change.position.y - halfHeight).coerceIn(-halfHeight, halfHeight)))
                                 state.drawing2DVersion++
                             },
                             onDragEnd = { 
-                                state.prefs.drawingPoints2D = state.drawingPoints2D.toList()
+                                state.prefs.drawingPoints2D = state.drawingPoints2D.map { Offset(it.x, it.y) }
                                 // Removed auto-start running = true
                             }
                         )
@@ -266,7 +266,7 @@ fun CustomSignalSettings(state: FourierState) {
                 modifier = Modifier.weight(1f).height(AppDesign.chipHeight).clip(RoundedCornerShape(AppDesign.radiusSmall))
                     .background(if (state.waveType == WaveType.PURE_SIGNAL) colors.accentCyan.copy(0.1f) else Color.Transparent)
                     .border(AppDesign.borderThin, if (state.waveType == WaveType.PURE_SIGNAL) colors.accentCyan else colors.cardBorder.copy(0.3f), RoundedCornerShape(AppDesign.radiusSmall))
-                    .clickable { state.waveType = WaveType.PURE_SIGNAL; state.path.clear() },
+                    .clickable { state.waveType = WaveType.PURE_SIGNAL; state.clearPath() },
                 contentAlignment = Alignment.Center
             ) {
                 Text("Signal", color = if (state.waveType == WaveType.PURE_SIGNAL) colors.accentCyan else colors.textSecondary, fontSize = AppDesign.textSmall, fontWeight = FontWeight.Bold)
@@ -275,7 +275,7 @@ fun CustomSignalSettings(state: FourierState) {
                 modifier = Modifier.weight(1f).height(AppDesign.chipHeight).clip(RoundedCornerShape(AppDesign.radiusSmall))
                     .background(if (state.waveType == WaveType.FORMULA) colors.accentCyan.copy(0.1f) else Color.Transparent)
                     .border(AppDesign.borderThin, if (state.waveType == WaveType.FORMULA) colors.accentCyan else colors.cardBorder.copy(0.3f), RoundedCornerShape(AppDesign.radiusSmall))
-                    .clickable { state.waveType = WaveType.FORMULA; state.path.clear() },
+                    .clickable { state.waveType = WaveType.FORMULA; state.clearPath() },
                 contentAlignment = Alignment.Center
             ) {
                 Text("Formula", color = if (state.waveType == WaveType.FORMULA) colors.accentCyan else colors.textSecondary, fontSize = AppDesign.textSmall, fontWeight = FontWeight.Bold)
@@ -308,7 +308,7 @@ fun CustomSignalSettings(state: FourierState) {
                 Box(
                     modifier = Modifier.weight(0.5f).fillMaxHeight().clip(RoundedCornerShape(AppDesign.radiusButton)).background(colors.accentHell.copy(alpha = 0.1f))
                         .border(BorderStroke(AppDesign.borderThin, colors.accentHell.copy(alpha = 0.3f)), RoundedCornerShape(AppDesign.radiusButton))
-                        .clickable { state.clearOverrides(); state.customFunctionSignals.clear(); state.nextSignalId = 0; state.running = false; state.path.clear() },
+                        .clickable { state.clearOverrides(); state.customFunctionSignals.clear(); state.nextSignalId = 0; state.running = false; state.clearPath() },
                     contentAlignment = Alignment.Center
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
@@ -324,7 +324,7 @@ fun CustomSignalSettings(state: FourierState) {
                 Column(verticalArrangement = Arrangement.spacedBy(AppDesign.spacingSmall)) {
                     val displayList = if (state.isSignalsExpanded) state.customFunctionSignals else state.customFunctionSignals.take(5)
                     displayList.forEach { signal ->
-                        SignalSettingsCard(signal = signal, colors = colors, showDel = state.customFunctionSignals.size > 1, onParameterChange = { state.path.clear(); state.prefs.saveFourierSignals(state.customFunctionSignals.toList()) }, onDel = { state.customFunctionSignals.remove(signal); state.removedHarmonics.clear(); state.prefs.saveFourierSignals(state.customFunctionSignals.toList()); if (state.customFunctionSignals.isEmpty()) state.nextSignalId = 0 })
+                        SignalSettingsCard(signal = signal, colors = colors, showDel = state.customFunctionSignals.size > 1, onParameterChange = { state.clearPath(); state.prefs.saveFourierSignals(state.customFunctionSignals.toList()) }, onDel = { state.customFunctionSignals.remove(signal); state.removedHarmonics.clear(); state.prefs.saveFourierSignals(state.customFunctionSignals.toList()); if (state.customFunctionSignals.isEmpty()) state.nextSignalId = 0 })
                     }
                     if (state.customFunctionSignals.size > 5) {
                         Box(modifier = Modifier.fillMaxWidth().padding(top = AppDesign.spacingSmall).clip(RoundedCornerShape(AppDesign.radiusSmall)).background(colors.accentCyan.copy(alpha = 0.05f)).border(BorderStroke(AppDesign.borderThin, colors.accentCyan.copy(alpha = 0.1f)), RoundedCornerShape(AppDesign.radiusSmall)).clickable { state.isSignalsExpanded = !state.isSignalsExpanded }, contentAlignment = Alignment.Center) {
@@ -340,7 +340,7 @@ fun CustomSignalSettings(state: FourierState) {
         } else {
             Text("Mathematical Formula", color = colors.accentCyan, fontSize = AppDesign.textBody, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(AppDesign.radiusSmall))
-            OutlinedTextField(value = state.formulaString, onValueChange = { state.formulaString = it; state.calculateDFT(); state.path.clear(); state.time = 0f }, modifier = Modifier.fillMaxWidth(), placeholder = { Text("e.g. abs(sin(x))", color = colors.textSecondary.copy(0.5f)) }, singleLine = true, shape = RoundedCornerShape(AppDesign.radiusSmall), colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = colors.accentCyan, unfocusedBorderColor = colors.cardBorder.copy(0.3f), cursorColor = colors.accentCyan))
+            OutlinedTextField(value = state.formulaString, onValueChange = { state.formulaString = it; state.calculateDFT(); state.clearPath(); state.time = 0f }, modifier = Modifier.fillMaxWidth(), placeholder = { Text("e.g. abs(sin(x))", color = colors.textSecondary.copy(0.5f)) }, singleLine = true, shape = RoundedCornerShape(AppDesign.radiusSmall), colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = colors.accentCyan, unfocusedBorderColor = colors.cardBorder.copy(0.3f), cursorColor = colors.accentCyan))
             Spacer(Modifier.height(AppDesign.spacingSmall))
             SymmetryMessage(result = state.symmetryResult, colors = colors)
             Text("Use 'x' as variable (-π to π). Supported: sin, cos, abs, sqrt, ^, etc.", color = colors.textSecondary, fontSize = 11.sp)

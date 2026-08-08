@@ -78,7 +78,7 @@ fun FourierSeries() {
             kotlinx.coroutines.delay(100)
             state.calculateDFT2D()
         }
-        state.prefs.drawingPoints2D = state.drawingPoints2D.toList()
+        state.prefs.drawingPoints2D = state.drawingPoints2D.map { Offset(it.x, it.y) }
     }
 
     LaunchedEffect(state.waveType) {
@@ -141,7 +141,7 @@ fun FourierSeries() {
                         withContext(Dispatchers.Main) {
                             state.svgPoints.clear()
                             state.svgPoints.addAll(points)
-                            state.prefs.fourierSvgPoints = points
+                            state.prefs.fourierSvgPoints = points.map { Offset(it.x, it.y) }
                             state.calculateSVGDFT()
                             state.resetSimulation()
                         }
@@ -180,9 +180,14 @@ fun FourierSeries() {
             intendedNTerms = state.intendedNTerms,
             onIntendedNTermsChange = { state.intendedNTerms = it },
             onActiveNTermsChange = { state.nTerms = it },
-            timeProvider = { state.time }, path = state.path, showErrorGradient = state.showErrorGradient,
+            timeProvider = { state.time }, 
+            pathX = state.pathX,
+            pathY = state.pathY,
+            pathError = state.pathError,
+            pathCount = state.pathCount,
+            showErrorGradient = state.showErrorGradient,
             errorSensitivity = state.errorSensitivity, waveStretch = state.waveStretch,
-            onClearPath = { state.path.clear() }, windingFrequency = state.windingFrequency,
+            onClearPath = { state.clearPath() }, windingFrequency = state.windingFrequency,
             customCoefficients = state.customCoefficients, customCoefficients2D = state.customCoefficients2D,
             formulaCoefficients = state.formulaCoefficients, svgCoefficients = state.svgCoefficients,
             customFunctionSignals = state.customFunctionSignals, colors = colors,
@@ -215,18 +220,18 @@ fun FourierSeries() {
                     customCoefficients = state.customCoefficients, customCoefficients2D = state.customCoefficients2D,
                     formulaCoefficients = state.formulaCoefficients, svgCoefficients = state.svgCoefficients,
                     customFunctionSignals = state.customFunctionSignals,
-                    onRemoveHarmonic = { i -> state.removedHarmonics[i] = true; state.harmonicVersion++; state.path.clear(); state.time = 0f },
+                    onRemoveHarmonic = { i -> state.removedHarmonics[i] = true; state.harmonicVersion++; state.clearPath(); state.time = 0f },
                     onTogglePause = { i -> if (state.waveType == WaveType.PURE_SIGNAL) state.customFunctionSignals[i].isPaused = !state.customFunctionSignals[i].isPaused else state.pausedHarmonics[i] = !(state.pausedHarmonics[i] ?: false); state.harmonicVersion++ },
                     isHarmonicPaused = { i -> if (state.waveType == WaveType.PURE_SIGNAL) state.customFunctionSignals[i].isPaused else state.pausedHarmonics[i] ?: false },
-                    onFrequencyChange = { i, f -> if (state.waveType == WaveType.PURE_SIGNAL) { state.customFunctionSignals[i].freq = String.format(java.util.Locale.US, "%.2f", f); state.customFunctionSignals[i].updateCache() } else state.harmonicFrequencies[i] = f; state.harmonicVersion++; state.path.clear() },
+                    onFrequencyChange = { i, f -> if (state.waveType == WaveType.PURE_SIGNAL) { state.customFunctionSignals[i].freq = String.format(java.util.Locale.US, "%.2f", f); state.customFunctionSignals[i].updateCache() } else state.harmonicFrequencies[i] = f; state.harmonicVersion++; state.clearPath() },
                     getHarmonicFrequency = { i, d -> if (state.waveType == WaveType.PURE_SIGNAL) state.customFunctionSignals[i].freq.toFloatOrNull() ?: d else state.harmonicFrequencies[i] ?: d },
-                    onAmplitudeChange = { i, a -> if (state.waveType == WaveType.PURE_SIGNAL) { state.customFunctionSignals[i].amp = String.format(java.util.Locale.US, "%.2f", a); state.customFunctionSignals[i].updateCache() } else state.harmonicAmplitudes[i] = a; state.harmonicVersion++; state.path.clear() },
+                    onAmplitudeChange = { i, a -> if (state.waveType == WaveType.PURE_SIGNAL) { state.customFunctionSignals[i].amp = String.format(java.util.Locale.US, "%.2f", a); state.customFunctionSignals[i].updateCache() } else state.harmonicAmplitudes[i] = a; state.harmonicVersion++; state.clearPath() },
                     getHarmonicAmplitude = { i, d -> if (state.waveType == WaveType.PURE_SIGNAL) state.customFunctionSignals[i].amp.toFloatOrNull() ?: d else state.harmonicAmplitudes[i] ?: d },
-                    onPhaseChange = { i, p -> if (state.waveType == WaveType.PURE_SIGNAL) { state.customFunctionSignals[i].phase = String.format(java.util.Locale.US, "%.2f", p * 180f / Math.PI.toFloat()); state.customFunctionSignals[i].updateCache() } else state.harmonicPhases[i] = p; state.harmonicVersion++; state.path.clear() },
+                    onPhaseChange = { i, p -> if (state.waveType == WaveType.PURE_SIGNAL) { state.customFunctionSignals[i].phase = String.format(java.util.Locale.US, "%.2f", p * 180f / Math.PI.toFloat()); state.customFunctionSignals[i].updateCache() } else state.harmonicPhases[i] = p; state.harmonicVersion++; state.clearPath() },
                     getHarmonicPhase = { i, d -> if (state.waveType == WaveType.PURE_SIGNAL) state.customFunctionSignals[i].cachedPhase else state.harmonicPhases[i] ?: d },
                     removedHarmonics = state.removedHarmonics,
-                    onResetHarmonic = { i -> state.pausedHarmonics.remove(i); state.removedHarmonics.remove(i); state.harmonicFrequencies.remove(i); state.harmonicAmplitudes.remove(i); state.harmonicPhases.remove(i); if (state.waveType == WaveType.PURE_SIGNAL) { val s = state.customFunctionSignals[i]; s.freq = s.initialFreq; s.amp = s.initialAmp; s.phase = s.initialPhase; s.isPaused = false; s.updateCache() }; state.harmonicVersion++; state.path.clear(); state.time = 0f },
-                    onResetHarmonics = { state.pausedHarmonics.clear(); state.removedHarmonics.clear(); state.harmonicFrequencies.clear(); state.harmonicAmplitudes.clear(); state.harmonicPhases.clear(); when (state.waveType) { WaveType.MY_SIGNAL -> state.customCoefficients = state.baseCustomCoefficients; WaveType.MY_SIGNAL_2D -> state.customCoefficients2D = state.baseCustomCoefficients2D; WaveType.SVG -> state.svgCoefficients = state.baseSvgCoefficients; WaveType.FORMULA -> state.formulaCoefficients = state.baseFormulaCoefficients; WaveType.PURE_SIGNAL -> { state.customFunctionSignals.forEach { s -> s.freq = s.initialFreq; s.amp = s.initialAmp; s.phase = s.initialPhase; s.isPaused = false; s.updateCache() } } else -> {} }; state.harmonicVersion++; state.path.clear(); state.time = 0f }
+                    onResetHarmonic = { i -> state.pausedHarmonics.remove(i); state.removedHarmonics.remove(i); state.harmonicFrequencies.remove(i); state.harmonicAmplitudes.remove(i); state.harmonicPhases.remove(i); if (state.waveType == WaveType.PURE_SIGNAL) { val s = state.customFunctionSignals[i]; s.freq = s.initialFreq; s.amp = s.initialAmp; s.phase = s.initialPhase; s.isPaused = false; s.updateCache() }; state.harmonicVersion++; state.clearPath(); state.time = 0f },
+                    onResetHarmonics = { state.pausedHarmonics.clear(); state.removedHarmonics.clear(); state.harmonicFrequencies.clear(); state.harmonicAmplitudes.clear(); state.harmonicPhases.clear(); when (state.waveType) { WaveType.MY_SIGNAL -> state.customCoefficients = state.baseCustomCoefficients; WaveType.MY_SIGNAL_2D -> state.customCoefficients2D = state.baseCustomCoefficients2D; WaveType.SVG -> state.svgCoefficients = state.baseSvgCoefficients; WaveType.FORMULA -> state.formulaCoefficients = state.baseFormulaCoefficients; WaveType.PURE_SIGNAL -> { state.customFunctionSignals.forEach { s -> s.freq = s.initialFreq; s.amp = s.initialAmp; s.phase = s.initialPhase; s.isPaused = false; s.updateCache() } } else -> {} }; state.harmonicVersion++; state.clearPath(); state.time = 0f }
                 )
             } else {
                 HarmonicComponents(
@@ -234,18 +239,18 @@ fun FourierSeries() {
                     customCoefficients = state.customCoefficients, customCoefficients2D = state.customCoefficients2D,
                     formulaCoefficients = state.formulaCoefficients, svgCoefficients = state.svgCoefficients,
                     customFunctionSignals = state.customFunctionSignals,
-                    onRemoveHarmonic = { i -> state.removedHarmonics[i] = true; state.harmonicVersion++; state.path.clear(); state.time = 0f },
+                    onRemoveHarmonic = { i -> state.removedHarmonics[i] = true; state.harmonicVersion++; state.clearPath(); state.time = 0f },
                     onTogglePause = { i -> if (state.waveType == WaveType.PURE_SIGNAL) state.customFunctionSignals[i].isPaused = !state.customFunctionSignals[i].isPaused else state.pausedHarmonics[i] = !(state.pausedHarmonics[i] ?: false); state.harmonicVersion++ },
                     isHarmonicPaused = { i -> if (state.waveType == WaveType.PURE_SIGNAL) state.customFunctionSignals[i].isPaused else state.pausedHarmonics[i] ?: false },
-                    onFrequencyChange = { i, f -> if (state.waveType == WaveType.PURE_SIGNAL) { state.customFunctionSignals[i].freq = String.format(java.util.Locale.US, "%.2f", f); state.customFunctionSignals[i].updateCache() } else state.harmonicFrequencies[i] = f; state.harmonicVersion++; state.path.clear() },
+                    onFrequencyChange = { i, f -> if (state.waveType == WaveType.PURE_SIGNAL) { state.customFunctionSignals[i].freq = String.format(java.util.Locale.US, "%.2f", f); state.customFunctionSignals[i].updateCache() } else state.harmonicFrequencies[i] = f; state.harmonicVersion++; state.clearPath() },
                     getHarmonicFrequency = { i, d -> if (state.waveType == WaveType.PURE_SIGNAL) state.customFunctionSignals[i].freq.toFloatOrNull() ?: d else state.harmonicFrequencies[i] ?: d },
-                    onAmplitudeChange = { i, a -> if (state.waveType == WaveType.PURE_SIGNAL) { state.customFunctionSignals[i].amp = String.format(java.util.Locale.US, "%.2f", a); state.customFunctionSignals[i].updateCache() } else state.harmonicAmplitudes[i] = a; state.harmonicVersion++; state.path.clear() },
+                    onAmplitudeChange = { i, a -> if (state.waveType == WaveType.PURE_SIGNAL) { state.customFunctionSignals[i].amp = String.format(java.util.Locale.US, "%.2f", a); state.customFunctionSignals[i].updateCache() } else state.harmonicAmplitudes[i] = a; state.harmonicVersion++; state.clearPath() },
                     getHarmonicAmplitude = { i, d -> if (state.waveType == WaveType.PURE_SIGNAL) state.customFunctionSignals[i].amp.toFloatOrNull() ?: d else state.harmonicAmplitudes[i] ?: d },
-                    onPhaseChange = { i, p -> if (state.waveType == WaveType.PURE_SIGNAL) { state.customFunctionSignals[i].phase = String.format(java.util.Locale.US, "%.2f", p * 180f / Math.PI.toFloat()); state.customFunctionSignals[i].updateCache() } else state.harmonicPhases[i] = p; state.harmonicVersion++; state.path.clear() },
+                    onPhaseChange = { i, p -> if (state.waveType == WaveType.PURE_SIGNAL) { state.customFunctionSignals[i].phase = String.format(java.util.Locale.US, "%.2f", p * 180f / Math.PI.toFloat()); state.customFunctionSignals[i].updateCache() } else state.harmonicPhases[i] = p; state.harmonicVersion++; state.clearPath() },
                     getHarmonicPhase = { i, d -> if (state.waveType == WaveType.PURE_SIGNAL) state.customFunctionSignals[i].cachedPhase else state.harmonicPhases[i] ?: d },
                     removedHarmonics = state.removedHarmonics,
-                    onResetHarmonic = { i -> state.pausedHarmonics.remove(i); state.removedHarmonics.remove(i); state.harmonicFrequencies.remove(i); state.harmonicAmplitudes.remove(i); state.harmonicPhases.remove(i); if (state.waveType == WaveType.PURE_SIGNAL) { val s = state.customFunctionSignals[i]; s.freq = s.initialFreq; s.amp = s.initialAmp; s.phase = s.initialPhase; s.isPaused = false; s.updateCache() }; state.harmonicVersion++; state.path.clear(); state.time = 0f },
-                    onResetHarmonics = { state.pausedHarmonics.clear(); state.removedHarmonics.clear(); state.harmonicFrequencies.clear(); state.harmonicAmplitudes.clear(); state.harmonicPhases.clear(); when (state.waveType) { WaveType.MY_SIGNAL -> state.customCoefficients = state.baseCustomCoefficients; WaveType.MY_SIGNAL_2D -> state.customCoefficients2D = state.baseCustomCoefficients2D; WaveType.SVG -> state.svgCoefficients = state.baseSvgCoefficients; WaveType.FORMULA -> state.formulaCoefficients = state.baseFormulaCoefficients; WaveType.PURE_SIGNAL -> { state.customFunctionSignals.forEach { s -> s.freq = s.initialFreq; s.amp = s.initialAmp; s.phase = s.initialPhase; s.isPaused = false; s.updateCache() } } else -> {} }; state.harmonicVersion++; state.path.clear(); state.time = 0f }
+                    onResetHarmonic = { i -> state.pausedHarmonics.remove(i); state.removedHarmonics.remove(i); state.harmonicFrequencies.remove(i); state.harmonicAmplitudes.remove(i); state.harmonicPhases.remove(i); if (state.waveType == WaveType.PURE_SIGNAL) { val s = state.customFunctionSignals[i]; s.freq = s.initialFreq; s.amp = s.initialAmp; s.phase = s.initialPhase; s.isPaused = false; s.updateCache() }; state.harmonicVersion++; state.clearPath(); state.time = 0f },
+                    onResetHarmonics = { state.pausedHarmonics.clear(); state.removedHarmonics.clear(); state.harmonicFrequencies.clear(); state.harmonicAmplitudes.clear(); state.harmonicPhases.clear(); when (state.waveType) { WaveType.MY_SIGNAL -> state.customCoefficients = state.baseCustomCoefficients; WaveType.MY_SIGNAL_2D -> state.customCoefficients2D = state.baseCustomCoefficients2D; WaveType.SVG -> state.svgCoefficients = state.baseSvgCoefficients; WaveType.FORMULA -> state.formulaCoefficients = state.baseFormulaCoefficients; WaveType.PURE_SIGNAL -> { state.customFunctionSignals.forEach { s -> s.freq = s.initialFreq; s.amp = s.initialAmp; s.phase = s.initialPhase; s.isPaused = false; s.updateCache() } } else -> {} }; state.harmonicVersion++; state.clearPath(); state.time = 0f }
                 )
             }
 
