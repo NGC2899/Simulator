@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "889774253976",
+    "project_id": "ngc-2899",
+    "storage_bucket": "ngc-2899.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:889774253976:android:544c2f635611f37b682ded",
+        "android_client_info": {
+          "package_name": "com.example.matharium"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAP3F-2kXfhmwl7FCavF4FKeu5TN7ueU2o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
