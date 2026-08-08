@@ -99,7 +99,8 @@ fun FourierSeries() {
     }
 
     LaunchedEffect(state.nTerms, state.waveType, state.harmonicVersion, state.formulaString) {
-        state.rebuildCache()
+        val isSourceChange = state.waveType != WaveType.MY_SIGNAL && state.waveType != WaveType.MY_SIGNAL_2D && state.waveType != WaveType.SVG
+        state.rebuildCache(fullRebuild = isSourceChange)
     }
 
     LaunchedEffect(state.waveType, state.drawingVersion, state.drawing2DVersion, state.harmonicVersion, state.formulaString, state.nTerms) {
@@ -170,7 +171,8 @@ fun FourierSeries() {
             pausedHarmonics = state.pausedHarmonics, removedHarmonics = state.removedHarmonics,
             harmonicFrequencies = state.harmonicFrequencies, harmonicAmplitudes = state.harmonicAmplitudes,
             harmonicPhases = state.harmonicPhases,
-            isCalculating = state.isCalculating,
+            isAnalyzing = state.isAnalyzing,
+            isSynthesizing = state.isSynthesizing,
             cachedHarmonics = state.cachedHarmonics
         )
 

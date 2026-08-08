@@ -98,7 +98,8 @@ class FourierState(
 
     var spectrumData by mutableStateOf<List<FourierLogic.Complex>>(emptyList())
 
-    var isCalculating by mutableStateOf(false)
+    var isAnalyzing by mutableStateOf(false)
+    var isSynthesizing by mutableStateOf(false)
     var cachedHarmonics by mutableStateOf<List<FourierLogic.Harmonic>>(emptyList())
     var idealWavetable by mutableStateOf<Array<Offset>>(emptyArray())
     var reconstructionWavetable by mutableStateOf<Array<Offset>>(emptyArray())
@@ -114,19 +115,24 @@ class FourierState(
         harmonicAmplitudes.clear()
         harmonicPhases.clear()
         harmonicVersion++
-        rebuildCache()
+        rebuildCache(fullRebuild = true)
     }
 
     /**
      * Debounced cache rebuild.
      * This calculates the "Mathematics" once so the rendering loop is cheap.
+     * [fullRebuild] should be true if the source signal or wave type changed.
      */
-    fun rebuildCache() {
+    fun rebuildCache(fullRebuild: Boolean = false) {
+        // Optimization: Invalidate reconstruction table immediately so physics uses manual fallback
+        // during the debounce period. This ensures instant feedback on nTerms change.
+        reconstructionWavetable = emptyArray()
+        
         cacheJob?.cancel()
         cacheJob = scope.launch(Dispatchers.Default) {
-            isCalculating = true
+            isSynthesizing = true
             // Debounce for UI sliders
-            delay(300)
+            delay(if (fullRebuild) 300 else 100)
             
             val maxTerms = 250
             val harmonics = mutableListOf<FourierLogic.Harmonic>()
@@ -168,11 +174,14 @@ class FourierState(
             }
 
             // Generate Wavetable for the ideal signal (error calculation)
-            val table = FourierLogic.generateWavetable(
-                1000, waveType, radiusBasePx,
-                drawingPoints.toList(), drawingPoints2D.toList(), resampledPoints2D.toList(),
-                svgPoints.toList(), formulaString, customFunctionSignals.toList()
-            )
+            // Only rebuild if the source signal actually changed.
+            val table = if (fullRebuild || idealWavetable.isEmpty()) {
+                FourierLogic.generateWavetable(
+                    1000, waveType, radiusBasePx,
+                    drawingPoints.toList(), drawingPoints2D.toList(), resampledPoints2D.toList(),
+                    svgPoints.toList(), formulaString, customFunctionSignals.toList()
+                )
+            } else idealWavetable
 
             // Generate Wavetable for the reconstructed signal (performance)
             // This is the "Full-Cycle Cache" mentioned in the requirements.
@@ -200,7 +209,7 @@ class FourierState(
                 cachedHarmonics = harmonics
                 idealWavetable = table
                 reconstructionWavetable = reconTable
-                isCalculating = false
+                isSynthesizing = false
                 updateSpectrum()
             }
         }
@@ -209,7 +218,7 @@ class FourierState(
     fun calculateDFT() {
         dftJob?.cancel()
         dftJob = scope.launch(Dispatchers.Default) {
-            isCalculating = true
+            isAnalyzing = true
             val samples = if (waveType == WaveType.FORMULA) {
                 val list = mutableListOf<Float>()
                 for (i in 0 until samplesCount) {
@@ -220,7 +229,10 @@ class FourierState(
                 }
                 list
             } else {
-                if (drawingPoints.size < samplesCount) return@launch
+                if (drawingPoints.size < samplesCount) {
+                    withContext(Dispatchers.Main) { isAnalyzing = false }
+                    return@launch
+                }
                 drawingPoints.map { -it / radiusBasePx }
             }
 
@@ -232,6 +244,14 @@ class FourierState(
 
             val symmetry = FourierLogic.detectSymmetry(samples)
 
+            // Pre-calculate ideal wavetable for immediate use in error calculation
+            val idealTable = FourierLogic.generateWavetable(
+                1000, waveType, radiusBasePx,
+                if (waveType == WaveType.FORMULA) emptyList() else drawingPoints.toList(),
+                drawingPoints2D.toList(), resampledPoints2D.toList(),
+                svgPoints.toList(), formulaString, customFunctionSignals.toList()
+            )
+
             withContext(Dispatchers.Main) {
                 symmetryResult = symmetry
                 if (waveType == WaveType.FORMULA) {
@@ -242,7 +262,9 @@ class FourierState(
                     baseCustomCoefficients = coeffs
                     prefs.customCoefficients = coeffs
                 }
-                rebuildCache()
+                idealWavetable = idealTable
+                isAnalyzing = false
+                rebuildCache(fullRebuild = true)
             }
         }
     }
@@ -250,8 +272,11 @@ class FourierState(
     fun calculateDFT2D() {
         dftJob?.cancel()
         dftJob = scope.launch(Dispatchers.Default) {
-            isCalculating = true
-            if (drawingPoints2D.isEmpty()) return@launch
+            isAnalyzing = true
+            if (drawingPoints2D.isEmpty()) {
+                withContext(Dispatchers.Main) { isAnalyzing = false }
+                return@launch
+            }
             val resampled = FourierLogic.resamplePath(drawingPoints2D.toList(), 1000)
             val normalizedPoints = resampled.map { Offset(it.x / radiusBasePx, -it.y / radiusBasePx) }
             val coeffs = try {
@@ -259,13 +284,23 @@ class FourierState(
             } catch (e: Exception) {
                 emptyList()
             }
+
+            // Pre-calculate ideal wavetable for immediate use
+            val idealTable = FourierLogic.generateWavetable(
+                1000, waveType, radiusBasePx,
+                emptyList(), drawingPoints2D.toList(), resampledPoints2D.toList(),
+                svgPoints.toList(), formulaString, customFunctionSignals.toList()
+            )
+
             withContext(Dispatchers.Main) {
                 resampledPoints2D.clear()
                 resampledPoints2D.addAll(resampled)
                 customCoefficients2D = coeffs
                 baseCustomCoefficients2D = coeffs
                 prefs.customCoefficients2D = coeffs
-                rebuildCache()
+                idealWavetable = idealTable
+                isAnalyzing = false
+                rebuildCache(fullRebuild = true)
             }
         }
     }
@@ -273,17 +308,30 @@ class FourierState(
     fun calculateSVGDFT() {
         dftJob?.cancel()
         dftJob = scope.launch(Dispatchers.Default) {
-            isCalculating = true
-            if (svgPoints.isEmpty()) return@launch
+            isAnalyzing = true
+            if (svgPoints.isEmpty()) {
+                withContext(Dispatchers.Main) { isAnalyzing = false }
+                return@launch
+            }
             val coeffs = try {
                 FourierLogic.performComplexDFT(svgPoints.toList())
             } catch (e: Exception) {
                 emptyList()
             }
+
+            // Pre-calculate ideal wavetable for immediate use
+            val idealTable = FourierLogic.generateWavetable(
+                1000, waveType, radiusBasePx,
+                emptyList(), drawingPoints2D.toList(), resampledPoints2D.toList(),
+                svgPoints.toList(), formulaString, customFunctionSignals.toList()
+            )
+
             withContext(Dispatchers.Main) {
                 svgCoefficients = coeffs
                 baseSvgCoefficients = coeffs
-                rebuildCache()
+                idealWavetable = idealTable
+                isAnalyzing = false
+                rebuildCache(fullRebuild = true)
             }
         }
     }
@@ -426,8 +474,10 @@ class FourierState(
 
     private fun updatePhysics(frameTime: Long, lastTime: Long) {
         val elapsedSeconds = (frameTime - lastTime) / 1e9f
+        // Limit DT to avoid jagged trails during lag spikes (e.g. keyboard hiding)
+        val dt = elapsedSeconds.coerceAtMost(0.05f) 
         val substeps = 2
-        val subDt = elapsedSeconds / substeps
+        val subDt = dt / substeps
 
         val radiusBase = radiusBasePx
         val twoPi = 2.0 * kotlin.math.PI
@@ -441,21 +491,25 @@ class FourierState(
         repeat(substeps) {
             time += subDt * speed
             val normalizedTime = ((time % 1f) + 1f) % 1f
-            val tableIdx = (normalizedTime * 999).toInt()
-
+            
             var approxX: Float
             var approxY: Float
             
-            // OPTIMIZATION: Use the Reconstruction Wavetable (Full-Cycle Cache)
-            // if available. This makes the physics update O(1) regardless of term count.
+            // OPTIMIZATION: Linear Interpolation for Wavetable (Full-Cycle Cache)
             if (reconTable.isNotEmpty()) {
-                val p = reconTable[tableIdx]
-                approxX = p.x
-                approxY = p.y
+                val floatIdx = normalizedTime * 999f
+                val i1 = floatIdx.toInt()
+                val i2 = (i1 + 1) % 1000
+                val frac = floatIdx - i1
+                val p1 = reconTable[i1]
+                val p2 = reconTable[i2]
+                approxX = p1.x * (1 - frac) + p2.x * frac
+                approxY = p1.y * (1 - frac) + p2.y * frac
             } else {
-                // Fallback to manual summation if cache isn't ready
+                // Fallback to manual summation
                 var sumX = 0f
                 var sumY = 0f
+                val angleFactor = twoPi * time
                 for (i in 0 until termsCount) {
                     if (i >= harmonics.size) break
                     if (removedHarmonics[i] == true || pausedHarmonics[i] == true) continue
@@ -463,7 +517,7 @@ class FourierState(
                     val freq = (harmonicFrequencies[i] ?: h.freq).toDouble()
                     val amp = (harmonicAmplitudes[i] ?: h.amp) * radiusBase
                     val phase = (harmonicPhases[i] ?: h.phase).toDouble()
-                    val angle = twoPi * freq * time + phase
+                    val angle = angleFactor * freq + phase
                     sumX += (amp * kotlin.math.cos(angle)).toFloat()
                     sumY += -(amp * kotlin.math.sin(angle)).toFloat()
                 }
@@ -473,7 +527,16 @@ class FourierState(
 
             val error: Float
             if (displayMode == FourierDisplayMode.COMPLEX) {
-                val target = if (wavetable.isNotEmpty()) wavetable[tableIdx] else {
+                // Linear Interpolation for Ideal Wavetable (Error Calculation)
+                val target = if (wavetable.isNotEmpty()) {
+                    val floatIdx = normalizedTime * 999f
+                    val i1 = floatIdx.toInt()
+                    val i2 = (i1 + 1) % 1000
+                    val frac = floatIdx - i1
+                    val p1 = wavetable[i1]
+                    val p2 = wavetable[i2]
+                    Offset(p1.x * (1 - frac) + p2.x * frac, p1.y * (1 - frac) + p2.y * frac)
+                } else {
                     FourierLogic.getIdealValue(
                         time, waveType, radiusBase, displayMode,
                         drawingPoints, drawingPoints2D, resampledPoints2D, svgPoints,
@@ -489,10 +552,17 @@ class FourierState(
                 } else 0f
                 path.add(PathPoint(Offset(approxX, approxY), error))
             } else {
-                val currentT = approxX // In 1D mode, approxX is actually the 'time' or horizontal position
                 approxX = time
                 
-                val targetY = if (wavetable.isNotEmpty()) wavetable[tableIdx].y else {
+                val targetY = if (wavetable.isNotEmpty()) {
+                    val floatIdx = normalizedTime * 999f
+                    val i1 = floatIdx.toInt()
+                    val i2 = (i1 + 1) % 1000
+                    val frac = floatIdx - i1
+                    val p1 = wavetable[i1].y
+                    val p2 = wavetable[i2].y
+                    p1 * (1 - frac) + p2 * frac
+                } else {
                     FourierLogic.getIdealValue(
                         time, waveType, radiusBase, displayMode,
                         drawingPoints, drawingPoints2D, resampledPoints2D, svgPoints,

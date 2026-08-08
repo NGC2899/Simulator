@@ -55,7 +55,8 @@ fun FourierVisualizerBox(
     harmonicFrequencies: Map<Int, Float> = emptyMap(),
     harmonicAmplitudes: Map<Int, Float> = emptyMap(),
     harmonicPhases: Map<Int, Float> = emptyMap(),
-    isCalculating: Boolean = false,
+    isAnalyzing: Boolean = false,
+    isSynthesizing: Boolean = false,
     cachedHarmonics: List<FourierLogic.Harmonic> = emptyList()
 ) {
     val density = androidx.compose.ui.platform.LocalDensity.current
@@ -394,7 +395,7 @@ fun FourierVisualizerBox(
         }
 
         // Status Indicators
-        if (isCalculating) {
+        if (isAnalyzing) {
             Box(
                 modifier = Modifier
                     .padding(AppDesign.radiusLarge)

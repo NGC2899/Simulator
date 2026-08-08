@@ -1,0 +1,5 @@
+- [x] Separate `isAnalyzing` and `isSynthesizing` in `FourierState.kt`
+- [x] Optimize `rebuildCache` in `FourierState.kt` (splitting ideal vs recon)
+- [x] Update `FourierVisualizer.kt` status indicator
+- [x] Update `FourierSeries.kt` to handle new state flags
+- [x] Verify instant updates on `nTerms` change
