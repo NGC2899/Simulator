@@ -76,8 +76,9 @@ fun BoxScope.FourierLeftSidebar(
 
 @Composable
 fun BoxScope.FourierRightSidebar(
-    nTerms: Int,
-    onNTermsChange: (Int) -> Unit,
+    displayNTerms: Int,
+    onDisplayNTermsChange: (Int) -> Unit,
+    onActiveNTermsChange: (Int) -> Unit,
     colors: AppColors
 ) {
     Column(
@@ -110,7 +111,13 @@ fun BoxScope.FourierRightSidebar(
                 modifier = Modifier.fillMaxHeight()
             ) {
                 IconButton(
-                    onClick = { if (nTerms < 250) onNTermsChange(nTerms + 1) },
+                    onClick = { 
+                        if (displayNTerms < 250) {
+                            val newValue = displayNTerms + 1
+                            onDisplayNTermsChange(newValue)
+                            onActiveNTermsChange(newValue)
+                        }
+                    },
                     modifier = Modifier.size(AppDesign.iconSmallMedium)
                 ) {
                     Icon(
@@ -121,8 +128,9 @@ fun BoxScope.FourierRightSidebar(
                 }
 
                 Slider(
-                    value = nTerms.toFloat(),
-                    onValueChange = { onNTermsChange(it.toInt()) },
+                    value = displayNTerms.toFloat(),
+                    onValueChange = { onDisplayNTermsChange(it.toInt()) },
+                    onValueChangeFinished = { onActiveNTermsChange(displayNTerms) },
                     valueRange = 1f..250f,
                     modifier = Modifier
                         .weight(1f)
@@ -152,7 +160,13 @@ fun BoxScope.FourierRightSidebar(
                 )
 
                 IconButton(
-                    onClick = { if (nTerms > 1) onNTermsChange(nTerms - 1) },
+                    onClick = { 
+                        if (displayNTerms > 1) {
+                            val newValue = displayNTerms - 1
+                            onDisplayNTermsChange(newValue)
+                            onActiveNTermsChange(newValue)
+                        }
+                    },
                     modifier = Modifier.size(AppDesign.iconSmallMedium)
                 ) {
                     Icon(
@@ -163,7 +177,7 @@ fun BoxScope.FourierRightSidebar(
                 }
 
                 Text(
-                    text = nTerms.toString(),
+                    text = displayNTerms.toString(),
                     color = colors.textPrimary,
                     fontSize = AppDesign.textCaption,
                     fontWeight = FontWeight.Bold,

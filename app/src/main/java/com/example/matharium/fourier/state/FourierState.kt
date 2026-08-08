@@ -15,6 +15,7 @@ class FourierState(
     val radiusBasePx: Float,
     val defaultSignalColorArgb: Int
 ) {
+    var intendedNTerms by mutableIntStateOf(prefs.fourierNTerms)
     var nTerms by mutableIntStateOf(prefs.fourierNTerms)
     var waveType by mutableStateOf(
         try {
@@ -48,10 +49,13 @@ class FourierState(
 
     var time by mutableFloatStateOf(0f)
     
-    // TRAIL OPTIMIZATION:
-    // Using a list but adding to the END to avoid O(N) shifts.
-    // The UI will handle the "newest first" logic during drawing.
-    val path = mutableStateListOf<PathPoint>()
+    // Using local arrays for trail to minimize GC
+    private val trailSize = 2000
+    private var trailPointer = 0
+    val pathX = FloatArray(trailSize)
+    val pathY = FloatArray(trailSize)
+    val pathError = FloatArray(trailSize)
+    var pathCount by mutableIntStateOf(0)
 
     val drawingPoints = mutableStateListOf<Float>().apply {
         val saved = prefs.drawingPoints
@@ -66,20 +70,20 @@ class FourierState(
     var customCoefficients by mutableStateOf<List<Pair<Float, Float>>>(prefs.customCoefficients)
     var baseCustomCoefficients by mutableStateOf<List<Pair<Float, Float>>>(prefs.customCoefficients)
 
-    val drawingPoints2D = mutableStateListOf<Offset>().apply {
+    val drawingPoints2D = mutableStateListOf<FourierLogic.MathPoint>().apply {
         val saved = prefs.drawingPoints2D
         if (saved.isNotEmpty()) {
-            addAll(saved)
+            addAll(saved.map { FourierLogic.MathPoint(it.x, it.y) })
             scope.launch { calculateDFT2D() }
         }
     }
     var drawing2DVersion by mutableIntStateOf(0)
-    val resampledPoints2D = mutableStateListOf<Offset>()
+    val resampledPoints2D = mutableStateListOf<FourierLogic.MathPoint>()
     var customCoefficients2D by mutableStateOf<List<FourierLogic.ComplexCoeff>>(prefs.customCoefficients2D)
     var baseCustomCoefficients2D by mutableStateOf<List<FourierLogic.ComplexCoeff>>(prefs.customCoefficients2D)
 
-    val svgPoints = mutableStateListOf<Offset>().apply {
-        addAll(prefs.fourierSvgPoints)
+    val svgPoints = mutableStateListOf<FourierLogic.MathPoint>().apply {
+        addAll(prefs.fourierSvgPoints.map { FourierLogic.MathPoint(it.x, it.y) })
     }
     var svgCoefficients by mutableStateOf<List<FourierLogic.ComplexCoeff>>(emptyList())
     var baseSvgCoefficients by mutableStateOf<List<FourierLogic.ComplexCoeff>>(emptyList())
@@ -101,8 +105,17 @@ class FourierState(
     var isAnalyzing by mutableStateOf(false)
     var isSynthesizing by mutableStateOf(false)
     var cachedHarmonics by mutableStateOf<List<FourierLogic.Harmonic>>(emptyList())
-    var idealWavetable by mutableStateOf<Array<Offset>>(emptyArray())
-    var reconstructionWavetable by mutableStateOf<Array<Offset>>(emptyArray())
+    var idealWavetable by mutableStateOf<Array<FourierLogic.MathPoint>>(emptyArray())
+    var reconstructionWavetable by mutableStateOf<Array<FourierLogic.MathPoint>>(emptyArray())
+
+    // TRAIL OPTIMIZATION: Fixed-size circular buffer for primitive data
+    // Index 0: X, Index 1: Y, Index 2: Error
+    private val trailSize = 2000
+    private var trailPointer = 0
+    val pathX = FloatArray(trailSize)
+    val pathY = FloatArray(trailSize)
+    val pathError = FloatArray(trailSize)
+    var pathCount by mutableIntStateOf(0)
 
     private var dftJob: Job? = null
     private var spectrumJob: Job? = null
@@ -247,7 +260,7 @@ class FourierState(
                     sumX += (amp * kotlin.math.cos(angle)).toFloat()
                     sumY += -(amp * kotlin.math.sin(angle)).toFloat()
                 }
-                Offset(sumX, sumY)
+                FourierLogic.MathPoint(sumX, sumY)
             }
 
             withContext(Dispatchers.Main) {
@@ -383,7 +396,7 @@ class FourierState(
         running = false
         hasStarted = false
         time = 0f
-        path.clear()
+        clearPath()
     }
 
     fun updateSpectrum() {
@@ -593,7 +606,13 @@ class FourierState(
                     val dy = approxY - target.y
                     kotlin.math.sqrt(dx * dx + dy * dy)
                 } else 0f
-                path.add(PathPoint(Offset(approxX, approxY), error))
+                
+                // OPTIMIZATION: Update circular buffer (zero allocations)
+                pathX[trailPointer] = approxX
+                pathY[trailPointer] = approxY
+                pathError[trailPointer] = error
+                trailPointer = (trailPointer + 1) % trailSize
+                if (pathCount < trailSize) pathCount++
             } else {
                 approxX = time
                 
@@ -614,18 +633,17 @@ class FourierState(
                     ).y
                 }
                 
-                error = if (showErrorGradient) {
-                    val dy = approxY - targetY
-                    if (dy < 0) -dy else dy
-                } else 0f
-                path.add(PathPoint(Offset(approxX, approxY), error))
-            }
-        }
-
-        // Keep trail size limited
-        if (path.size > 2000) {
-            val toRemove = path.size - 2000
-            repeat(toRemove) { path.removeAt(0) }
+            error = if (showErrorGradient) {
+                val dy = approxY - targetY
+                if (dy < 0) -dy else dy
+            } else 0f
+            
+            // OPTIMIZATION: Update circular buffer (zero allocations)
+            pathX[trailPointer] = approxX
+            pathY[trailPointer] = approxY
+            pathError[trailPointer] = error
+            trailPointer = (trailPointer + 1) % trailSize
+            if (pathCount < trailSize) pathCount++
         }
     }
 
@@ -656,6 +674,11 @@ class FourierState(
         svgCoefficients = emptyList()
         baseSvgCoefficients = emptyList()
         resetSimulation()
+    }
+
+    fun clearPath() {
+        trailPointer = 0
+        pathCount = 0
     }
 }
 

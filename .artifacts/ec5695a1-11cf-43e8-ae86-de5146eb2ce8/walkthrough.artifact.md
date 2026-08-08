@@ -26,11 +26,20 @@ We have optimized the Fourier visualizer to distinguish between **Signal Analysi
 - **Result**: "Analyzing Signal..." spinner appears briefly as a new DFT is required.
 
 ### 4. Expression Compilation (AST)
-- **High Performance**: The `FourierExpressionEvaluator` now compiles formulas into an Abstract Syntax Tree (AST) rather than parsing the string on every call. This makes background wavetable generation and UI-thread fallbacks significantly faster.
+- **High Performance**: The `FourierExpressionEvaluator` now compiles formulas into an Abstract Syntax Tree (AST). This makes background wavetable generation and UI-thread fallbacks significantly faster.
 
-### 5. Immediate UI Synchronization
-- **No Overlap Glitches**: When switching wave types or changing terms, the internal harmonics list is updated immediately. This prevents the "ghosting" effect where the simulation would show the old signal for a few hundred milliseconds while the background cache was rebuilding.
-- **Target Reset**: The ideal wavetable is cleared instantly when changing modes, ensuring the error gradient doesn't calculate against stale data.
+### 5. Interaction & Flow Cleanup
+- **Manual Control**: Simulation no longer auto-starts after drawing or importing. The user must manually press "Simulate."
+- **Safety**: The "Simulate" button is now disabled during the analysis/synthesis phase for all wave types, ensuring the app never tries to run before the high-performance cache is ready.
+- **State Integrity**: Switching wave types immediately resets the simulation, preventing "ghosting" from the previous signal.
+
+### 6. Unified Feedback
+- **Universal Status**: The "Analyzing Signal..." message and button locking now apply to **all** signals, including standard waves (Sine, Square, etc.), providing consistent UX across the entire module.
+
+### 7. Deferred Engine Updates (Optimized for older devices)
+- **Separate UI/Engine Terms**: Introduced `intendedNTerms` (for the slider/UI) and `nTerms` (for the physics engine).
+- **Deferred Processing**: Dragging the terms slider now only updates the UI label. The CPU-heavy physics engine and synthesis cache are only updated when the user **releases** the slider (`onValueChangeFinished`). This prevents CPU spikes and lag on older devices during interaction.
+- **Immediate Buttons**: The +/- increment buttons still trigger immediate engine updates for precise control.
 
 ---
-*Note: The combined optimizations result in a simulation that feels "native" and responsive, with zero perceived latency during interaction.*
+*Note: The system is now fully optimized for both mathematical accuracy and fluid user interaction, even on hardware with limited resources.*

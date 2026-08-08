@@ -36,7 +36,9 @@ fun FourierVisualizerBox(
     onDisplayModeChange: (FourierDisplayMode) -> Unit,
     waveType: WaveType,
     nTerms: Int,
-    onNTermsChange: (Int) -> Unit,
+    intendedNTerms: Int,
+    onIntendedNTermsChange: (Int) -> Unit,
+    onActiveNTermsChange: (Int) -> Unit,
     timeProvider: () -> Float,
     path: List<PathPoint>,
     showErrorGradient: Boolean,
@@ -431,8 +433,9 @@ fun FourierVisualizerBox(
 
         // Terms Handler (Right Sidebar)
         FourierRightSidebar(
-            nTerms = nTerms,
-            onNTermsChange = onNTermsChange,
+            displayNTerms = intendedNTerms,
+            onDisplayNTermsChange = onIntendedNTermsChange,
+            onActiveNTermsChange = onActiveNTermsChange,
             colors = colors
         )
     }

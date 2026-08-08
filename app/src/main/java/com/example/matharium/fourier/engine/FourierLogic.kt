@@ -40,7 +40,7 @@ object FourierLogic {
         return coeffs
     }
 
-    fun performComplexDFT(points: List<Offset>): List<ComplexCoeff> {
+    fun performComplexDFT(points: List<MathPoint>): List<ComplexCoeff> {
         val n = points.size
         val coeffs = mutableListOf<ComplexCoeff>()
         // We calculate both positive and negative frequencies for 2D drawing
@@ -111,6 +111,12 @@ object FourierLogic {
     }
 
     /**
+     * Data class for a point in math space.
+     * Decoupled from Android UI classes.
+     */
+    data class MathPoint(val x: Float, val y: Float)
+
+    /**
      * Creates a wavetable for the ideal signal across one period [0, 1].
      */
     fun generateWavetable(
@@ -118,19 +124,20 @@ object FourierLogic {
         waveType: WaveType,
         radiusBase: Float,
         drawingPoints: List<Float>,
-        drawingPoints2D: List<Offset>,
-        resampledPoints2D: List<Offset>,
-        svgPoints: List<Offset>,
+        drawingPoints2D: List<MathPoint>,
+        resampledPoints2D: List<MathPoint>,
+        svgPoints: List<MathPoint>,
         formulaString: String,
         customFunctionSignals: List<SignalInstance>
-    ): Array<Offset> {
+    ): Array<MathPoint> {
         return Array(size) { i ->
             val t = i.toFloat() / size
-            getIdealValue(
+            val result = getIdealValue(
                 t, waveType, radiusBase, FourierDisplayMode.COMPLEX, // Force complex for both components
                 drawingPoints, drawingPoints2D, resampledPoints2D, svgPoints,
                 formulaString, customFunctionSignals
             )
+            MathPoint(result.x, result.y)
         }
     }
 
@@ -174,8 +181,8 @@ object FourierLogic {
      * Only supports 'd' attribute content from <path> elements.
      * Minimal implementation for demo purposes.
      */
-    fun extractPointsFromSVG(svgContent: String): List<Offset> {
-        val rawPoints = mutableListOf<Offset>()
+    fun extractPointsFromSVG(svgContent: String): List<MathPoint> {
+        val rawPoints = mutableListOf<MathPoint>()
         try {
             // Relaxed: Extract path data from all 'd' attributes, ignore unknown tags
             val dPattern = "d=(?:\"|')([^\"']+)(?:\"|')".toRegex()
@@ -214,14 +221,14 @@ object FourierLogic {
                                         currentX = x; currentY = y
                                     }
                                     startX = currentX; startY = currentY
-                                    rawPoints.add(Offset(currentX, currentY))
+                                    rawPoints.add(MathPoint(currentX, currentY))
                                     i += 2
                                     while (i + 1 < tokens.size && !tokens[i][0].isLetter()) {
                                         val nextX = tokens[i].toFloatOrNull() ?: 0f
                                         val nextY = tokens[i+1].toFloatOrNull() ?: 0f
                                         currentX = if (command.isLowerCase()) currentX + nextX else nextX
                                         currentY = if (command.isLowerCase()) currentY + nextY else nextY
-                                        rawPoints.add(Offset(currentX, currentY))
+                                        rawPoints.add(MathPoint(currentX, currentY))
                                         i += 2
                                     }
                                 }
@@ -235,7 +242,7 @@ object FourierLogic {
                                     } else {
                                         currentX = x; currentY = y
                                     }
-                                    rawPoints.add(Offset(currentX, currentY))
+                                    rawPoints.add(MathPoint(currentX, currentY))
                                     i += 2
                                 }
                             }
@@ -243,7 +250,7 @@ object FourierLogic {
                                 while (i < tokens.size && !tokens[i][0].isLetter()) {
                                     val x = tokens[i].toFloatOrNull() ?: 0f
                                     if (command.isLowerCase()) currentX += x else currentX = x
-                                    rawPoints.add(Offset(currentX, currentY))
+                                    rawPoints.add(MathPoint(currentX, currentY))
                                     i++
                                 }
                             }
@@ -251,7 +258,7 @@ object FourierLogic {
                                 while (i < tokens.size && !tokens[i][0].isLetter()) {
                                     val y = tokens[i].toFloatOrNull() ?: 0f
                                     if (command.isLowerCase()) currentY += y else currentY = y
-                                    rawPoints.add(Offset(currentX, currentY))
+                                    rawPoints.add(MathPoint(currentX, currentY))
                                     i++
                                 }
                             }
@@ -270,7 +277,7 @@ object FourierLogic {
                                         val u = 1 - t
                                         val px = u*u*u*currentX + 3*u*u*t*x1 + 3*u*t*t*x2 + t*t*t*ex
                                         val py = u*u*u*currentY + 3*u*u*t*y1 + 3*u*t*t*y2 + t*t*t*ey
-                                        rawPoints.add(Offset(px, py))
+                                        rawPoints.add(MathPoint(px, py))
                                     }
                                     currentX = ex; currentY = ey
                                     i += 6
@@ -289,7 +296,7 @@ object FourierLogic {
                                         val u = 1 - t
                                         val px = u*u*currentX + 2*u*t*x1 + t*t*ex
                                         val py = u*u*currentY + 2*u*t*y1 + t*t*ey
-                                        rawPoints.add(Offset(px, py))
+                                        rawPoints.add(MathPoint(px, py))
                                     }
                                     currentX = ex; currentY = ey
                                     i += 4
@@ -297,7 +304,7 @@ object FourierLogic {
                             }
                             'z' -> {
                                 currentX = startX; currentY = startY
-                                rawPoints.add(Offset(currentX, currentY))
+                                rawPoints.add(MathPoint(currentX, currentY))
                             }
                             else -> {
                                 while (i < tokens.size && !tokens[i][0].isLetter()) i++
@@ -330,7 +337,7 @@ object FourierLogic {
             return resampledPoints.map { 
                 val x = (it.x - avgX) * scale
                 val y = (it.y - avgY) * scale
-                if (x.isNaN() || y.isNaN()) Offset.Zero else Offset(x, -y) // Negate Y to align with Math space
+                if (x.isNaN() || y.isNaN()) MathPoint(0f, 0f) else MathPoint(x, -y) // Negate Y to align with Math space
             }
             
         } catch (e: Exception) {
@@ -342,21 +349,23 @@ object FourierLogic {
     /**
      * Resamples a path to have a uniform distribution of points.
      */
-    fun resamplePath(points: List<Offset>, targetCount: Int): List<Offset> {
+    fun resamplePath(points: List<MathPoint>, targetCount: Int): List<MathPoint> {
         if (points.size < 2) return points
         if (targetCount <= 1) return listOf(points[0])
 
         var totalLength = 0f
         val segmentLengths = mutableListOf<Float>()
         for (i in 0 until points.size - 1) {
-            val d = (points[i+1] - points[i]).getDistance()
+            val dx = points[i+1].x - points[i].x
+            val dy = points[i+1].y - points[i].y
+            val d = sqrt(dx * dx + dy * dy)
             totalLength += d
             segmentLengths.add(d)
         }
 
         if (totalLength < 1e-6f) return List(targetCount) { points[0] }
 
-        val resampled = mutableListOf<Offset>()
+        val resampled = mutableListOf<MathPoint>()
         val step = totalLength / (targetCount - 1)
         
         var accumulatedLength = 0f
@@ -376,7 +385,7 @@ object FourierLogic {
             
             val p1 = points[currentSegment]
             val p2 = points[currentSegment + 1]
-            resampled.add(Offset(
+            resampled.add(MathPoint(
                 p1.x + (p2.x - p1.x) * t,
                 p1.y + (p2.y - p1.y) * t
             ))
@@ -480,15 +489,15 @@ object FourierLogic {
         radiusBase: Float,
         displayMode: FourierDisplayMode,
         drawingPoints: List<Float>,
-        drawingPoints2D: List<Offset>,
-        resampledPoints2D: List<Offset>,
-        svgPoints: List<Offset>,
+        drawingPoints2D: List<MathPoint>,
+        resampledPoints2D: List<MathPoint>,
+        svgPoints: List<MathPoint>,
         formulaString: String,
         customFunctionSignals: List<SignalInstance>,
         harmonicFrequencies: Map<Int, Float> = emptyMap(),
         harmonicAmplitudes: Map<Int, Float> = emptyMap(),
         harmonicPhases: Map<Int, Float> = emptyMap()
-    ): Offset {
+    ): MathPoint {
         // To unify and fix the error gradient logic, the "Ideal Value" now represents
         // the true mathematical or sampled target signal, NOT the Fourier approximation.
         // This allows the error gradient to reflect how well the series converges.
@@ -586,9 +595,9 @@ object FourierLogic {
         }
 
         return if (displayMode == FourierDisplayMode.COMPLEX) {
-            Offset(sumX, sumY)
+            MathPoint(sumX, sumY)
         } else {
-            Offset(time, sumY)
+            MathPoint(time, sumY)
         }
     }
 

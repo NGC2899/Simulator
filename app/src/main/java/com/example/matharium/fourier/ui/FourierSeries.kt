@@ -45,7 +45,10 @@ fun FourierSeries() {
         state.clearOverrides()
         state.idealWavetable = emptyArray() // Clear old target signal immediately
         val maxForCurrent = 250
-        if (state.nTerms > maxForCurrent) state.nTerms = maxForCurrent
+        if (state.nTerms > maxForCurrent) {
+            state.nTerms = maxForCurrent
+            state.intendedNTerms = maxForCurrent
+        }
         state.prefs.fourierWaveType = state.waveType.name
     }
 
@@ -95,8 +98,10 @@ fun FourierSeries() {
         if (state.waveType == WaveType.PURE_SIGNAL) {
             if (state.nTerms > state.customFunctionSignals.size) {
                 state.nTerms = state.customFunctionSignals.size
+                state.intendedNTerms = state.customFunctionSignals.size
             } else if (state.customFunctionSignals.isNotEmpty() && state.nTerms == state.customFunctionSignals.size - 1) {
                 state.nTerms = state.customFunctionSignals.size
+                state.intendedNTerms = state.customFunctionSignals.size
             }
         }
     }
@@ -170,7 +175,11 @@ fun FourierSeries() {
     Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(AppDesign.spacingLarge)) {
         FourierVisualizerBox(
             displayMode = state.displayMode, onDisplayModeChange = { state.displayMode = it },
-            waveType = state.waveType, nTerms = state.nTerms, onNTermsChange = { state.nTerms = it },
+            waveType = state.waveType, 
+            nTerms = state.nTerms, 
+            intendedNTerms = state.intendedNTerms,
+            onIntendedNTermsChange = { state.intendedNTerms = it },
+            onActiveNTermsChange = { state.nTerms = it },
             timeProvider = { state.time }, path = state.path, showErrorGradient = state.showErrorGradient,
             errorSensitivity = state.errorSensitivity, waveStretch = state.waveStretch,
             onClearPath = { state.path.clear() }, windingFrequency = state.windingFrequency,
