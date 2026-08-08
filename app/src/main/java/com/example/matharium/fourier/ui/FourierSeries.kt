@@ -40,6 +40,8 @@ fun FourierSeries() {
 
     // Side effects & Persistence
     LaunchedEffect(state.waveType) {
+        state.running = false
+        state.hasStarted = false
         state.clearOverrides()
         state.idealWavetable = emptyArray() // Clear old target signal immediately
         val maxForCurrent = 250
@@ -99,9 +101,14 @@ fun FourierSeries() {
         }
     }
 
-    LaunchedEffect(state.nTerms, state.waveType, state.harmonicVersion, state.formulaString) {
-        val isSourceChange = state.waveType != WaveType.MY_SIGNAL && state.waveType != WaveType.MY_SIGNAL_2D && state.waveType != WaveType.SVG
-        state.rebuildCache(fullRebuild = isSourceChange)
+    // Handle Source changes (WaveType, Formula, etc.) - Requires full rebuild and "Analyzing" feedback
+    LaunchedEffect(state.waveType, state.formulaString) {
+        state.rebuildCache(fullRebuild = true)
+    }
+
+    // Handle nTerms and internal tweaks - Instant updates without "Analyzing" message
+    LaunchedEffect(state.nTerms, state.harmonicVersion) {
+        state.rebuildCache(fullRebuild = false)
     }
 
     LaunchedEffect(state.waveType, state.drawingVersion, state.drawing2DVersion, state.harmonicVersion, state.formulaString, state.nTerms) {
@@ -132,7 +139,6 @@ fun FourierSeries() {
                             state.prefs.fourierSvgPoints = points
                             state.calculateSVGDFT()
                             state.resetSimulation()
-                            state.running = true
                         }
                     }
                 } catch (e: Exception) {
@@ -148,6 +154,8 @@ fun FourierSeries() {
     // OPTIMIZATION: derivedStateOf for isSimulationEnabled to avoid unnecessary recompositions
     val isSimulationEnabled by remember {
         derivedStateOf {
+            if (state.isAnalyzing) return@derivedStateOf false
+            
             when (state.waveType) {
                 WaveType.MY_SIGNAL -> state.drawingPoints.any { it != 0f }
                 WaveType.MY_SIGNAL_2D -> state.drawingPoints2D.isNotEmpty()

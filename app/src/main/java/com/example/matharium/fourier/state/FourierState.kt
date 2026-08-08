@@ -128,6 +128,8 @@ class FourierState(
         // during the debounce period. This ensures instant feedback on nTerms change.
         reconstructionWavetable = emptyArray()
         
+        if (fullRebuild) isAnalyzing = true // Show "Analyzing..." for WaveType/Source changes
+        
         // Immediate Harmonics Calculation for non-full rebuilds (e.g. nTerms change)
         // This ensures the manual fallback uses the latest coefficients without delay.
         if (!fullRebuild) {
@@ -253,6 +255,7 @@ class FourierState(
                 idealWavetable = table
                 reconstructionWavetable = reconTable
                 isSynthesizing = false
+                isAnalyzing = false // Analysis/Synthesis complete
                 updateSpectrum()
             }
         }
@@ -306,7 +309,6 @@ class FourierState(
                     prefs.customCoefficients = coeffs
                 }
                 idealWavetable = idealTable
-                isAnalyzing = false
                 rebuildCache(fullRebuild = true)
             }
         }
@@ -342,7 +344,6 @@ class FourierState(
                 baseCustomCoefficients2D = coeffs
                 prefs.customCoefficients2D = coeffs
                 idealWavetable = idealTable
-                isAnalyzing = false
                 rebuildCache(fullRebuild = true)
             }
         }
@@ -373,7 +374,6 @@ class FourierState(
                 svgCoefficients = coeffs
                 baseSvgCoefficients = coeffs
                 idealWavetable = idealTable
-                isAnalyzing = false
                 rebuildCache(fullRebuild = true)
             }
         }
