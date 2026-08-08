@@ -1,20 +1,15 @@
 package com.example.matharium.fourier.ui
 
-import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardDoubleArrowDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -38,20 +33,7 @@ fun FourierSeries() {
     
     val state = rememberFourierState(prefs, colors, scope, radiusBasePx = radiusBasePx)
 
-    // Side effects & Persistence
-    LaunchedEffect(state.waveType) {
-        state.running = false
-        state.hasStarted = false
-        state.clearOverrides()
-        state.idealWavetable = emptyArray() 
-        val maxForCurrent = 250
-        if (state.nTerms > maxForCurrent) {
-            state.nTerms = maxForCurrent
-            state.intendedNTerms = maxForCurrent
-        }
-        state.prefs.fourierWaveType = state.waveType.name
-    }
-
+    // CONSOLIDATED Persistence & Simple Settings
     LaunchedEffect(state.nTerms) { state.prefs.fourierNTerms = state.nTerms }
     LaunchedEffect(state.speed) { state.prefs.fourierSpeed = state.speed }
     LaunchedEffect(state.windingFrequency) { state.prefs.fourierWindingFrequency = state.windingFrequency }
@@ -60,68 +42,44 @@ fun FourierSeries() {
     LaunchedEffect(state.errorSensitivity) { state.prefs.fourierErrorSensitivity = state.errorSensitivity }
     LaunchedEffect(state.displayMode) { state.prefs.fourierDisplayMode = state.displayMode.name }
 
-    LaunchedEffect(state.formulaString, state.waveType) {
-        state.prefs.fourierFormula = state.formulaString
-        if (state.waveType == WaveType.FORMULA) state.calculateDFT()
-    }
-
-    LaunchedEffect(state.drawingVersion) {
-        if (state.waveType == WaveType.MY_SIGNAL) {
-            kotlinx.coroutines.delay(100)
-            state.calculateDFT()
-        }
-        state.prefs.drawingPoints = state.drawingPoints.toList()
-    }
-
-    LaunchedEffect(state.drawing2DVersion) {
-        if (state.waveType == WaveType.MY_SIGNAL_2D) {
-            kotlinx.coroutines.delay(100)
-            state.calculateDFT2D()
-        }
-        state.prefs.drawingPoints2D = state.drawingPoints2D.map { Offset(it.x, it.y) }
-    }
-
-    LaunchedEffect(state.waveType) {
+    // CONSOLIDATED Source Analysis Logic
+    // This flow ensures that analysis happens in the correct order and results 
+    // are cached only once per source change.
+    LaunchedEffect(state.waveType, state.formulaString, state.drawingVersion, state.drawing2DVersion) {
+        state.running = false
+        state.hasStarted = false
+        
         when (state.waveType) {
-            WaveType.MY_SIGNAL -> state.calculateDFT()
-            WaveType.MY_SIGNAL_2D -> state.calculateDFT2D()
-            WaveType.SVG -> if (state.svgCoefficients.isEmpty()) state.calculateSVGDFT()
-            else -> {}
-        }
-    }
-
-    LaunchedEffect(state.harmonicVersion, state.customFunctionSignals.size) { 
-        state.prefs.saveFourierSignals(state.customFunctionSignals.toList()) 
-    }
-
-    LaunchedEffect(state.customFunctionSignals.size) {
-        if (state.waveType == WaveType.PURE_SIGNAL) {
-            if (state.nTerms > state.customFunctionSignals.size) {
-                state.nTerms = state.customFunctionSignals.size
-                state.intendedNTerms = state.customFunctionSignals.size
-            } else if (state.customFunctionSignals.isNotEmpty() && state.nTerms == state.customFunctionSignals.size - 1) {
-                state.nTerms = state.customFunctionSignals.size
-                state.intendedNTerms = state.customFunctionSignals.size
+            WaveType.MY_SIGNAL -> {
+                kotlinx.coroutines.delay(150) // Debounce for drawing
+                state.calculateDFT()
+            }
+            WaveType.MY_SIGNAL_2D -> {
+                kotlinx.coroutines.delay(150)
+                state.calculateDFT2D()
+            }
+            WaveType.FORMULA -> {
+                state.calculateDFT()
+            }
+            WaveType.SVG -> {
+                if (state.svgCoefficients.isEmpty()) state.calculateSVGDFT()
+            }
+            else -> {
+                state.rebuildCache(fullRebuild = true)
             }
         }
+        
+        // Update persistent points
+        state.prefs.drawingPoints = state.drawingPoints.toList()
+        state.prefs.drawingPoints2D = state.drawingPoints2D.map { Offset(it.x, it.y) }
+        state.prefs.fourierWaveType = state.waveType.name
     }
 
-    // Handle Source changes (WaveType, Formula, etc.) - Requires full rebuild and "Analyzing" feedback
-    LaunchedEffect(state.waveType, state.formulaString) {
-        state.rebuildCache(fullRebuild = true)
-    }
-
-    // Handle internal tweaks (harmonic version) - Debounced background update
+    // Handle internal tweaks (harmonic overrides)
     LaunchedEffect(state.harmonicVersion) {
         val isFull = state.waveType == WaveType.PURE_SIGNAL
         state.rebuildCache(fullRebuild = isFull)
-    }
-
-    LaunchedEffect(state.waveType, state.drawingVersion, state.drawing2DVersion, state.harmonicVersion, state.formulaString, state.nTerms) {
-        if (state.waveType == WaveType.MY_SIGNAL || state.waveType == WaveType.MY_SIGNAL_2D) {
-            kotlinx.coroutines.delay(500)
-        }
-        state.updateSpectrum()
+        state.prefs.saveFourierSignals(state.customFunctionSignals.toList()) 
     }
 
     LaunchedEffect(state.running) {

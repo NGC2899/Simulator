@@ -8,65 +8,53 @@ import kotlin.math.*
 object FourierLogic {
 
     fun performDFT(drawingPoints: List<Float>, samplesCount: Int): List<Pair<Float, Float>> {
+        // OPTIMIZATION: Use FFT for faster calculation if possible.
+        // We pad/resample to 1024 for power-of-two FFT.
+        val n = 1024
+        val paddedSamples = FloatArray(n)
+        for (i in 0 until n) {
+            val srcIdx = (i.toFloat() / n * samplesCount).toInt().coerceAtMost(samplesCount - 1)
+            paddedSamples[i] = drawingPoints[srcIdx]
+        }
+        
+        val complexResults = fft(paddedSamples)
         val coeffs = mutableListOf<Pair<Float, Float>>()
         
-        // n=0 (DC offset / constant term)
-        var re0 = 0.0
-        for (i in 0 until samplesCount) {
-            re0 += drawingPoints[i]
-        }
-        re0 /= samplesCount
-        coeffs.add(re0.toFloat() to 0f)
+        // n=0 (DC offset)
+        coeffs.add((complexResults[0].re / n).toFloat() to 0f)
 
-        // Calculate Harmonics up to 250
-        // We use a high-precision O(N*K) DFT to ensure integer frequencies align perfectly
+        // Harmonics 1 to 250
         for (k in 1..250) {
-            var re = 0.0
-            var im = 0.0
-            val angleFactor = 2.0 * PI * k / samplesCount
-            for (i in 0 until samplesCount) {
-                val angle = -angleFactor * i
-                re += drawingPoints[i] * cos(angle)
-                im += drawingPoints[i] * sin(angle)
-            }
-            // In discrete Fourier series for periodic signals, the amplitude is 2/N * |X|
-            re /= (samplesCount / 2.0)
-            im /= (samplesCount / 2.0)
-
-            val amp = sqrt(re * re + im * im).toFloat()
-            val phase = atan2(im, re).toFloat()
+            val c = complexResults[k]
+            // For real input FFT, the amplitude of harmonic k is 2/N * |X[k]|
+            val amp = (2.0 * sqrt(c.re * c.re + c.im * c.im) / n).toFloat()
+            val phase = atan2(c.im, c.re).toFloat()
             coeffs.add(amp to phase)
         }
         return coeffs
     }
 
     fun performComplexDFT(points: List<MathPoint>): List<ComplexCoeff> {
-        val n = points.size
+        val nOriginal = points.size
+        val n = 1024
+        val input = Array(n) { i ->
+            val srcIdx = (i.toFloat() / n * nOriginal).toInt().coerceAtMost(nOriginal - 1)
+            Complex(points[srcIdx].x.toDouble(), points[srcIdx].y.toDouble())
+        }
+        
+        val complexResults = fftComplex(input)
         val coeffs = mutableListOf<ComplexCoeff>()
-        // We calculate both positive and negative frequencies for 2D drawing
-        // to handle non-symmetric shapes.
-        // Let's take up to 250 terms total (e.g., -125 to 125)
+        
         val limit = 125
         for (k in -limit..limit) {
-            var re = 0.0
-            var im = 0.0
-            for (i in 0 until n) {
-                val angle = 2 * PI * k * i / n // Reversed angle sign for standard direction
-                val cosA = cos(angle)
-                val sinA = sin(angle)
-                // Complex multiplication: (px + i py) * (cosA - i sinA)
-                // = (px * cosA + py * sinA) + i (py * cosA - px * sinA)
-                re += points[i].x * cosA + points[i].y * sinA
-                im += points[i].y * cosA - points[i].x * sinA
-            }
-            re /= n
-            im /= n
+            // Frequency k corresponds to bin k (positive) or bin N+k (negative)
+            val bin = if (k >= 0) k else n + k
+            val c = complexResults[bin]
             
-            val amp = sqrt(re * re + im * im).toFloat()
-            val phase = atan2(im, re).toFloat()
+            val amp = (sqrt(c.re * c.re + c.im * c.im) / n).toFloat()
+            val phase = atan2(c.im, c.re).toFloat()
             coeffs.add(ComplexCoeff(k, amp, phase))
         }
-        // Sort by amplitude for better visualization of epicycles
         return coeffs.sortedByDescending { it.amp }
     }
 
@@ -402,7 +390,16 @@ object FourierLogic {
      */
     fun fft(samples: FloatArray): Array<Complex> {
         val n = samples.size
-        val result = Array(n) { i -> Complex(samples[i].toDouble(), 0.0) }
+        val complexInput = Array(n) { i -> Complex(samples[i].toDouble(), 0.0) }
+        return fftComplex(complexInput)
+    }
+
+    /**
+     * General Complex FFT implementation.
+     */
+    fun fftComplex(input: Array<Complex>): Array<Complex> {
+        val n = input.size
+        val result = Array(n) { i -> Complex(input[i].re, input[i].im) }
         
         // Bit-reversal permutation
         var j = 0

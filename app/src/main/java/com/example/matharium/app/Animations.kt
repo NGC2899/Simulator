@@ -9,7 +9,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -17,6 +16,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 
 // Animation Durations for AppDesign
@@ -41,6 +42,7 @@ fun AnimatedBlobBackground(
     label: String = "blobs",
     content: @Composable BoxScope.() -> Unit
 ) {
+    val density = LocalDensity.current
     val animParams = remember {
         Pair(
             BlobAnimParams(
@@ -93,7 +95,10 @@ fun AnimatedBlobBackground(
     Box(modifier = Modifier.fillMaxSize()) {
         Box(
             modifier = Modifier
-                .offset(x = b1X.dp, y = b1Y.dp)
+                .graphicsLayer {
+                    translationX = with(density) { b1X.dp.toPx() }
+                    translationY = with(density) { b1Y.dp.toPx() }
+                }
                 .size(blob1Size.dp)
                 .background(
                     Brush.radialGradient(
@@ -103,7 +108,10 @@ fun AnimatedBlobBackground(
         )
         Box(
             modifier = Modifier
-                .offset(x = b2X.dp, y = b2Y.dp)
+                .graphicsLayer {
+                    translationX = with(density) { b2X.dp.toPx() }
+                    translationY = with(density) { b2Y.dp.toPx() }
+                }
                 .size(blob2Size.dp)
                 .background(
                     Brush.radialGradient(

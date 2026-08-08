@@ -156,7 +156,10 @@ fun DoublePendulumVisualizer(
                     translate(size.width / 2f, size.height / 2f) {
                         pendulums.forEach { p ->
                             if (displayMode != com.example.matharium.pendulum.state.PendulumDisplayMode.COMPLEX) {
-                                drawChaosTrail(p.trail, p.currentColor, scale)
+                                drawChaosTrail(
+                                    p.trailX, p.trailY, p.trailCount, p.trailPointer, p.trailSize,
+                                    p.currentColor, scale
+                                )
                             }
                             drawLine(
                                 p.currentColor,
@@ -247,18 +250,20 @@ fun DoublePendulumVisualizer(
 
                         val graphScale = scale * DoublePendulumConstants.GRAPH_RENDER_SCALE
                         pendulums.forEach { p ->
-                            if (p.angleTrail.size > 1) {
-                                // Optimization: Use a single Path instead of thousands of drawLine calls
-                                val path = Path().apply {
-                                    val start = p.angleTrail.first() * graphScale
-                                    moveTo(start.x, start.y)
-                                    // Perfect resolution for flagship devices
-                                    val step = 1
-                                    for (i in step until p.angleTrail.size step step) {
-                                        val point = p.angleTrail[i] * graphScale
-                                        lineTo(point.x, point.y)
-                                    }
+                            if (p.angleTrailCount > 1) {
+                                val path = Path()
+                                val startIdx = (p.angleTrailPointer - p.angleTrailCount + p.angleTrailSize) % p.angleTrailSize
+                                
+                                val firstPointX = p.trailAngleX[startIdx] * graphScale
+                                val firstPointY = p.trailAngleY[startIdx] * graphScale
+                                path.moveTo(firstPointX, firstPointY)
+                                
+                                val step = 2 // Optimized step
+                                for (i in step until p.angleTrailCount step step) {
+                                    val idx = (startIdx + i) % p.angleTrailSize
+                                    path.lineTo(p.trailAngleX[idx] * graphScale, p.trailAngleY[idx] * graphScale)
                                 }
+                                
                                 drawPath(
                                     path = path,
                                     color = p.currentColor.copy(AppDesign.opacityMedium),
@@ -267,13 +272,10 @@ fun DoublePendulumVisualizer(
                             }
 
                             // Current position dot
-                            val currentAngle = p.angleTrail.lastOrNull()
-                            val currentT1 =
-                                if (running) currentAngle?.x ?: (p.t1.toFloatOrNull()
-                                    ?: 0f) else (p.t1.toFloatOrNull() ?: 0f)
-                            val currentT2 =
-                                if (running) currentAngle?.y ?: (p.t2.toFloatOrNull()
-                                    ?: 0f) else (p.t2.toFloatOrNull() ?: 0f)
+                            val currentIdx = (p.angleTrailPointer - 1 + p.angleTrailSize) % p.angleTrailSize
+                            val currentT1 = if (running && p.angleTrailCount > 0) p.trailAngleX[currentIdx] else (p.t1.toFloatOrNull() ?: 0f)
+                            val currentT2 = if (running && p.angleTrailCount > 0) p.trailAngleY[currentIdx] else (p.t2.toFloatOrNull() ?: 0f)
+                            
                             drawCircle(
                                 p.currentColor,
                                 AppDesign.radiusSmall.toPx() * DoublePendulumConstants.BOB_RADIUS_SCALE,
@@ -316,7 +318,7 @@ fun DoublePendulumVisualizer(
             SidebarActionButton(
                 imageVector = FluentIcons.TablerClearAll,
                 colors = colors,
-                onClick = { pendulums.forEach { it.trail.clear(); it.angleTrail.clear() } }
+                onClick = { pendulums.forEach { it.clearTrails() } }
             )
         }
 

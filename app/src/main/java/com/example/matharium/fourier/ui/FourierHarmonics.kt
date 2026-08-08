@@ -2,7 +2,6 @@ package com.example.matharium.fourier.ui
 
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -16,9 +15,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -259,6 +262,322 @@ fun HarmonicComponents(
 }
 
 @Composable
+fun HarmonicItemRow(
+    index: Int,
+    waveType: WaveType,
+    timeProvider: () -> Float,
+    colors: AppColors,
+    customCoefficients: List<Pair<Float, Float>>,
+    customCoefficients2D: List<FourierLogic.ComplexCoeff>,
+    formulaCoefficients: List<Pair<Float, Float>>,
+    svgCoefficients: List<FourierLogic.ComplexCoeff>,
+    customFunctionSignals: List<SignalInstance>,
+    onRemoveHarmonic: (Int) -> Unit,
+    onTogglePause: (Int) -> Unit,
+    isHarmonicPaused: (Int) -> Boolean,
+    onFrequencyChange: (Int, Float) -> Unit,
+    getHarmonicFrequency: (Int, Float) -> Float,
+    onAmplitudeChange: (Int, Float) -> Unit,
+    getHarmonicAmplitude: (Int, Float) -> Float,
+    onPhaseChange: (Int, Float) -> Unit,
+    getHarmonicPhase: (Int, Float) -> Float,
+    onResetHarmonic: (Int) -> Unit
+) {
+    val i = index
+    val defaultN = when (waveType) {
+        WaveType.SINE -> 1.0f
+        WaveType.SQUARE -> (i * 2 + 1).toFloat()
+        WaveType.SAWTOOTH -> (i + 1).toFloat()
+        WaveType.TRIANGLE -> (i * 2 + 1).toFloat()
+        WaveType.MY_SIGNAL -> i.toFloat()
+        WaveType.FORMULA -> i.toFloat()
+        WaveType.MY_SIGNAL_2D -> if (i < customCoefficients2D.size) customCoefficients2D[i].freq.toFloat() else 0f
+        WaveType.SVG -> if (i < svgCoefficients.size) svgCoefficients[i].freq.toFloat() else 0f
+        WaveType.PURE_SIGNAL -> customFunctionSignals[i].freq.toFloatOrNull() ?: 0f
+    }
+    val n = getHarmonicFrequency(i, defaultN)
+    val isPaused = isHarmonicPaused(i)
+
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val radiusBase = with(density) { 12.dp.toPx() } 
+    val pixelsPerTimeUnit = with(density) { 60.dp.toPx() }
+
+    val baseN = when (waveType) {
+        WaveType.SINE -> 1.0f
+        WaveType.SQUARE -> (i * 2 + 1).toFloat()
+        WaveType.SAWTOOTH -> (i + 1).toFloat()
+        WaveType.TRIANGLE -> (i * 2 + 1).toFloat()
+        else -> 1f
+    }
+
+    val (defaultAmp, analyzedPhase) = when (waveType) {
+        WaveType.SINE -> Pair(1.0f, 0f)
+        WaveType.SQUARE -> Pair(4f / (baseN * PI.toFloat()), 0f)
+        WaveType.SAWTOOTH -> {
+            val sign = if (baseN.toInt() % 2 == 0) -1f else 1f
+            Pair((2f / (baseN * PI.toFloat())) * sign, 0f)
+        }
+        WaveType.TRIANGLE -> {
+            val sign = if (((baseN.toInt() - 1) / 2) % 2 != 0) -1f else 1f
+            Pair((8f / (baseN * baseN * PI.toFloat() * PI.toFloat())) * sign, 0f)
+        }
+        WaveType.MY_SIGNAL -> if (i < customCoefficients.size) (customCoefficients[i].first to (PI.toFloat() / 2f - customCoefficients[i].second)) else (0f to 0f)
+        WaveType.FORMULA -> if (i < formulaCoefficients.size) (formulaCoefficients[i].first to (PI.toFloat() / 2f - formulaCoefficients[i].second)) else (0f to 0f)
+        WaveType.MY_SIGNAL_2D -> if (i < customCoefficients2D.size) (customCoefficients2D[i].amp to customCoefficients2D[i].phase) else (0f to 0f)
+        WaveType.SVG -> if (i < svgCoefficients.size) (svgCoefficients[i].amp to svgCoefficients[i].phase) else (0f to 0f)
+        WaveType.PURE_SIGNAL -> {
+            val ampValue = (customFunctionSignals[i].amp.toFloatOrNull() ?: 0f)
+            val phaseValue = customFunctionSignals[i].cachedPhase
+            ampValue to phaseValue
+        }
+        else -> (0f to 0f)
+    }
+    val amp = getHarmonicAmplitude(i, defaultAmp)
+    val phase = getHarmonicPhase(i, analyzedPhase)
+
+    val freqLabel = remember(n) { "f = $n" }
+    
+    // OPTIMIZATION: Cache the waveform Path. 
+    // We generate a double-width path to allow seamless scrolling without recalculation.
+    val cachedPath = remember(n, amp, phase, density.density) {
+        val path = Path()
+        val densityVal = density.density
+        val centerY = 35.dp.value * densityVal / 2f
+        val samples = 300
+        val pixelsPerTimeUnitVal = 60.dp.value * densityVal
+        val timeRange = (60.dp.value * densityVal) / pixelsPerTimeUnitVal
+        val pixelsPerSample = (60.dp.value * densityVal) / samples
+        
+        // Generate enough points for 2 widths
+        for (s in 0..samples * 2) {
+            val x = s.toFloat() * pixelsPerSample
+            val waveT = - (s.toFloat() / samples) * timeRange
+            val totalAngle = 2 * PI.toFloat() * n * waveT + phase
+            val y = centerY - (amp * 12.dp.value * densityVal) * kotlin.math.sin(totalAngle.toDouble()).toFloat()
+            if (s == 0) path.moveTo(x, y) else path.lineTo(x, y)
+        }
+        path
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(35.dp)
+            .graphicsLayer(alpha = if (isPaused) 0.4f else 1f),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier.width(45.dp),
+            contentAlignment = Alignment.CenterStart
+        ) {
+            Text(
+                text = freqLabel,
+                color = colors.accentCyan,
+                fontSize = AppDesign.textSmall,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        Canvas(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .clipToBounds() // FIX: Prevent overlapping other UI elements
+        ) {
+            val centerY = size.height / 2
+            val currentTime = timeProvider()
+            
+            // FIX: Seamless scrolling logic for double-width cached path
+            val periodWidth = size.width
+            val horizontalOffset = (currentTime * pixelsPerTimeUnit) % periodWidth
+            
+            val subAxisColor = colors.textSecondary.copy(alpha = 0.2f)
+            drawLine(subAxisColor, Offset(0f, centerY), Offset(size.width, centerY), AppDesign.strokeThin.toPx())
+            drawLine(subAxisColor, Offset(0f, 0f), Offset(0f, size.height), AppDesign.strokeThin.toPx())
+
+            withTransform({
+                // Translate by (offset - periodWidth) to ensure the double-width path
+                // always covers the visible area [0, periodWidth]
+                translate(left = horizontalOffset - periodWidth)
+            }) {
+                drawPath(
+                    path = cachedPath,
+                    color = colors.accentCyan.copy(alpha = 0.6f),
+                    style = Stroke(width = AppDesign.strokeStandard.toPx(), cap = StrokeCap.Round)
+                )
+            }
+        }
+
+        // Edit Menu
+        Box {
+            var menuExpanded by remember { mutableStateOf(false) }
+            IconButton(
+                onClick = { menuExpanded = true },
+                modifier = Modifier.size(AppDesign.iconLarge)
+            ) {
+                Icon(
+                    Icons.Default.MoreVert,
+                    contentDescription = "Edit",
+                    tint = colors.textSecondary.copy(AppDesign.opacityMedium),
+                    modifier = Modifier.size(AppDesign.iconSmall)
+                )
+            }
+            CompositionLocalProvider(LocalAbsoluteTonalElevation provides AppDesign.borderNone) {
+                MaterialTheme(
+                    colorScheme = MaterialTheme.colorScheme.copy(
+                        surface = Color.Transparent,
+                        surfaceVariant = Color.Transparent,
+                        onSurface = colors.textPrimary,
+                        primary = colors.accentCyan
+                    )
+                ) {
+                    DropdownMenu(
+                        expanded = menuExpanded,
+                        onDismissRequest = { menuExpanded = false },
+                        containerColor = Color.Transparent,
+                        tonalElevation = AppDesign.borderNone,
+                        shadowElevation = AppDesign.spacingSmall,
+                        modifier = Modifier
+                            .width(220.dp)
+                            .clip(RoundedCornerShape(AppDesign.radiusCard))
+                            .background(colors.cardSurface.copy(alpha = 0.98f))
+                            .border(
+                                AppDesign.borderThin,
+                                colors.cardBorder.copy(alpha = AppDesign.opacityGlassBorder),
+                                RoundedCornerShape(AppDesign.radiusCard)
+                            )
+                            .padding(AppDesign.spacingSmall),
+                    ) {
+                        val isHarmonicPausedVal = isHarmonicPaused(i)
+                        DropdownMenuItem(
+                            text = { Text(if (isHarmonicPausedVal) "Resume" else "Pause", fontWeight = FontWeight.Bold, fontSize = AppDesign.textBodyLarge) },
+                            onClick = {
+                                onTogglePause(i)
+                                menuExpanded = false
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    painter = if (isHarmonicPausedVal) painterResource(id = R.drawable.caret_forward_outline) else painterResource(id = R.drawable.pause_outline),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(AppDesign.iconSmallMedium),
+                                    tint = colors.accentCyan
+                                )
+                            }
+                        )
+
+                        HorizontalDivider(
+                            color = colors.cardBorder.copy(alpha = 0.1f),
+                            modifier = Modifier.padding(vertical = 4.dp)
+                        )
+
+                        Column(modifier = Modifier.padding(horizontal = AppDesign.spacingMedium, vertical = AppDesign.spacingExtraSmall)) {
+                            val currentN = getHarmonicFrequency(i, defaultN)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("Frequency", fontSize = AppDesign.textSmall, color = colors.textSecondary, fontWeight = FontWeight.SemiBold)
+                                Text(String.format(Locale.US, "%.1f Hz", currentN), fontSize = AppDesign.textSmall, color = colors.accentCyan, fontWeight = FontWeight.Bold)
+                            }
+                            Slider(
+                                value = currentN,
+                                onValueChange = { onFrequencyChange(i, it) },
+                                valueRange = -20f..20f,
+                                colors = SliderDefaults.colors(
+                                    thumbColor = colors.accentCyan,
+                                    activeTrackColor = colors.accentCyan,
+                                    inactiveTrackColor = colors.fieldBorder.copy(0.2f)
+                                )
+                            )
+                        }
+
+                        Column(modifier = Modifier.padding(horizontal = AppDesign.spacingMedium, vertical = AppDesign.spacingExtraSmall)) {
+                            val currentAmp = getHarmonicAmplitude(i, defaultAmp)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("Amplitude", fontSize = AppDesign.textSmall, color = colors.textSecondary, fontWeight = FontWeight.SemiBold)
+                                Text(String.format(Locale.US, "%.1f", currentAmp), fontSize = AppDesign.textSmall, color = colors.accentCyan, fontWeight = FontWeight.Bold)
+                            }
+                            Slider(
+                                value = currentAmp,
+                                onValueChange = { onAmplitudeChange(i, it) },
+                                valueRange = -2.0f..2.0f,
+                                colors = SliderDefaults.colors(
+                                    thumbColor = colors.accentCyan,
+                                    activeTrackColor = colors.accentCyan,
+                                    inactiveTrackColor = colors.fieldBorder.copy(0.2f)
+                                )
+                            )
+                        }
+
+                        Column(modifier = Modifier.padding(horizontal = AppDesign.spacingMedium, vertical = AppDesign.spacingExtraSmall)) {
+                            val currentPhase = getHarmonicPhase(i, analyzedPhase)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("Phase", fontSize = AppDesign.textSmall, color = colors.textSecondary, fontWeight = FontWeight.SemiBold)
+                                val degrees = currentPhase * 180f / PI.toFloat()
+                                Text(String.format(Locale.US, "%.0f°", degrees), fontSize = AppDesign.textSmall, color = colors.accentCyan, fontWeight = FontWeight.Bold)
+                            }
+                            Slider(
+                                value = currentPhase,
+                                onValueChange = { onPhaseChange(i, it) },
+                                valueRange = -PI.toFloat()..PI.toFloat(),
+                                colors = SliderDefaults.colors(
+                                    thumbColor = colors.accentCyan,
+                                    activeTrackColor = colors.accentCyan,
+                                    inactiveTrackColor = colors.fieldBorder.copy(0.2f)
+                                )
+                            )
+                        }
+
+                        HorizontalDivider(
+                            color = colors.cardBorder.copy(alpha = 0.1f),
+                            modifier = Modifier.padding(vertical = 4.dp)
+                        )
+
+                        DropdownMenuItem(
+                            text = { Text("Reset to Default", fontSize = AppDesign.textBodyLarge) },
+                            onClick = {
+                                onResetHarmonic(i)
+                                menuExpanded = false
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    FluentIcons.TablerReload,
+                                    contentDescription = null,
+                                    tint = colors.textSecondary,
+                                    modifier = Modifier.size(AppDesign.iconSmallMedium)
+                                )
+                            }
+                        )
+
+                        DropdownMenuItem(
+                            text = { Text("Remove", color = colors.accentHell, fontWeight = FontWeight.Bold, fontSize = AppDesign.textBodyLarge) },
+                            onClick = {
+                                onRemoveHarmonic(i)
+                                menuExpanded = false
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.trash_outline),
+                                    contentDescription = null,
+                                    tint = colors.accentHell,
+                                    modifier = Modifier.size(AppDesign.iconSmallMedium)
+                                )
+                            }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 fun ComplexHarmonicComponents(
     nTermsProvider: () -> Int,
     waveType: WaveType,
@@ -483,311 +802,6 @@ fun ComplexHarmonicComponents(
 }
 
 @Composable
-fun HarmonicItemRow(
-    index: Int,
-    waveType: WaveType,
-    timeProvider: () -> Float,
-    colors: AppColors,
-    customCoefficients: List<Pair<Float, Float>>,
-    customCoefficients2D: List<FourierLogic.ComplexCoeff>,
-    formulaCoefficients: List<Pair<Float, Float>>,
-    svgCoefficients: List<FourierLogic.ComplexCoeff>,
-    customFunctionSignals: List<SignalInstance>,
-    onRemoveHarmonic: (Int) -> Unit,
-    onTogglePause: (Int) -> Unit,
-    isHarmonicPaused: (Int) -> Boolean,
-    onFrequencyChange: (Int, Float) -> Unit,
-    getHarmonicFrequency: (Int, Float) -> Float,
-    onAmplitudeChange: (Int, Float) -> Unit,
-    getHarmonicAmplitude: (Int, Float) -> Float,
-    onPhaseChange: (Int, Float) -> Unit,
-    getHarmonicPhase: (Int, Float) -> Float,
-    onResetHarmonic: (Int) -> Unit
-) {
-    val i = index
-    val defaultN = when (waveType) {
-        WaveType.SINE -> 1.0f
-        WaveType.SQUARE -> (i * 2 + 1).toFloat()
-        WaveType.SAWTOOTH -> (i + 1).toFloat()
-        WaveType.TRIANGLE -> (i * 2 + 1).toFloat()
-        WaveType.MY_SIGNAL -> i.toFloat()
-        WaveType.FORMULA -> i.toFloat()
-        WaveType.MY_SIGNAL_2D -> if (i < customCoefficients2D.size) customCoefficients2D[i].freq.toFloat() else 0f
-        WaveType.SVG -> if (i < svgCoefficients.size) svgCoefficients[i].freq.toFloat() else 0f
-        WaveType.PURE_SIGNAL -> customFunctionSignals[i].freq.toFloatOrNull() ?: 0f
-    }
-    val n = getHarmonicFrequency(i, defaultN)
-    val isPaused = isHarmonicPaused(i)
-
-    val density = androidx.compose.ui.platform.LocalDensity.current
-    val radiusBase = with(density) { 12.dp.toPx() } 
-    val pixelsPerTimeUnit = with(density) { 60.dp.toPx() }
-
-    val baseN = when (waveType) {
-        WaveType.SINE -> 1.0f
-        WaveType.SQUARE -> (i * 2 + 1).toFloat()
-        WaveType.SAWTOOTH -> (i + 1).toFloat()
-        WaveType.TRIANGLE -> (i * 2 + 1).toFloat()
-        else -> 1f
-    }
-
-    val (defaultAmp, analyzedPhase) = when (waveType) {
-        WaveType.SINE -> Pair(1.0f, 0f)
-        WaveType.SQUARE -> Pair(4f / (baseN * PI.toFloat()), 0f)
-        WaveType.SAWTOOTH -> {
-            val sign = if (baseN.toInt() % 2 == 0) -1f else 1f
-            Pair((2f / (baseN * PI.toFloat())) * sign, 0f)
-        }
-        WaveType.TRIANGLE -> {
-            val sign = if (((baseN.toInt() - 1) / 2) % 2 != 0) -1f else 1f
-            Pair((8f / (baseN * baseN * PI.toFloat() * PI.toFloat())) * sign, 0f)
-        }
-        WaveType.MY_SIGNAL -> if (i < customCoefficients.size) (customCoefficients[i].first to (PI.toFloat() / 2f - customCoefficients[i].second)) else (0f to 0f)
-        WaveType.FORMULA -> if (i < formulaCoefficients.size) (formulaCoefficients[i].first to (PI.toFloat() / 2f - formulaCoefficients[i].second)) else (0f to 0f)
-        WaveType.MY_SIGNAL_2D -> if (i < customCoefficients2D.size) (customCoefficients2D[i].amp to customCoefficients2D[i].phase) else (0f to 0f)
-        WaveType.SVG -> if (i < svgCoefficients.size) (svgCoefficients[i].amp to svgCoefficients[i].phase) else (0f to 0f)
-        WaveType.PURE_SIGNAL -> {
-            val ampValue = (customFunctionSignals[i].amp.toFloatOrNull() ?: 0f)
-            val phaseValue = customFunctionSignals[i].cachedPhase
-            ampValue to phaseValue
-        }
-        else -> (0f to 0f)
-    }
-    val amp = getHarmonicAmplitude(i, defaultAmp)
-    val phase = getHarmonicPhase(i, analyzedPhase)
-
-    val freqLabel = remember(n) { "f = $n" }
-    val reusablePreviewPath = remember { Path() }
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(35.dp)
-            .graphicsLayer(alpha = if (isPaused) 0.4f else 1f),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier.width(45.dp),
-            contentAlignment = Alignment.CenterStart
-        ) {
-            Text(
-                text = freqLabel,
-                color = colors.accentCyan,
-                fontSize = AppDesign.textSmall,
-                fontWeight = FontWeight.Bold
-            )
-        }
-
-        Canvas(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxHeight()
-        ) {
-            val centerY = size.height / 2
-            reusablePreviewPath.reset()
-            val samples = 500
-            val timeRange = size.width / pixelsPerTimeUnit
-            val currentTime = timeProvider()
-            for (s in 0..samples) {
-                val x = (s.toFloat() / samples) * size.width
-                val waveT = if (isPaused) 0f else currentTime - (s.toFloat() / samples) * timeRange
-                val totalAngle = 2 * PI.toFloat() * n * waveT + phase
-                val y = centerY - (amp * radiusBase) * sin(totalAngle)
-                if (s == 0) reusablePreviewPath.moveTo(x, y)
-                else reusablePreviewPath.lineTo(x, y)
-            }
-
-            drawPath(
-                path = reusablePreviewPath,
-                color = colors.accentCyan.copy(alpha = 0.6f),
-                style = Stroke(width = AppDesign.strokeStandard.toPx(), cap = StrokeCap.Round)
-            )
-
-            val subAxisColor = colors.textSecondary.copy(alpha = 0.2f)
-            drawLine(
-                color = subAxisColor,
-                start = Offset(0f, centerY),
-                end = Offset(size.width, centerY),
-                strokeWidth = AppDesign.strokeThin.toPx()
-            )
-            drawLine(
-                color = subAxisColor,
-                start = Offset(0f, 0f),
-                end = Offset(0f, size.height),
-                strokeWidth = AppDesign.strokeThin.toPx()
-            )
-        }
-
-        // Edit Menu
-        Box {
-            var menuExpanded by remember { mutableStateOf(false) }
-            IconButton(
-                onClick = { menuExpanded = true },
-                modifier = Modifier.size(AppDesign.iconLarge)
-            ) {
-                Icon(
-                    Icons.Default.MoreVert,
-                    contentDescription = "Edit",
-                    tint = colors.textSecondary.copy(AppDesign.opacityMedium),
-                    modifier = Modifier.size(AppDesign.iconSmall)
-                )
-            }
-            CompositionLocalProvider(LocalAbsoluteTonalElevation provides AppDesign.borderNone) {
-                MaterialTheme(
-                    colorScheme = MaterialTheme.colorScheme.copy(
-                        surface = Color.Transparent,
-                        surfaceVariant = Color.Transparent,
-                        onSurface = colors.textPrimary,
-                        primary = colors.accentCyan
-                    )
-                ) {
-                    DropdownMenu(
-                        expanded = menuExpanded,
-                        onDismissRequest = { menuExpanded = false },
-                        containerColor = Color.Transparent,
-                        tonalElevation = AppDesign.borderNone,
-                        shadowElevation = AppDesign.spacingSmall,
-                        modifier = Modifier
-                            .width(220.dp)
-                            .clip(RoundedCornerShape(AppDesign.radiusCard))
-                            .background(colors.cardSurface.copy(alpha = 0.98f))
-                            .border(
-                                AppDesign.borderThin,
-                                colors.cardBorder.copy(alpha = AppDesign.opacityGlassBorder),
-                                RoundedCornerShape(AppDesign.radiusCard)
-                            )
-                            .padding(AppDesign.spacingSmall),
-                    ) {
-                        val isHarmonicPausedVal = isHarmonicPaused(i)
-                        DropdownMenuItem(
-                            text = { Text(if (isHarmonicPausedVal) "Resume" else "Pause", fontWeight = FontWeight.Bold, fontSize = AppDesign.textBodyLarge) },
-                            onClick = {
-                                onTogglePause(i)
-                                menuExpanded = false
-                            },
-                            leadingIcon = {
-                                Icon(
-                                    painter = if (isHarmonicPausedVal) painterResource(id = R.drawable.caret_forward_outline) else painterResource(id = R.drawable.pause_outline),
-                                    contentDescription = null,
-                                    modifier = Modifier.size(AppDesign.iconSmallMedium),
-                                    tint = colors.accentCyan
-                                )
-                            }
-                        )
-
-                        HorizontalDivider(
-                            color = colors.cardBorder.copy(alpha = 0.1f),
-                            modifier = Modifier.padding(vertical = 4.dp)
-                        )
-
-                        Column(modifier = Modifier.padding(horizontal = AppDesign.spacingMedium, vertical = AppDesign.spacingExtraSmall)) {
-                            val currentN = getHarmonicFrequency(i, defaultN)
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text("Frequency", fontSize = AppDesign.textSmall, color = colors.textSecondary, fontWeight = FontWeight.SemiBold)
-                                Text(String.format(Locale.US, "%.1f Hz", currentN), fontSize = AppDesign.textSmall, color = colors.accentCyan, fontWeight = FontWeight.Bold)
-                            }
-                            Slider(
-                                value = currentN,
-                                onValueChange = { onFrequencyChange(i, it) },
-                                valueRange = -20f..20f,
-                                colors = SliderDefaults.colors(
-                                    thumbColor = colors.accentCyan,
-                                    activeTrackColor = colors.accentCyan,
-                                    inactiveTrackColor = colors.fieldBorder.copy(0.2f)
-                                )
-                            )
-                        }
-
-                        Column(modifier = Modifier.padding(horizontal = AppDesign.spacingMedium, vertical = AppDesign.spacingExtraSmall)) {
-                            val currentAmp = getHarmonicAmplitude(i, defaultAmp)
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text("Amplitude", fontSize = AppDesign.textSmall, color = colors.textSecondary, fontWeight = FontWeight.SemiBold)
-                                Text(String.format(Locale.US, "%.1f", currentAmp), fontSize = AppDesign.textSmall, color = colors.accentCyan, fontWeight = FontWeight.Bold)
-                            }
-                            Slider(
-                                value = currentAmp,
-                                onValueChange = { onAmplitudeChange(i, it) },
-                                valueRange = -2.0f..2.0f,
-                                colors = SliderDefaults.colors(
-                                    thumbColor = colors.accentCyan,
-                                    activeTrackColor = colors.accentCyan,
-                                    inactiveTrackColor = colors.fieldBorder.copy(0.2f)
-                                )
-                            )
-                        }
-
-                        Column(modifier = Modifier.padding(horizontal = AppDesign.spacingMedium, vertical = AppDesign.spacingExtraSmall)) {
-                            val currentPhase = getHarmonicPhase(i, analyzedPhase)
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text("Phase", fontSize = AppDesign.textSmall, color = colors.textSecondary, fontWeight = FontWeight.SemiBold)
-                                val degrees = currentPhase * 180f / PI.toFloat()
-                                Text(String.format(Locale.US, "%.0f°", degrees), fontSize = AppDesign.textSmall, color = colors.accentCyan, fontWeight = FontWeight.Bold)
-                            }
-                            Slider(
-                                value = currentPhase,
-                                onValueChange = { onPhaseChange(i, it) },
-                                valueRange = -PI.toFloat()..PI.toFloat(),
-                                colors = SliderDefaults.colors(
-                                    thumbColor = colors.accentCyan,
-                                    activeTrackColor = colors.accentCyan,
-                                    inactiveTrackColor = colors.fieldBorder.copy(0.2f)
-                                )
-                            )
-                        }
-
-                        HorizontalDivider(
-                            color = colors.cardBorder.copy(alpha = 0.1f),
-                            modifier = Modifier.padding(vertical = 4.dp)
-                        )
-
-                        DropdownMenuItem(
-                            text = { Text("Reset to Default", fontSize = AppDesign.textBodyLarge) },
-                            onClick = {
-                                onResetHarmonic(i)
-                                menuExpanded = false
-                            },
-                            leadingIcon = {
-                                Icon(
-                                    FluentIcons.TablerReload,
-                                    contentDescription = null,
-                                    tint = colors.textSecondary,
-                                    modifier = Modifier.size(AppDesign.iconSmallMedium)
-                                )
-                            }
-                        )
-
-                        DropdownMenuItem(
-                            text = { Text("Remove", color = colors.accentHell, fontWeight = FontWeight.Bold, fontSize = AppDesign.textBodyLarge) },
-                            onClick = {
-                                onRemoveHarmonic(i)
-                                menuExpanded = false
-                            },
-                            leadingIcon = {
-                                Icon(
-                                    painter = painterResource(id = R.drawable.trash_outline),
-                                    contentDescription = null,
-                                    tint = colors.accentHell,
-                                    modifier = Modifier.size(AppDesign.iconSmallMedium)
-                                )
-                            }
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
 fun ComplexHarmonicItemRow(
     index: Int,
     waveType: WaveType,
@@ -885,50 +899,34 @@ fun ComplexHarmonicItemRow(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxHeight()
+                .clipToBounds() // FIX: Prevent overlapping other UI elements
+                .drawWithCache {
+                    val center = Offset(size.width / 2, size.height / 2)
+                    val absRadius = kotlin.math.abs(radius * radiusBase)
+                    val staticCirclesPath = Path().apply {
+                        addOval(androidx.compose.ui.geometry.Rect(center, absRadius))
+                    }
+                    val staticAxisPath = Path().apply {
+                        val r = absRadius + 10.dp.toPx()
+                        moveTo(center.x - r, center.y); lineTo(center.x + r, center.y)
+                        moveTo(center.x, center.y - r); lineTo(center.x, center.y + r)
+                    }
+                    onDrawBehind {
+                        drawPath(staticCirclesPath, colors.accentCyan.copy(alpha = 0.1f), style = Stroke(width = 1.dp.toPx()))
+                        drawPath(staticAxisPath, colors.textSecondary.copy(alpha = 0.1f), style = Stroke(width = 1.dp.toPx()))
+                        
+                        val currentTime = timeProvider()
+                        val totalAngle = if (isPaused) 0f else 2 * PI.toFloat() * n * currentTime + phase
+                        val end = Offset(
+                            center.x + (radius * radiusBase) * kotlin.math.cos(totalAngle.toDouble()).toFloat(),
+                            center.y - (radius * radiusBase) * kotlin.math.sin(totalAngle.toDouble()).toFloat()
+                        )
+                        drawLine(color = colors.accentCyan, start = center, end = end, strokeWidth = 2.dp.toPx(), cap = StrokeCap.Round)
+                        drawCircle(color = colors.accentCyan, radius = 3.dp.toPx(), center = end)
+                    }
+                }
         ) {
-            val center = Offset(size.width / 2, size.height / 2)
-            val phasorPhase = phase
-
-            drawCircle(
-                color = colors.accentCyan.copy(alpha = 0.1f),
-                radius = kotlin.math.abs(radius * radiusBase),
-                center = center,
-                style = Stroke(width = 1.dp.toPx())
-            )
-
-            drawLine(
-                colors.textSecondary.copy(alpha = 0.1f),
-                Offset(center.x - (kotlin.math.abs(radius * radiusBase)) - 10.dp.toPx(), center.y),
-                Offset(center.x + (kotlin.math.abs(radius * radiusBase)) + 10.dp.toPx(), center.y),
-                1.dp.toPx()
-            )
-            drawLine(
-                colors.textSecondary.copy(alpha = 0.1f),
-                Offset(center.x, center.y - (kotlin.math.abs(radius * radiusBase)) - 10.dp.toPx()),
-                Offset(center.x, center.y + (kotlin.math.abs(radius * radiusBase)) + 10.dp.toPx()),
-                1.dp.toPx()
-            )
-
-            // Draw rotating vector
-            val totalAngle = if (isPaused) 0f else 2 * PI.toFloat() * n * timeProvider() + phasorPhase
-            val end = Offset(
-                center.x + (radius * radiusBase) * cos(totalAngle),
-                center.y - (radius * radiusBase) * sin(totalAngle)
-            )
-
-            drawLine(
-                color = colors.accentCyan,
-                start = center,
-                end = end,
-                strokeWidth = 2.dp.toPx(),
-                cap = StrokeCap.Round
-            )
-
-            drawCircle(
-                color = colors.accentCyan,
-                radius = 3.dp.toPx(),
-                center = end
-            )
+            // Draw logic moved to drawWithCache
         }
 
         Column(

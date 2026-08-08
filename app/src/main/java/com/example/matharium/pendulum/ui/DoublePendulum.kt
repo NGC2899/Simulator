@@ -83,7 +83,7 @@ fun DoublePendulum() {
                 onClick = {
                     vibrate(true)
                     if (!state.hasStarted) {
-                        state.pendulums.forEach { it.initialize(state.gravityAmount); it.trail.clear(); it.angleTrail.clear() }
+                        state.pendulums.forEach { it.initialize(state.gravityAmount); it.clearTrails() }
                         state.hasStarted = true
                     }
                     state.running = !state.running

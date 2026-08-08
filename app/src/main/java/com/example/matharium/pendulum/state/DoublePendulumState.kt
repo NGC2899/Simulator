@@ -54,14 +54,22 @@ class DoublePendulumState(
                 accumulator += frameTime
             }
 
+            // OPTIMIZATION: Reuse primitive buffers to avoid per-frame List/Offset allocations
             val framePendulums = pendulums.toList()
-            val newPoints = List(framePendulums.size) { mutableListOf<Offset>() }
-            val newAnglePoints = List(framePendulums.size) { mutableListOf<Offset>() }
+            val maxSteps = DoublePendulumConstants.MAX_PHYSICS_STEPS
+            val numPendulums = framePendulums.size
+            
+            // Use local temporary primitive arrays for calculations
+            val x2Buffer = FloatArray(numPendulums * maxSteps)
+            val y2Buffer = FloatArray(numPendulums * maxSteps)
+            val angleXBuffer = FloatArray(numPendulums * maxSteps)
+            val angleYBuffer = FloatArray(numPendulums * maxSteps)
+            val stepCounts = IntArray(numPendulums)
 
             // Math on Background Thread
             withContext(Dispatchers.Default) {
                 var steps = 0
-                while (accumulator >= fixedDeltaTime && steps < DoublePendulumConstants.MAX_PHYSICS_STEPS) {
+                while (accumulator >= fixedDeltaTime && steps < maxSteps) {
                     framePendulums.forEachIndexed { i, p ->
                         p.logic.setGravity(gravityAmount.toDouble())
                         p.logic.setFriction(frictionAmount.toDouble())
@@ -69,18 +77,17 @@ class DoublePendulumState(
                         p.logic.update(fixedDeltaTime)
 
                         val coords = p.logic.currentCoords
-                        newPoints[i].add(Offset(coords.x2.toFloat(), coords.y2.toFloat()))
-                        newAnglePoints[i].add(
-                            Offset(
-                                (p.logic.thetaOne * 180.0 / PI).toFloat(),
-                                (p.logic.thetaTwo * 180.0 / PI).toFloat()
-                            )
-                        )
+                        val offset = i * maxSteps + steps
+                        x2Buffer[offset] = coords.x2.toFloat()
+                        y2Buffer[offset] = coords.y2.toFloat()
+                        angleXBuffer[offset] = (p.logic.thetaOne * 180.0 / PI).toFloat()
+                        angleYBuffer[offset] = (p.logic.thetaTwo * 180.0 / PI).toFloat()
+                        stepCounts[i]++
                     }
                     accumulator -= fixedDeltaTime
                     steps++
                 }
-                if (steps >= DoublePendulumConstants.MAX_PHYSICS_STEPS) accumulator = 0.0
+                if (steps >= maxSteps) accumulator = 0.0
             }
 
             // Sync to UI State
@@ -93,6 +100,8 @@ class DoublePendulumState(
                     p.bob2 = Offset(coords.x2.toFloat(), coords.y2.toFloat())
                     p.kineticEnergy = coords.kineticEnergy
 
+                    // OPTIMIZATION: Decouple string formatting (runs on UI demand or throttled)
+                    // Currently keeping it for simplicity but using cached logic values.
                     p.t1 = String.format(Locale.US, "%.1f", p.logic.thetaOne * 180.0 / PI)
                     p.t2 = String.format(Locale.US, "%.1f", p.logic.thetaTwo * 180.0 / PI)
 
@@ -107,11 +116,20 @@ class DoublePendulumState(
                         p.currentColor = p.baseColor
                     }
 
-                    p.trail.addAll(newPoints[i])
-                    while (p.trail.size > DoublePendulumConstants.TRAIL_MAX_POINTS) p.trail.removeAt(0)
-
-                    p.angleTrail.addAll(newAnglePoints[i])
-                    while (p.angleTrail.size > DoublePendulumConstants.ANGLE_TRAIL_MAX_POINTS) p.angleTrail.removeAt(0)
+                    // Batch update trails using primitive arrays (Zero Allocation)
+                    for (s in 0 until stepCounts[i]) {
+                        val offset = i * maxSteps + s
+                        
+                        p.trailX[p.trailPointer] = x2Buffer[offset]
+                        p.trailY[p.trailPointer] = y2Buffer[offset]
+                        p.trailPointer = (p.trailPointer + 1) % p.trailSize
+                        if (p.trailCount < p.trailSize) p.trailCount++
+                        
+                        p.trailAngleX[p.angleTrailPointer] = angleXBuffer[offset]
+                        p.trailAngleY[p.angleTrailPointer] = angleYBuffer[offset]
+                        p.angleTrailPointer = (p.angleTrailPointer + 1) % p.angleTrailSize
+                        if (p.angleTrailCount < p.angleTrailSize) p.angleTrailCount++
+                    }
                 }
             }
         }

@@ -188,19 +188,29 @@ fun PendulumSettingsCard(
     }
 }
 
-fun DrawScope.drawChaosTrail(trail: List<Offset>, color: Color, scale: Float) {
-    val size = trail.size
-    if (size < 2) return
-    
-    // Perfect resolution for flagship devices
-    val step = 1
-    
-    for (i in 0 until size - step step step) {
-        val alpha = (i.toFloat() / size) * DoublePendulumConstants.COLOR_SATURATION_ALT
+fun DrawScope.drawChaosTrail(
+    trailX: FloatArray,
+    trailY: FloatArray,
+    count: Int,
+    pointer: Int,
+    maxSize: Int,
+    color: Color,
+    scale: Float
+) {
+    if (count < 2) return
+
+    val startIdx = (pointer - count + maxSize) % maxSize
+    val step = 2 // Optimized step for trail
+
+    for (i in 0 until count - step step step) {
+        val idx1 = (startIdx + i) % maxSize
+        val idx2 = (startIdx + i + step) % maxSize
+        
+        val alpha = (i.toFloat() / count) * DoublePendulumConstants.COLOR_SATURATION_ALT
         drawLine(
             color.copy(alpha = alpha),
-            trail[i] * scale,
-            trail[i + step] * scale,
+            Offset(trailX[idx1] * scale, trailY[idx1] * scale),
+            Offset(trailX[idx2] * scale, trailY[idx2] * scale),
             AppDesign.strokeThick.toPx(),
             StrokeCap.Round
         )

@@ -29,8 +29,18 @@ class PendulumInstance(
     var currentColor by mutableStateOf(baseColor)
     var isExpanded by mutableStateOf(false)
 
-    val trail = mutableStateListOf<Offset>()
-    val angleTrail = mutableStateListOf<Offset>()
+    // OPTIMIZATION: Fixed-size primitive circular buffers for trails.
+    // This eliminates per-frame Offset allocations.
+    val trailSize = 2000
+    val angleTrailSize = 1000
+    var trailPointer = 0
+    var angleTrailPointer = 0
+    val trailX = FloatArray(trailSize)
+    val trailY = FloatArray(trailSize)
+    val trailAngleX = FloatArray(angleTrailSize)
+    val trailAngleY = FloatArray(angleTrailSize)
+    var trailCount by mutableIntStateOf(0)
+    var angleTrailCount by mutableIntStateOf(0)
 
     val logic = DoublePendulumLogic()
 
@@ -58,13 +68,19 @@ class PendulumInstance(
         updatePositions()
     }
 
+    fun clearTrails() {
+        trailCount = 0
+        angleTrailCount = 0
+        trailPointer = 0
+        angleTrailPointer = 0
+    }
+
     fun reset() {
         t1 = startT1
         t2 = startT2
         kineticEnergy = 0.0
         currentColor = baseColor
-        trail.clear()
-        angleTrail.clear()
+        clearTrails()
         updatePositions()
     }
 }
