@@ -49,7 +49,7 @@ class FourierState(
     
     // TRAIL OPTIMIZATION: Fixed-size circular buffer for primitive data
     // This eliminates hundreds of object allocations per second.
-    private val trailSize = 2000
+    val trailSize = 2000
     var trailPointer = 0
     val pathX = FloatArray(trailSize)
     val pathY = FloatArray(trailSize)

@@ -51,7 +51,7 @@ object FourierLogic {
             var re = 0.0
             var im = 0.0
             for (i in 0 until n) {
-                val angle = -2 * PI * k * i / n
+                val angle = 2 * PI * k * i / n // Reversed angle sign for standard direction
                 val cosA = cos(angle)
                 val sinA = sin(angle)
                 // Complex multiplication: (px + i py) * (cosA - i sinA)

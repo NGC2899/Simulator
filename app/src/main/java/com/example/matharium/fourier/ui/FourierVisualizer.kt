@@ -80,6 +80,7 @@ fun FourierVisualizerBox(
     }
 
     val pathStep = 1
+    val trailSize = 2000
 
     val labelCache = remember(displayMode, layoutConstants.unitScale) { mutableMapOf<Float, String>() }
     fun getLabel(value: Float, isComplex: Boolean): String {
@@ -212,11 +213,11 @@ fun FourierVisualizerBox(
                         val count = pathCountProvider()
                         if (count > 0) {
                             val tp = trailPointerProvider()
-                            val startIdx = (tp - count + 2000) % 2000
+                            val startIdx = (tp - count + trailSize) % trailSize
                             if (showErrorGradient) {
                                 val maxErr = (101f - errorSensitivity).coerceAtLeast(1f)
                                 for (i in 0 until count - 1 step (pathStep * 2)) {
-                                    val idx1 = (startIdx + i) % 2000; val idx2 = (startIdx + i + 1) % 2000
+                                    val idx1 = (startIdx + i) % trailSize; val idx2 = (startIdx + i + 1) % trailSize
                                     val lerp = (pathError[idx1] / maxErr).coerceIn(0f, 1f)
                                     drawLine(color = lerpColor(colors.accentCyan, colors.accentViolet, lerp), start = Offset(layoutConstants.waveStartX + (currentTime - pathX[idx1]) * layoutConstants.pixelsPerTimeUnit, pathY[idx1]), end = Offset(layoutConstants.waveStartX + (currentTime - pathX[idx2]) * layoutConstants.pixelsPerTimeUnit, pathY[idx2]), strokeWidth = AppDesign.strokeStandard.toPx(), cap = StrokeCap.Round)
                                 }
@@ -224,7 +225,7 @@ fun FourierVisualizerBox(
                                 reusableWavePath.reset()
                                 reusableWavePath.moveTo(layoutConstants.waveStartX + (currentTime - pathX[startIdx]) * layoutConstants.pixelsPerTimeUnit, pathY[startIdx])
                                 for (i in 1 until count step (pathStep * 2)) {
-                                    val idx = (startIdx + i) % 2000
+                                    val idx = (startIdx + i) % trailSize
                                     reusableWavePath.lineTo(layoutConstants.waveStartX + (currentTime - pathX[idx]) * layoutConstants.pixelsPerTimeUnit, pathY[idx])
                                 }
                                 drawPath(path = reusableWavePath, color = colors.accentCyan, style = Stroke(width = AppDesign.strokeStandard.toPx(), cap = StrokeCap.Round))
@@ -234,18 +235,21 @@ fun FourierVisualizerBox(
                         val count = pathCountProvider()
                         if (count > 0) {
                             val tp = trailPointerProvider()
-                            val startIdx = (tp - count + 2000) % 2000
+                            val startIdx = (tp - count + trailSize) % trailSize
                             if (showErrorGradient) {
                                 val maxErr = (101f - errorSensitivity).coerceAtLeast(1f)
                                 for (i in 0 until count - 1 step pathStep) {
-                                    val idx1 = (startIdx + i) % 2000; val idx2 = (startIdx + i + 1) % 2000
+                                    val idx1 = (startIdx + i) % trailSize; val idx2 = (startIdx + i + 1) % trailSize
                                     val lerp = (pathError[idx1] / maxErr).coerceIn(0f, 1f)
                                     drawLine(color = lerpColor(colors.accentCyan, colors.accentViolet, lerp), start = Offset(pathX[idx1], pathY[idx1]), end = Offset(pathX[idx2], pathY[idx2]), strokeWidth = AppDesign.strokeStandard.toPx(), cap = StrokeCap.Round)
                                 }
                             } else {
                                 reusableTracePath.reset()
                                 reusableTracePath.moveTo(pathX[startIdx], pathY[startIdx])
-                                for (i in 1 until count step pathStep) { val idx = (startIdx + i) % 2000; reusableTracePath.lineTo(pathX[idx], pathY[idx]) }
+                                for (i in 1 until count step pathStep) {
+                                    val idx = (startIdx + i) % trailSize
+                                    reusableTracePath.lineTo(pathX[idx], pathY[idx])
+                                }
                                 drawPath(path = reusableTracePath, color = colors.accentCyan, style = Stroke(width = AppDesign.strokeStandard.toPx(), cap = StrokeCap.Round))
                             }
                         }
@@ -257,10 +261,10 @@ fun FourierVisualizerBox(
                     if (count > 0) {
                         reusableWrappedPath.reset()
                         val tp = trailPointerProvider()
-                        val startIdx = (tp - count + 2000) % 2000
+                        val startIdx = (tp - count + trailSize) % trailSize
                         var sumX = 0f; var sumY = 0f; var processed = 0
                         for (i in 0 until count step pathStep) {
-                            val idx = (startIdx + i) % 2000
+                            val idx = (startIdx + i) % trailSize
                             val angle = -2 * PI.toFloat() * windingFrequency * pathX[idx]
                             val wx = pathY[idx] * cos(angle.toDouble()).toFloat(); val wy = pathY[idx] * sin(angle.toDouble()).toFloat()
                             if (i == 0) reusableWrappedPath.moveTo(wx, wy) else reusableWrappedPath.lineTo(wx, wy)
