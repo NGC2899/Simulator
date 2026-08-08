@@ -76,7 +76,7 @@ fun BoxScope.FourierLeftSidebar(
 
 @Composable
 fun BoxScope.FourierRightSidebar(
-    displayNTerms: Int,
+    displayNTermsProvider: () -> Int,
     onDisplayNTermsChange: (Int) -> Unit,
     onActiveNTermsChange: (Int) -> Unit,
     colors: AppColors
@@ -112,10 +112,11 @@ fun BoxScope.FourierRightSidebar(
             ) {
                 IconButton(
                     onClick = { 
-                        if (displayNTerms < 250) {
-                            val newValue = displayNTerms + 1
-                            onDisplayNTermsChange(newValue)
-                            onActiveNTermsChange(newValue)
+                        val current = displayNTermsProvider()
+                        if (current < 250) {
+                            val next = current + 1
+                            onDisplayNTermsChange(next)
+                            onActiveNTermsChange(next)
                         }
                     },
                     modifier = Modifier.size(AppDesign.iconSmallMedium)
@@ -127,10 +128,11 @@ fun BoxScope.FourierRightSidebar(
                     )
                 }
 
+                val sliderValue = displayNTermsProvider()
                 Slider(
-                    value = displayNTerms.toFloat(),
+                    value = sliderValue.toFloat(),
                     onValueChange = { onDisplayNTermsChange(it.toInt()) },
-                    onValueChangeFinished = { onActiveNTermsChange(displayNTerms) },
+                    onValueChangeFinished = { onActiveNTermsChange(sliderValue) },
                     valueRange = 1f..250f,
                     modifier = Modifier
                         .weight(1f)
@@ -161,10 +163,11 @@ fun BoxScope.FourierRightSidebar(
 
                 IconButton(
                     onClick = { 
-                        if (displayNTerms > 1) {
-                            val newValue = displayNTerms - 1
-                            onDisplayNTermsChange(newValue)
-                            onActiveNTermsChange(newValue)
+                        val current = displayNTermsProvider()
+                        if (current > 1) {
+                            val next = current - 1
+                            onDisplayNTermsChange(next)
+                            onActiveNTermsChange(next)
                         }
                     },
                     modifier = Modifier.size(AppDesign.iconSmallMedium)
@@ -177,7 +180,7 @@ fun BoxScope.FourierRightSidebar(
                 }
 
                 Text(
-                    text = displayNTerms.toString(),
+                    text = displayNTermsProvider().toString(),
                     color = colors.textPrimary,
                     fontSize = AppDesign.textCaption,
                     fontWeight = FontWeight.Bold,

@@ -36,9 +36,9 @@ import kotlin.math.sin
 
 @Composable
 fun HarmonicComponents(
-    nTerms: Int,
+    nTermsProvider: () -> Int,
     waveType: WaveType,
-    time: Float,
+    timeProvider: () -> Float,
     colors: AppColors,
     customCoefficients: List<Pair<Float, Float>>,
     customCoefficients2D: List<FourierLogic.ComplexCoeff> = emptyList(),
@@ -61,6 +61,7 @@ fun HarmonicComponents(
     var isExpanded by remember { mutableStateOf(false) }
     var showExportDialog by remember { mutableStateOf(false) }
 
+    val nTerms = nTermsProvider()
     val maxTerms = when (waveType) {
         WaveType.PURE_SIGNAL -> nTerms.coerceAtMost(customFunctionSignals.size)
         WaveType.MY_SIGNAL_2D -> nTerms.coerceAtMost(customCoefficients2D.size)
@@ -149,7 +150,7 @@ fun HarmonicComponents(
                         HarmonicItemRow(
                             index = i,
                             waveType = waveType,
-                            time = time,
+                            timeProvider = timeProvider,
                             colors = colors,
                             customCoefficients = customCoefficients,
                             customCoefficients2D = customCoefficients2D,
@@ -258,10 +259,234 @@ fun HarmonicComponents(
 }
 
 @Composable
+fun ComplexHarmonicComponents(
+    nTermsProvider: () -> Int,
+    waveType: WaveType,
+    timeProvider: () -> Float,
+    colors: AppColors,
+    customCoefficients: List<Pair<Float, Float>>,
+    customCoefficients2D: List<FourierLogic.ComplexCoeff> = emptyList(),
+    formulaCoefficients: List<Pair<Float, Float>> = emptyList(),
+    svgCoefficients: List<FourierLogic.ComplexCoeff> = emptyList(),
+    customFunctionSignals: List<SignalInstance>,
+    onRemoveHarmonic: (Int) -> Unit = {},
+    onTogglePause: (Int) -> Unit = {},
+    isHarmonicPaused: (Int) -> Boolean = { false },
+    onFrequencyChange: (Int, Float) -> Unit = { _, _ -> },
+    getHarmonicFrequency: (Int, Float) -> Float = { _, default -> default },
+    onAmplitudeChange: (Int, Float) -> Unit = { _, _ -> },
+    getHarmonicAmplitude: (Int, Float) -> Float = { _, default -> default },
+    onPhaseChange: (Int, Float) -> Unit = { _, _ -> },
+    getHarmonicPhase: (Int, Float) -> Float = { _, default -> default },
+    removedHarmonics: Map<Int, Boolean> = emptyMap(),
+    onResetHarmonic: (Int) -> Unit = {},
+    onResetHarmonics: () -> Unit = {}
+) {
+    var isExpanded by remember { mutableStateOf(false) }
+    var showExportDialog by remember { mutableStateOf(false) }
+
+    val nTerms = nTermsProvider()
+    val maxTerms = when (waveType) {
+        WaveType.PURE_SIGNAL -> nTerms.coerceAtMost(customFunctionSignals.size)
+        WaveType.MY_SIGNAL_2D -> nTerms.coerceAtMost(customCoefficients2D.size)
+        WaveType.FORMULA -> nTerms.coerceAtMost(formulaCoefficients.size)
+        WaveType.SVG -> nTerms.coerceAtMost(svgCoefficients.size)
+        else -> nTerms
+    }
+
+    val activeTermsIndices = remember(waveType, maxTerms, removedHarmonics.size) {
+        (0 until maxTerms).filter { index ->
+            if (waveType == WaveType.SINE && index > 0) false
+            else removedHarmonics[index] != true
+        }
+    }
+
+    val displayTermsIndices = if (isExpanded) {
+        activeTermsIndices.take(100)
+    } else {
+        activeTermsIndices.take(6)
+    }
+
+    GlassCard(colors = colors) {
+        Column(
+            modifier = Modifier
+                .padding(AppDesign.radiusLarge)
+                .animateContentSize(animationSpec = tween(AppDesign.animDurationStandard)),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth().heightIn(min = 40.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Phasor Decomposition",
+                    fontSize = AppDesign.textHeadline,
+                    fontWeight = FontWeight.Bold,
+                )
+                if (activeTermsIndices.isNotEmpty()) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        TextButton(onClick = { showExportDialog = true }) {
+                            Text("Export", color = colors.accentCyan, fontWeight = FontWeight.Bold, fontSize = AppDesign.textSmall)
+                        }
+                        TextButton(onClick = onResetHarmonics) {
+                            Text("Reset", color = colors.accentCyan, fontWeight = FontWeight.Bold, fontSize = AppDesign.textSmall)
+                        }
+                    }
+                }
+            }
+
+            if (activeTermsIndices.isEmpty()) {
+                Text(
+                    "No active components",
+                    color = colors.accentCyan,
+                    textAlign = TextAlign.Center,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            Spacer(Modifier.height(AppDesign.radiusLarge))
+
+            if (activeTermsIndices.isNotEmpty()) {
+                Text(
+                    "Signal",
+                    color = colors.accentCyan,
+                    fontSize = AppDesign.textOverline,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(Modifier.height(AppDesign.radiusSmall))
+                Icon(
+                    Icons.Default.KeyboardDoubleArrowDown,
+                    null,
+                    tint = colors.textSecondary.copy(0.5f),
+                    modifier = Modifier.size(AppDesign.radiusLarge)
+                )
+                Spacer(Modifier.height(AppDesign.radiusSmall))
+            }
+
+            Column(
+                verticalArrangement = Arrangement.spacedBy(AppDesign.spacingMedium),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                displayTermsIndices.forEach { i ->
+                    key(i) {
+                        ComplexHarmonicItemRow(
+                            index = i,
+                            waveType = waveType,
+                            timeProvider = timeProvider,
+                            colors = colors,
+                            customCoefficients = customCoefficients,
+                            customCoefficients2D = customCoefficients2D,
+                            formulaCoefficients = formulaCoefficients,
+                            svgCoefficients = svgCoefficients,
+                            customFunctionSignals = customFunctionSignals,
+                            onRemoveHarmonic = onRemoveHarmonic,
+                            onTogglePause = onTogglePause,
+                            isHarmonicPaused = isHarmonicPaused,
+                            onFrequencyChange = onFrequencyChange,
+                            getHarmonicFrequency = getHarmonicFrequency,
+                            onAmplitudeChange = onAmplitudeChange,
+                            getHarmonicAmplitude = getHarmonicAmplitude,
+                            onPhaseChange = onPhaseChange,
+                            getHarmonicPhase = getHarmonicPhase,
+                            onResetHarmonic = onResetHarmonic
+                        )
+                    }
+                }
+
+                if (activeTermsIndices.size > displayTermsIndices.size && waveType != WaveType.SINE) {
+                    Spacer(Modifier.height(AppDesign.spacingSmall))
+                    TextButton(
+                        onClick = { isExpanded = !isExpanded },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            val expandLabel = remember(activeTermsIndices.size, isExpanded) {
+                                if (isExpanded) "Show Less" else "Show All Harmonics (${activeTermsIndices.size})"
+                            }
+                            Text(
+                                expandLabel,
+                                color = colors.accentCyan,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = AppDesign.textBody
+                            )
+                            Spacer(Modifier.width(AppDesign.spacingExtraSmall))
+                            Icon(
+                                if (isExpanded) painterResource(id = R.drawable.chevron_up_outline) else painterResource(id = R.drawable.chevron_down_outline),
+                                null,
+                                tint = colors.accentCyan,
+                                modifier = Modifier.size(AppDesign.iconTiny)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (showExportDialog) {
+        val exportTerms = remember(activeTermsIndices, waveType) {
+            activeTermsIndices.map { i ->
+                val defaultN = when (waveType) {
+                    WaveType.SINE -> 1.0f
+                    WaveType.SQUARE -> (i * 2 + 1).toFloat()
+                    WaveType.SAWTOOTH -> (i + 1).toFloat()
+                    WaveType.TRIANGLE -> (i * 2 + 1).toFloat()
+                    WaveType.MY_SIGNAL -> i.toFloat()
+                    WaveType.FORMULA -> i.toFloat()
+                    WaveType.MY_SIGNAL_2D -> if (i < customCoefficients2D.size) customCoefficients2D[i].freq.toFloat() else 0f
+                    WaveType.SVG -> if (i < svgCoefficients.size) svgCoefficients[i].freq.toFloat() else 0f
+                    WaveType.PURE_SIGNAL -> customFunctionSignals[i].freq.toFloatOrNull() ?: 0f
+                }
+                val n = getHarmonicFrequency(i, defaultN)
+
+                val baseN = when (waveType) {
+                    WaveType.SINE -> 1.0f
+                    WaveType.SQUARE -> (i * 2 + 1).toFloat()
+                    WaveType.SAWTOOTH -> (i + 1).toFloat()
+                    WaveType.TRIANGLE -> (i * 2 + 1).toFloat()
+                    else -> 1f
+                }
+                val (defaultRadius, analyzedPhase) = when (waveType) {
+                    WaveType.SINE -> Pair(1.0f, 0f)
+                    WaveType.SQUARE -> Pair(4f / (baseN * PI.toFloat()), 0f)
+                    WaveType.SAWTOOTH -> {
+                        val sign = if (baseN.toInt() % 2 == 0) -1f else 1f
+                        Pair((2f / (baseN * PI.toFloat())) * sign, 0f)
+                    }
+                    WaveType.TRIANGLE -> {
+                        val sign = if (((baseN.toInt() - 1) / 2) % 2 != 0) -1f else 1f
+                        Pair((8f / (baseN * baseN * PI.toFloat() * PI.toFloat())) * sign, 0f)
+                    }
+                    WaveType.MY_SIGNAL -> if (i < customCoefficients.size) (customCoefficients[i].first to (PI.toFloat() / 2f - customCoefficients[i].second)) else (0f to 0f)
+                    WaveType.FORMULA -> if (i < formulaCoefficients.size) (formulaCoefficients[i].first to (PI.toFloat() / 2f - formulaCoefficients[i].second)) else (0f to 0f)
+                    WaveType.MY_SIGNAL_2D -> if (i < customCoefficients2D.size) (customCoefficients2D[i].amp to customCoefficients2D[i].phase) else (0f to 0f)
+                    WaveType.SVG -> if (i < svgCoefficients.size) (svgCoefficients[i].amp to svgCoefficients[i].phase) else (0f to 0f)
+                    WaveType.PURE_SIGNAL -> (customFunctionSignals[i].amp.toFloatOrNull() ?: 0f) to customFunctionSignals[i].cachedPhase
+                    else -> 0f to 0f
+                }
+                
+                val radius = getHarmonicAmplitude(i, defaultRadius)
+                val phase = getHarmonicPhase(i, analyzedPhase)
+                
+                FourierExportLogic.TermData(n, radius, phase)
+            }
+        }
+        FourierExportDialog(
+            terms = exportTerms,
+            is2D = true,
+            colors = colors,
+            onDismiss = { showExportDialog = false }
+        )
+    }
+}
+
+@Composable
 fun HarmonicItemRow(
     index: Int,
     waveType: WaveType,
-    time: Float,
+    timeProvider: () -> Float,
     colors: AppColors,
     customCoefficients: List<Pair<Float, Float>>,
     customCoefficients2D: List<FourierLogic.ComplexCoeff>,
@@ -362,9 +587,10 @@ fun HarmonicItemRow(
             reusablePreviewPath.reset()
             val samples = 500
             val timeRange = size.width / pixelsPerTimeUnit
+            val currentTime = timeProvider()
             for (s in 0..samples) {
                 val x = (s.toFloat() / samples) * size.width
-                val waveT = if (isPaused) 0f else time - (s.toFloat() / samples) * timeRange
+                val waveT = if (isPaused) 0f else currentTime - (s.toFloat() / samples) * timeRange
                 val totalAngle = 2 * PI.toFloat() * n * waveT + phase
                 val y = centerY - (amp * radiusBase) * sin(totalAngle)
                 if (s == 0) reusablePreviewPath.moveTo(x, y)
@@ -482,15 +708,15 @@ fun HarmonicItemRow(
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Text("Amplitude", fontSize = AppDesign.textSmall, color = colors.textSecondary, fontWeight = FontWeight.SemiBold)
-                                Text(String.format(Locale.US, "%.1f", currentAmp), fontSize = AppDesign.textSmall, color = colors.accentViolet, fontWeight = FontWeight.Bold)
+                                Text(String.format(Locale.US, "%.1f", currentAmp), fontSize = AppDesign.textSmall, color = colors.accentCyan, fontWeight = FontWeight.Bold)
                             }
                             Slider(
                                 value = currentAmp,
                                 onValueChange = { onAmplitudeChange(i, it) },
                                 valueRange = -2.0f..2.0f,
                                 colors = SliderDefaults.colors(
-                                    thumbColor = colors.accentViolet,
-                                    activeTrackColor = colors.accentViolet,
+                                    thumbColor = colors.accentCyan,
+                                    activeTrackColor = colors.accentCyan,
                                     inactiveTrackColor = colors.fieldBorder.copy(0.2f)
                                 )
                             )
@@ -562,233 +788,10 @@ fun HarmonicItemRow(
 }
 
 @Composable
-fun ComplexHarmonicComponents(
-    nTerms: Int,
-    waveType: WaveType,
-    time: Float,
-    colors: AppColors,
-    customCoefficients: List<Pair<Float, Float>>,
-    customCoefficients2D: List<FourierLogic.ComplexCoeff> = emptyList(),
-    formulaCoefficients: List<Pair<Float, Float>> = emptyList(),
-    svgCoefficients: List<FourierLogic.ComplexCoeff> = emptyList(),
-    customFunctionSignals: List<SignalInstance>,
-    onRemoveHarmonic: (Int) -> Unit = {},
-    onTogglePause: (Int) -> Unit = {},
-    isHarmonicPaused: (Int) -> Boolean = { false },
-    onFrequencyChange: (Int, Float) -> Unit = { _, _ -> },
-    getHarmonicFrequency: (Int, Float) -> Float = { _, default -> default },
-    onAmplitudeChange: (Int, Float) -> Unit = { _, _ -> },
-    getHarmonicAmplitude: (Int, Float) -> Float = { _, default -> default },
-    onPhaseChange: (Int, Float) -> Unit = { _, _ -> },
-    getHarmonicPhase: (Int, Float) -> Float = { _, default -> default },
-    removedHarmonics: Map<Int, Boolean> = emptyMap(),
-    onResetHarmonic: (Int) -> Unit = {},
-    onResetHarmonics: () -> Unit = {}
-) {
-    var isExpanded by remember { mutableStateOf(false) }
-    var showExportDialog by remember { mutableStateOf(false) }
-
-    val maxTerms = when (waveType) {
-        WaveType.PURE_SIGNAL -> nTerms.coerceAtMost(customFunctionSignals.size)
-        WaveType.MY_SIGNAL_2D -> nTerms.coerceAtMost(customCoefficients2D.size)
-        WaveType.FORMULA -> nTerms.coerceAtMost(formulaCoefficients.size)
-        WaveType.SVG -> nTerms.coerceAtMost(svgCoefficients.size)
-        else -> nTerms
-    }
-
-    val activeTermsIndices = remember(waveType, maxTerms, removedHarmonics.size) {
-        (0 until maxTerms).filter { index ->
-            if (waveType == WaveType.SINE && index > 0) false
-            else removedHarmonics[index] != true
-        }
-    }
-
-    val displayTermsIndices = if (isExpanded) {
-        activeTermsIndices.take(100)
-    } else {
-        activeTermsIndices.take(6)
-    }
-
-    GlassCard(colors = colors) {
-        Column(
-            modifier = Modifier
-                .padding(AppDesign.radiusLarge)
-                .animateContentSize(animationSpec = tween(AppDesign.animDurationStandard)),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth().heightIn(min = 40.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    "Phasor Decomposition",
-                    fontSize = AppDesign.textHeadline,
-                    fontWeight = FontWeight.Bold,
-                )
-                if (activeTermsIndices.isNotEmpty()) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        TextButton(onClick = { showExportDialog = true }) {
-                            Text("Export", color = colors.accentCyan, fontWeight = FontWeight.Bold, fontSize = AppDesign.textSmall)
-                        }
-                        TextButton(onClick = onResetHarmonics) {
-                            Text("Reset", color = colors.accentCyan, fontWeight = FontWeight.Bold, fontSize = AppDesign.textSmall)
-                        }
-                    }
-                }
-            }
-
-            if (activeTermsIndices.isEmpty()) {
-                Text(
-                    "No active components",
-                    color = colors.accentCyan,
-                    textAlign = TextAlign.Center,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-
-            Spacer(Modifier.height(AppDesign.radiusLarge))
-
-            if (activeTermsIndices.isNotEmpty()) {
-                Text(
-                    "Signal",
-                    color = colors.accentCyan,
-                    fontSize = AppDesign.textOverline,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(Modifier.height(AppDesign.radiusSmall))
-                Icon(
-                    Icons.Default.KeyboardDoubleArrowDown,
-                    null,
-                    tint = colors.textSecondary.copy(0.5f),
-                    modifier = Modifier.size(AppDesign.radiusLarge)
-                )
-                Spacer(Modifier.height(AppDesign.radiusSmall))
-            }
-
-            Column(
-                verticalArrangement = Arrangement.spacedBy(AppDesign.spacingMedium),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                displayTermsIndices.forEach { i ->
-                    key(i) {
-                        ComplexHarmonicItemRow(
-                            index = i,
-                            waveType = waveType,
-                            time = time,
-                            colors = colors,
-                            customCoefficients = customCoefficients,
-                            customCoefficients2D = customCoefficients2D,
-                            formulaCoefficients = formulaCoefficients,
-                            svgCoefficients = svgCoefficients,
-                            customFunctionSignals = customFunctionSignals,
-                            onRemoveHarmonic = onRemoveHarmonic,
-                            onTogglePause = onTogglePause,
-                            isHarmonicPaused = isHarmonicPaused,
-                            onFrequencyChange = onFrequencyChange,
-                            getHarmonicFrequency = getHarmonicFrequency,
-                            onAmplitudeChange = onAmplitudeChange,
-                            getHarmonicAmplitude = getHarmonicAmplitude,
-                            onPhaseChange = onPhaseChange,
-                            getHarmonicPhase = getHarmonicPhase,
-                            onResetHarmonic = onResetHarmonic
-                        )
-                    }
-                }
-
-                if (activeTermsIndices.size > displayTermsIndices.size && waveType != WaveType.SINE) {
-                    Spacer(Modifier.height(AppDesign.spacingSmall))
-                    TextButton(
-                        onClick = { isExpanded = !isExpanded },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            val expandLabel = remember(activeTermsIndices.size, isExpanded) {
-                                if (isExpanded) "Show Less" else "Show All Harmonics (${activeTermsIndices.size})"
-                            }
-                            Text(
-                                expandLabel,
-                                color = colors.accentCyan,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = AppDesign.textBody
-                            )
-                            Spacer(Modifier.width(AppDesign.spacingExtraSmall))
-                            Icon(
-                                if (isExpanded) painterResource(id = R.drawable.chevron_up_outline) else painterResource(id = R.drawable.chevron_down_outline),
-                                null,
-                                tint = colors.accentCyan,
-                                modifier = Modifier.size(AppDesign.iconTiny)
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    if (showExportDialog) {
-        val exportTerms = remember(activeTermsIndices, waveType) {
-            activeTermsIndices.map { i ->
-                val defaultN = when (waveType) {
-                    WaveType.SINE -> 1.0f
-                    WaveType.SQUARE -> (i * 2 + 1).toFloat()
-                    WaveType.SAWTOOTH -> (i + 1).toFloat()
-                    WaveType.TRIANGLE -> (i * 2 + 1).toFloat()
-                    WaveType.MY_SIGNAL -> i.toFloat()
-                    WaveType.FORMULA -> i.toFloat()
-                    WaveType.MY_SIGNAL_2D -> if (i < customCoefficients2D.size) customCoefficients2D[i].freq.toFloat() else 0f
-                    WaveType.SVG -> if (i < svgCoefficients.size) svgCoefficients[i].freq.toFloat() else 0f
-                    WaveType.PURE_SIGNAL -> customFunctionSignals[i].freq.toFloatOrNull() ?: 0f
-                }
-                val n = getHarmonicFrequency(i, defaultN)
-
-                val baseN = when (waveType) {
-                    WaveType.SINE -> 1.0f
-                    WaveType.SQUARE -> (i * 2 + 1).toFloat()
-                    WaveType.SAWTOOTH -> (i + 1).toFloat()
-                    WaveType.TRIANGLE -> (i * 2 + 1).toFloat()
-                    else -> 1f
-                }
-                val (defaultRadius, analyzedPhase) = when (waveType) {
-                    WaveType.SINE -> Pair(1.0f, 0f)
-                    WaveType.SQUARE -> Pair(4f / (baseN * PI.toFloat()), 0f)
-                    WaveType.SAWTOOTH -> {
-                        val sign = if (baseN.toInt() % 2 == 0) -1f else 1f
-                        Pair((2f / (baseN * PI.toFloat())) * sign, 0f)
-                    }
-                    WaveType.TRIANGLE -> {
-                        val sign = if (((baseN.toInt() - 1) / 2) % 2 != 0) -1f else 1f
-                        Pair((8f / (baseN * baseN * PI.toFloat() * PI.toFloat())) * sign, 0f)
-                    }
-                    WaveType.MY_SIGNAL -> if (i < customCoefficients.size) (customCoefficients[i].first to (PI.toFloat() / 2f - customCoefficients[i].second)) else (0f to 0f)
-                    WaveType.FORMULA -> if (i < formulaCoefficients.size) (formulaCoefficients[i].first to (PI.toFloat() / 2f - formulaCoefficients[i].second)) else (0f to 0f)
-                    WaveType.MY_SIGNAL_2D -> if (i < customCoefficients2D.size) (customCoefficients2D[i].amp to customCoefficients2D[i].phase) else (0f to 0f)
-                    WaveType.SVG -> if (i < svgCoefficients.size) (svgCoefficients[i].amp to svgCoefficients[i].phase) else (0f to 0f)
-                    WaveType.PURE_SIGNAL -> (customFunctionSignals[i].amp.toFloatOrNull() ?: 0f) to customFunctionSignals[i].cachedPhase
-                    else -> 0f to 0f
-                }
-                
-                val radius = getHarmonicAmplitude(i, defaultRadius)
-                val phase = getHarmonicPhase(i, analyzedPhase)
-                
-                FourierExportLogic.TermData(n, radius, phase)
-            }
-        }
-        FourierExportDialog(
-            terms = exportTerms,
-            is2D = true,
-            colors = colors,
-            onDismiss = { showExportDialog = false }
-        )
-    }
-}
-
-@Composable
 fun ComplexHarmonicItemRow(
     index: Int,
     waveType: WaveType,
-    time: Float,
+    timeProvider: () -> Float,
     colors: AppColors,
     customCoefficients: List<Pair<Float, Float>>,
     customCoefficients2D: List<FourierLogic.ComplexCoeff>,
@@ -907,7 +910,7 @@ fun ComplexHarmonicItemRow(
             )
 
             // Draw rotating vector
-            val totalAngle = if (isPaused) 0f else 2 * PI.toFloat() * n * time + phasorPhase
+            val totalAngle = if (isPaused) 0f else 2 * PI.toFloat() * n * timeProvider() + phasorPhase
             val end = Offset(
                 center.x + (radius * radiusBase) * cos(totalAngle),
                 center.y - (radius * radiusBase) * sin(totalAngle)
@@ -939,7 +942,7 @@ fun ComplexHarmonicItemRow(
             )
             Text(
                 text = ampLabel,
-                color = colors.accentViolet,
+                color = colors.accentCyan,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -1035,15 +1038,15 @@ fun ComplexHarmonicItemRow(
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Text("Amplitude", fontSize = AppDesign.textSmall, color = colors.textSecondary, fontWeight = FontWeight.SemiBold)
-                                Text(String.format(Locale.US, "%.1f", currentAmp), fontSize = AppDesign.textSmall, color = colors.accentViolet, fontWeight = FontWeight.Bold)
+                                Text(String.format(Locale.US, "%.1f", currentAmp), fontSize = AppDesign.textSmall, color = colors.accentCyan, fontWeight = FontWeight.Bold)
                             }
                             Slider(
                                 value = currentAmp,
                                 onValueChange = { onAmplitudeChange(i, it) },
                                 valueRange = -2.0f..2.0f,
                                 colors = SliderDefaults.colors(
-                                    thumbColor = colors.accentViolet,
-                                    activeTrackColor = colors.accentViolet,
+                                    thumbColor = colors.accentCyan,
+                                    activeTrackColor = colors.accentCyan,
                                     inactiveTrackColor = colors.fieldBorder.copy(0.2f)
                                 )
                             )

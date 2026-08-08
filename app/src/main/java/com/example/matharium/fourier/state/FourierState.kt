@@ -48,7 +48,7 @@ class FourierState(
     var time by mutableFloatStateOf(0f)
     
     // TRAIL OPTIMIZATION: Fixed-size circular buffer for primitive data
-    // This eliminates ~120-240 object allocations per second.
+    // This eliminates hundreds of object allocations per second.
     private val trailSize = 2000
     private var trailPointer = 0
     val pathX = FloatArray(trailSize)
@@ -105,7 +105,6 @@ class FourierState(
     var isSynthesizing by mutableStateOf(false)
     var cachedHarmonics by mutableStateOf<List<FourierLogic.Harmonic>>(emptyList())
     var idealWavetable by mutableStateOf<Array<FourierLogic.MathPoint>>(emptyArray())
-    var reconstructionWavetable by mutableStateOf<Array<FourierLogic.MathPoint>>(emptyArray())
 
     private var dftJob: Job? = null
     private var spectrumJob: Job? = null
@@ -121,121 +120,81 @@ class FourierState(
         rebuildCache(fullRebuild = true)
     }
 
+    /**
+     * Debounced cache rebuild.
+     * Caches the "Mathematics" for standard and analyzed wave types.
+     */
     fun rebuildCache(fullRebuild: Boolean = false) {
-        reconstructionWavetable = emptyArray()
         if (fullRebuild) isAnalyzing = true 
         
+        // Immediate Harmonics update for UI responsiveness
         if (!fullRebuild) {
-            val maxTerms = 250
-            val harmonics = mutableListOf<FourierLogic.Harmonic>()
-            when (waveType) {
-                WaveType.SINE, WaveType.SQUARE, WaveType.SAWTOOTH, WaveType.TRIANGLE -> {
-                    harmonics.addAll(FourierLogic.calculateStandardHarmonics(waveType, maxTerms))
-                }
-                WaveType.MY_SIGNAL -> {
-                    customCoefficients.forEachIndexed { i, c ->
-                        harmonics.add(FourierLogic.Harmonic(i.toFloat(), c.first, -c.second + (kotlin.math.PI.toFloat() / 2f)))
-                    }
-                }
-                WaveType.FORMULA -> {
-                    formulaCoefficients.forEachIndexed { i, c ->
-                        harmonics.add(FourierLogic.Harmonic(i.toFloat(), c.first, -c.second + (kotlin.math.PI.toFloat() / 2f)))
-                    }
-                }
-                WaveType.MY_SIGNAL_2D -> {
-                    customCoefficients2D.forEach { c ->
-                        harmonics.add(FourierLogic.Harmonic(c.freq.toFloat(), c.amp, c.phase))
-                    }
-                }
-                WaveType.SVG -> {
-                    svgCoefficients.forEach { c ->
-                        harmonics.add(FourierLogic.Harmonic(c.freq.toFloat(), c.amp, c.phase))
-                    }
-                }
-                WaveType.PURE_SIGNAL -> {
-                    customFunctionSignals.forEachIndexed { i, s ->
-                        harmonics.add(FourierLogic.Harmonic(
-                            harmonicFrequencies[i] ?: (s.freq.toFloatOrNull() ?: 0f),
-                            harmonicAmplitudes[i] ?: (s.amp.toFloatOrNull() ?: 0f),
-                            harmonicPhases[i] ?: s.cachedPhase,
-                            s.colorArgb.toArgb()
-                        ))
-                    }
-                }
-            }
-            cachedHarmonics = harmonics
+            cachedHarmonics = prepareHarmonicsList()
         }
 
         cacheJob?.cancel()
         cacheJob = scope.launch(Dispatchers.Default) {
             isSynthesizing = true
-            delay(if (fullRebuild) 300 else 100)
+            // Debounce for UI sliders if it's a source change
+            if (fullRebuild) delay(300)
             
-            val maxTerms = 250
-            val harmonics = mutableListOf<FourierLogic.Harmonic>()
-            when (waveType) {
-                WaveType.SINE, WaveType.SQUARE, WaveType.SAWTOOTH, WaveType.TRIANGLE -> {
-                    harmonics.addAll(FourierLogic.calculateStandardHarmonics(waveType, maxTerms))
-                }
-                WaveType.MY_SIGNAL -> {
-                    customCoefficients.forEachIndexed { i, c ->
-                        harmonics.add(FourierLogic.Harmonic(i.toFloat(), c.first, -c.second + (kotlin.math.PI.toFloat() / 2f)))
-                    }
-                }
-                WaveType.FORMULA -> {
-                    formulaCoefficients.forEachIndexed { i, c ->
-                        harmonics.add(FourierLogic.Harmonic(i.toFloat(), c.first, -c.second + (kotlin.math.PI.toFloat() / 2f)))
-                    }
-                }
-                WaveType.MY_SIGNAL_2D -> {
-                    customCoefficients2D.forEach { c -> harmonics.add(FourierLogic.Harmonic(c.freq.toFloat(), c.amp, c.phase)) }
-                }
-                WaveType.SVG -> {
-                    svgCoefficients.forEach { c -> harmonics.add(FourierLogic.Harmonic(c.freq.toFloat(), c.amp, c.phase)) }
-                }
-                WaveType.PURE_SIGNAL -> {
-                    customFunctionSignals.forEachIndexed { i, s ->
-                        harmonics.add(FourierLogic.Harmonic(
-                            harmonicFrequencies[i] ?: (s.freq.toFloatOrNull() ?: 0f),
-                            harmonicAmplitudes[i] ?: (s.amp.toFloatOrNull() ?: 0f),
-                            harmonicPhases[i] ?: s.cachedPhase,
-                            s.colorArgb.toArgb()
-                        ))
-                    }
-                }
-            }
+            val harmonics = prepareHarmonicsList()
 
+            // Generate Wavetable for the ideal signal (error calculation)
+            // Rebuilt only if source changes.
             val table = if (fullRebuild || idealWavetable.isEmpty()) {
-                FourierLogic.generateWavetable(1000, waveType, radiusBasePx, drawingPoints.toList(), drawingPoints2D.toList(), resampledPoints2D.toList(), svgPoints.toList(), formulaString, customFunctionSignals.toList())
+                FourierLogic.generateWavetable(
+                    1000, waveType, radiusBasePx,
+                    drawingPoints.toList(), drawingPoints2D.toList(), resampledPoints2D.toList(),
+                    svgPoints.toList(), formulaString, customFunctionSignals.toList()
+                )
             } else idealWavetable
-
-            val currentN = nTerms
-            val reconTable = Array(1000) { step ->
-                val t = step.toFloat() / 1000
-                var sumX = 0f; var sumY = 0f
-                val twoPi = 2.0 * kotlin.math.PI
-                for (i in 0 until currentN) {
-                    if (i >= harmonics.size) break
-                    if (removedHarmonics[i] == true || pausedHarmonics[i] == true) continue
-                    val h = harmonics[i]
-                    val freq = (harmonicFrequencies[i] ?: h.freq).toDouble()
-                    val amp = (harmonicAmplitudes[i] ?: h.amp) * radiusBasePx
-                    val phase = (harmonicPhases[i] ?: h.phase).toDouble()
-                    val angle = twoPi * freq * t + phase
-                    sumX += (amp * kotlin.math.cos(angle)).toFloat()
-                    sumY += -(amp * kotlin.math.sin(angle)).toFloat()
-                }
-                FourierLogic.MathPoint(sumX, sumY)
-            }
 
             withContext(Dispatchers.Main) {
                 cachedHarmonics = harmonics
                 idealWavetable = table
-                reconstructionWavetable = reconTable
-                isSynthesizing = false; isAnalyzing = false
+                isSynthesizing = false
+                isAnalyzing = false
                 updateSpectrum()
             }
         }
+    }
+
+    private fun prepareHarmonicsList(): List<FourierLogic.Harmonic> {
+        val maxTerms = 250
+        val harmonics = mutableListOf<FourierLogic.Harmonic>()
+        when (waveType) {
+            WaveType.SINE, WaveType.SQUARE, WaveType.SAWTOOTH, WaveType.TRIANGLE -> {
+                harmonics.addAll(FourierLogic.calculateStandardHarmonics(waveType, maxTerms))
+            }
+            WaveType.MY_SIGNAL -> {
+                customCoefficients.forEachIndexed { i, c ->
+                    harmonics.add(FourierLogic.Harmonic(i.toFloat(), c.first, -c.second + (kotlin.math.PI.toFloat() / 2f)))
+                }
+            }
+            WaveType.FORMULA -> {
+                formulaCoefficients.forEachIndexed { i, c ->
+                    harmonics.add(FourierLogic.Harmonic(i.toFloat(), c.first, -c.second + (kotlin.math.PI.toFloat() / 2f)))
+                }
+            }
+            WaveType.MY_SIGNAL_2D -> {
+                customCoefficients2D.forEach { c -> harmonics.add(FourierLogic.Harmonic(c.freq.toFloat(), c.amp, c.phase)) }
+            }
+            WaveType.SVG -> {
+                svgCoefficients.forEach { c -> harmonics.add(FourierLogic.Harmonic(c.freq.toFloat(), c.amp, c.phase)) }
+            }
+            WaveType.PURE_SIGNAL -> {
+                customFunctionSignals.forEachIndexed { i, s ->
+                    harmonics.add(FourierLogic.Harmonic(
+                        harmonicFrequencies[i] ?: (s.freq.toFloatOrNull() ?: 0f),
+                        harmonicAmplitudes[i] ?: (s.amp.toFloatOrNull() ?: 0f),
+                        harmonicPhases[i] ?: s.cachedPhase,
+                        s.colorArgb.toArgb()
+                    ))
+                }
+            }
+        }
+        return harmonics
     }
 
     fun calculateDFT() {
@@ -374,55 +333,56 @@ class FourierState(
         val substeps = 2; val subDt = dt / substeps
         val radiusBase = radiusBasePx; val twoPi = 2.0 * kotlin.math.PI
         val harmonics = cachedHarmonics; val wavetable = idealWavetable
-        val reconTable = reconstructionWavetable; val termsCount = if (waveType == WaveType.PURE_SIGNAL) harmonics.size else nTerms
+        val termsCount = if (waveType == WaveType.PURE_SIGNAL) harmonics.size else nTerms
 
         repeat(substeps) {
             time += subDt * speed
             val normalizedTime = ((time % 1f) + 1f) % 1f
-            var approxX: Float; var approxY: Float
             
-            if (reconTable.isNotEmpty()) {
-                val floatIdx = normalizedTime * 999f
-                val i1 = floatIdx.toInt(); val i2 = (i1 + 1) % 1000; val frac = floatIdx - i1
-                val p1 = reconTable[i1]; val p2 = reconTable[i2]
-                approxX = p1.x * (1 - frac) + p2.x * frac; approxY = p1.y * (1 - frac) + p2.y * frac
-            } else {
-                var sumX = 0f; var sumY = 0f; val angleFactor = twoPi * time
-                for (i in 0 until termsCount) {
-                    if (i >= harmonics.size) break
-                    if (removedHarmonics[i] == true || pausedHarmonics[i] == true) continue
-                    val h = harmonics[i]
-                    val freq = (harmonicFrequencies[i] ?: h.freq).toDouble()
-                    val amp = (harmonicAmplitudes[i] ?: h.amp) * radiusBase
-                    val phase = (harmonicPhases[i] ?: h.phase).toDouble()
-                    val angle = angleFactor * freq + phase
-                    sumX += (amp * kotlin.math.cos(angle)).toFloat(); sumY += -(amp * kotlin.math.sin(angle)).toFloat()
-                }
-                approxX = sumX; approxY = sumY
+            // OPTIMIZATION: Summation is cheap (O(K)). 
+            // This allows nTerms to update instantly without rebuilding a wavetable.
+            var approxX = 0f
+            var approxY = 0f
+            val angleBase = twoPi * time
+            for (i in 0 until termsCount) {
+                if (i >= harmonics.size) break
+                if (removedHarmonics[i] == true || pausedHarmonics[i] == true) continue
+                val h = harmonics[i]
+                val freq = (harmonicFrequencies[i] ?: h.freq).toDouble()
+                val amp = (harmonicAmplitudes[i] ?: h.amp) * radiusBase
+                val phase = (harmonicPhases[i] ?: h.phase).toDouble()
+                val angle = angleBase * freq + phase
+                approxX += (amp * kotlin.math.cos(angle)).toFloat()
+                approxY += -(amp * kotlin.math.sin(angle)).toFloat()
             }
 
             val error: Float
             if (displayMode == FourierDisplayMode.COMPLEX) {
+                // Linear Interpolation for Ideal Wavetable (Error Calculation)
                 val target = if (wavetable.isNotEmpty()) {
-                    val fIdx = normalizedTime * 999f; val i1 = fIdx.toInt(); val i2 = (i1 + 1) % 1000; val frac = fIdx - i1
+                    val fIdx = normalizedTime * 999f
+                    val i1 = fIdx.toInt(); val i2 = (i1 + 1) % 1000; val frac = fIdx - i1
                     val p1 = wavetable[i1]; val p2 = wavetable[i2]
                     FourierLogic.MathPoint(p1.x * (1 - frac) + p2.x * frac, p1.y * (1 - frac) + p2.y * frac)
                 } else {
-                    val result = FourierLogic.getIdealValue(time, waveType, radiusBase, displayMode, drawingPoints, drawingPoints2D, resampledPoints2D, svgPoints, formulaString, customFunctionSignals, harmonicFrequencies, harmonicAmplitudes, harmonicPhases)
-                    FourierLogic.MathPoint(result.x, result.y)
+                    val res = FourierLogic.getIdealValue(time, waveType, radiusBase, displayMode, drawingPoints, drawingPoints2D, resampledPoints2D, svgPoints, formulaString, customFunctionSignals, harmonicFrequencies, harmonicAmplitudes, harmonicPhases)
+                    FourierLogic.MathPoint(res.x, res.y)
                 }
                 val dx = approxX - target.x; val dy = approxY - target.y
                 error = if (showErrorGradient) kotlin.math.sqrt(dx * dx + dy * dy) else 0f
             } else {
                 approxX = time
                 val targetY = if (wavetable.isNotEmpty()) {
-                    val fIdx = normalizedTime * 999f; val i1 = fIdx.toInt(); val i2 = (i1 + 1) % 1000; val frac = fIdx - i1
+                    val fIdx = normalizedTime * 999f
+                    val i1 = fIdx.toInt(); val i2 = (i1 + 1) % 1000; val frac = fIdx - i1
                     wavetable[i1].y * (1 - frac) + wavetable[i2].y * frac
                 } else {
                     FourierLogic.getIdealValue(time, waveType, radiusBase, displayMode, drawingPoints, drawingPoints2D, resampledPoints2D, svgPoints, formulaString, customFunctionSignals, harmonicFrequencies, harmonicAmplitudes, harmonicPhases).y
                 }
                 val dy = approxY - targetY; error = if (showErrorGradient) (if (dy < 0) -dy else dy) else 0f
             }
+            
+            // OPTIMIZATION: Circular buffer update (zero heap allocations)
             pathX[trailPointer] = approxX; pathY[trailPointer] = approxY; pathError[trailPointer] = error
             trailPointer = (trailPointer + 1) % trailSize
             if (pathCount < trailSize) pathCount++

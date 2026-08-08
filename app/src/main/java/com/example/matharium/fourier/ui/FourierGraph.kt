@@ -33,7 +33,7 @@ fun FrequencyDomainGraph(
     spectrumData: List<FourierLogic.Complex>,
     colors: AppColors,
     currentWindingFreq: Float,
-    time: Float
+    timeProvider: () -> Float
 ) {
     val spectrumPath = remember { Path() }
     val projectedValuesBuffer = remember(spectrumData.size) { FloatArray(spectrumData.size) }
@@ -66,7 +66,7 @@ fun FrequencyDomainGraph(
                     for (i in 0 until spectrumPoints) {
                         val f = (i.toFloat() / spectrumPoints) * maxFreq
                         val coeff = spectrumData[i]
-                        val angle = 2 * PI.toFloat() * f * time
+                        val angle = 2 * PI.toFloat() * f * timeProvider()
                         val valProj = (coeff.re * cos(angle) + coeff.im * sin(angle)).toFloat()
                         projectedValuesBuffer[i] = valProj
                         val absVal = if (valProj < 0) -valProj else valProj

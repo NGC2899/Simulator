@@ -43,7 +43,7 @@ fun FourierSeries() {
         state.running = false
         state.hasStarted = false
         state.clearOverrides()
-        state.idealWavetable = emptyArray() // Clear old target signal immediately
+        state.idealWavetable = emptyArray() 
         val maxForCurrent = 250
         if (state.nTerms > maxForCurrent) {
             state.nTerms = maxForCurrent
@@ -111,8 +111,8 @@ fun FourierSeries() {
         state.rebuildCache(fullRebuild = true)
     }
 
-    // Handle nTerms and internal tweaks - Instant updates without "Analyzing" message
-    LaunchedEffect(state.nTerms, state.harmonicVersion) {
+    // Handle internal tweaks (harmonic version) - Debounced background update
+    LaunchedEffect(state.harmonicVersion) {
         state.rebuildCache(fullRebuild = false)
     }
 
@@ -123,12 +123,10 @@ fun FourierSeries() {
         state.updateSpectrum()
     }
 
-    // Physics Loop
     LaunchedEffect(state.running) {
         state.runSimulation()
     }
 
-    // SVG Picker
     val context = androidx.compose.ui.platform.LocalContext.current
     val svgPickerLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri ->
         uri?.let {
@@ -156,11 +154,9 @@ fun FourierSeries() {
         }
     }
 
-    // OPTIMIZATION: derivedStateOf for isSimulationEnabled to avoid unnecessary recompositions
     val isSimulationEnabled by remember {
         derivedStateOf {
             if (state.isAnalyzing) return@derivedStateOf false
-            
             when (state.waveType) {
                 WaveType.MY_SIGNAL -> state.drawingPoints.any { it != 0f }
                 WaveType.MY_SIGNAL_2D -> state.drawingPoints2D.isNotEmpty()
@@ -176,15 +172,13 @@ fun FourierSeries() {
         FourierVisualizerBox(
             displayMode = state.displayMode, onDisplayModeChange = { state.displayMode = it },
             waveType = state.waveType, 
-            nTerms = state.nTerms, 
-            intendedNTerms = state.intendedNTerms,
+            nTermsProvider = { state.nTerms }, 
+            intendedNTermsProvider = { state.intendedNTerms },
             onIntendedNTermsChange = { state.intendedNTerms = it },
             onActiveNTermsChange = { state.nTerms = it },
             timeProvider = { state.time }, 
-            pathX = state.pathX,
-            pathY = state.pathY,
-            pathError = state.pathError,
-            pathCount = state.pathCount,
+            pathX = state.pathX, pathY = state.pathY, pathError = state.pathError,
+            pathCountProvider = { state.pathCount },
             showErrorGradient = state.showErrorGradient,
             errorSensitivity = state.errorSensitivity, waveStretch = state.waveStretch,
             onClearPath = { state.clearPath() }, windingFrequency = state.windingFrequency,
@@ -194,8 +188,7 @@ fun FourierSeries() {
             pausedHarmonics = state.pausedHarmonics, removedHarmonics = state.removedHarmonics,
             harmonicFrequencies = state.harmonicFrequencies, harmonicAmplitudes = state.harmonicAmplitudes,
             harmonicPhases = state.harmonicPhases,
-            isAnalyzing = state.isAnalyzing,
-            isSynthesizing = state.isSynthesizing,
+            isAnalyzing = state.isAnalyzing, isSynthesizing = state.isSynthesizing,
             cachedHarmonics = state.cachedHarmonics
         )
 
@@ -207,16 +200,14 @@ fun FourierSeries() {
         )
 
         Column(modifier = Modifier.clip(RoundedCornerShape(AppDesign.radiusCard)).weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(AppDesign.spacingLarge)) {
-
             FourierSettingsCard(state, svgPickerLauncher)
-
             SimulatorEnvironmentSettings(state)
 
             if (state.displayMode == FourierDisplayMode.WRAPPING) {
-                FrequencyDomainGraph(spectrumData = state.spectrumData, colors = colors, currentWindingFreq = state.windingFrequency, time = state.time)
+                FrequencyDomainGraph(spectrumData = state.spectrumData, colors = colors, currentWindingFreq = state.windingFrequency, timeProvider = { state.time })
             } else if (state.displayMode == FourierDisplayMode.COMPLEX) {
                 ComplexHarmonicComponents(
-                    nTerms = state.nTerms, waveType = state.waveType, time = state.time, colors = colors,
+                    nTermsProvider = { state.nTerms }, waveType = state.waveType, timeProvider = { state.time }, colors = colors,
                     customCoefficients = state.customCoefficients, customCoefficients2D = state.customCoefficients2D,
                     formulaCoefficients = state.formulaCoefficients, svgCoefficients = state.svgCoefficients,
                     customFunctionSignals = state.customFunctionSignals,
@@ -235,7 +226,7 @@ fun FourierSeries() {
                 )
             } else {
                 HarmonicComponents(
-                    nTerms = state.nTerms, waveType = state.waveType, time = state.time, colors = colors,
+                    nTermsProvider = { state.nTerms }, waveType = state.waveType, timeProvider = { state.time }, colors = colors,
                     customCoefficients = state.customCoefficients, customCoefficients2D = state.customCoefficients2D,
                     formulaCoefficients = state.formulaCoefficients, svgCoefficients = state.svgCoefficients,
                     customFunctionSignals = state.customFunctionSignals,

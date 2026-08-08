@@ -33,15 +33,15 @@ fun FourierVisualizerBox(
     displayMode: FourierDisplayMode,
     onDisplayModeChange: (FourierDisplayMode) -> Unit,
     waveType: WaveType,
-    nTerms: Int,
-    intendedNTerms: Int,
+    nTermsProvider: () -> Int,
+    intendedNTermsProvider: () -> Int,
     onIntendedNTermsChange: (Int) -> Unit,
     onActiveNTermsChange: (Int) -> Unit,
     timeProvider: () -> Float,
     pathX: FloatArray,
     pathY: FloatArray,
     pathError: FloatArray,
-    pathCount: Int,
+    pathCountProvider: () -> Int,
     showErrorGradient: Boolean,
     errorSensitivity: Float,
     waveStretch: Float,
@@ -241,7 +241,7 @@ fun FourierVisualizerBox(
                 translate(actualCenterX, centerY) {
                     var x = 0f; var y = 0f
                     val harmonics = cachedHarmonics
-                    val termsToDraw = if (waveType == WaveType.PURE_SIGNAL) harmonics.size else nTerms
+                    val termsToDraw = if (waveType == WaveType.PURE_SIGNAL) harmonics.size else nTermsProvider()
                     val currentTime = timeProvider()
 
                     for (i in 0 until termsToDraw) {
@@ -273,10 +273,11 @@ fun FourierVisualizerBox(
 
                     if (displayMode == FourierDisplayMode.CIRCULAR) {
                         drawLine(color = axisColor, start = Offset(x, y), end = Offset(layoutConstants.waveStartX, y), strokeWidth = AppDesign.strokeThin.toPx())
-                        if (pathCount > 0) {
+                        val count = pathCountProvider()
+                        if (count > 0) {
                             if (showErrorGradient) {
                                 val maxErr = (101f - errorSensitivity).coerceAtLeast(1f)
-                                for (i in 0 until pathCount - 1 step (pathStep * 2)) {
+                                for (i in 0 until count - 1 step (pathStep * 2)) {
                                     val lerp = (pathError[i] / maxErr).coerceIn(0f, 1f)
                                     drawLine(
                                         color = lerpColor(colors.accentCyan, colors.accentViolet, lerp),
@@ -288,33 +289,37 @@ fun FourierVisualizerBox(
                             } else {
                                 reusableWavePath.reset()
                                 reusableWavePath.moveTo(layoutConstants.waveStartX + (currentTime - pathX[0]) * layoutConstants.pixelsPerTimeUnit, pathY[0])
-                                for (i in 1 until pathCount step (pathStep * 2)) {
+                                for (i in 1 until count step (pathStep * 2)) {
                                     reusableWavePath.lineTo(layoutConstants.waveStartX + (currentTime - pathX[i]) * layoutConstants.pixelsPerTimeUnit, pathY[i])
                                 }
                                 drawPath(path = reusableWavePath, color = colors.accentCyan, style = Stroke(width = AppDesign.strokeStandard.toPx(), cap = StrokeCap.Round))
                             }
                         }
-                    } else if (pathCount > 0) {
-                        if (showErrorGradient) {
-                            val maxErr = (101f - errorSensitivity).coerceAtLeast(1f)
-                            for (i in 0 until pathCount - 1 step pathStep) {
-                                val lerp = (pathError[i] / maxErr).coerceIn(0f, 1f)
-                                drawLine(color = lerpColor(colors.accentCyan, colors.accentViolet, lerp), start = Offset(pathX[i], pathY[i]), end = Offset(pathX[i+1], pathY[i+1]), strokeWidth = AppDesign.strokeStandard.toPx(), cap = StrokeCap.Round)
+                    } else {
+                        val count = pathCountProvider()
+                        if (count > 0) {
+                            if (showErrorGradient) {
+                                val maxErr = (101f - errorSensitivity).coerceAtLeast(1f)
+                                for (i in 0 until count - 1 step pathStep) {
+                                    val lerp = (pathError[i] / maxErr).coerceIn(0f, 1f)
+                                    drawLine(color = lerpColor(colors.accentCyan, colors.accentViolet, lerp), start = Offset(pathX[i], pathY[i]), end = Offset(pathX[i+1], pathY[i+1]), strokeWidth = AppDesign.strokeStandard.toPx(), cap = StrokeCap.Round)
+                                }
+                            } else {
+                                reusableTracePath.reset()
+                                reusableTracePath.moveTo(pathX[0], pathY[0])
+                                for (i in 1 until count step pathStep) { reusableTracePath.lineTo(pathX[i], pathY[i]) }
+                                drawPath(path = reusableTracePath, color = colors.accentCyan, style = Stroke(width = AppDesign.strokeStandard.toPx(), cap = StrokeCap.Round))
                             }
-                        } else {
-                            reusableTracePath.reset()
-                            reusableTracePath.moveTo(pathX[0], pathY[0])
-                            for (i in 1 until pathCount step pathStep) { reusableTracePath.lineTo(pathX[i], pathY[i]) }
-                            drawPath(path = reusableTracePath, color = colors.accentCyan, style = Stroke(width = AppDesign.strokeStandard.toPx(), cap = StrokeCap.Round))
                         }
                     }
                 }
             } else if (displayMode == FourierDisplayMode.WRAPPING) {
                 translate(size.width / 2f, centerY) {
-                    if (pathCount > 0) {
+                    val count = pathCountProvider()
+                    if (count > 0) {
                         reusableWrappedPath.reset()
                         var sumX = 0f; var sumY = 0f; var processed = 0
-                        for (i in 0 until pathCount step pathStep) {
+                        for (i in 0 until count step pathStep) {
                             val angle = -2 * PI.toFloat() * windingFrequency * pathX[i]
                             val wx = pathY[i] * cos(angle.toDouble()).toFloat()
                             val wy = pathY[i] * sin(angle.toDouble()).toFloat()
@@ -342,6 +347,11 @@ fun FourierVisualizerBox(
         }
 
         FourierLeftSidebar(displayMode = displayMode, onDisplayModeChange = onDisplayModeChange, onClearPath = onClearPath, colors = colors)
-        FourierRightSidebar(displayNTerms = intendedNTerms, onDisplayNTermsChange = onIntendedNTermsChange, onActiveNTermsChange = onActiveNTermsChange, colors = colors)
+        FourierRightSidebar(
+            displayNTermsProvider = intendedNTermsProvider,
+            onDisplayNTermsChange = onIntendedNTermsChange,
+            onActiveNTermsChange = onActiveNTermsChange,
+            colors = colors
+        )
     }
 }

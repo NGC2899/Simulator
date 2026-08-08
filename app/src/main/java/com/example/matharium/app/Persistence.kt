@@ -16,7 +16,7 @@ class AppPreferences(context: Context) {
         set(value) = prefs.edit().putBoolean("is_dark_theme", value).apply()
 
     var isAnimatedBackground: Boolean
-        get() = prefs.getBoolean("is_animated_background", true)
+        get() = prefs.getBoolean("is_animated_background", false)
         set(value) = prefs.edit().putBoolean("is_animated_background", value).apply()
 
     var hapticFeedbackEnabled: Boolean
