@@ -98,7 +98,11 @@ fun FourierSeries() {
         }
     }
 
-    LaunchedEffect(state.waveType, state.drawingVersion, state.drawing2DVersion, state.harmonicVersion, state.formulaString) {
+    LaunchedEffect(state.nTerms, state.waveType, state.harmonicVersion, state.formulaString) {
+        state.rebuildCache()
+    }
+
+    LaunchedEffect(state.waveType, state.drawingVersion, state.drawing2DVersion, state.harmonicVersion, state.formulaString, state.nTerms) {
         if (state.waveType == WaveType.MY_SIGNAL || state.waveType == WaveType.MY_SIGNAL_2D) {
             kotlinx.coroutines.delay(500)
         }
@@ -157,7 +161,7 @@ fun FourierSeries() {
         FourierVisualizerBox(
             displayMode = state.displayMode, onDisplayModeChange = { state.displayMode = it },
             waveType = state.waveType, nTerms = state.nTerms, onNTermsChange = { state.nTerms = it },
-            time = state.time, path = state.path, showErrorGradient = state.showErrorGradient,
+            timeProvider = { state.time }, path = state.path, showErrorGradient = state.showErrorGradient,
             errorSensitivity = state.errorSensitivity, waveStretch = state.waveStretch,
             onClearPath = { state.path.clear() }, windingFrequency = state.windingFrequency,
             customCoefficients = state.customCoefficients, customCoefficients2D = state.customCoefficients2D,
@@ -165,7 +169,9 @@ fun FourierSeries() {
             customFunctionSignals = state.customFunctionSignals, colors = colors,
             pausedHarmonics = state.pausedHarmonics, removedHarmonics = state.removedHarmonics,
             harmonicFrequencies = state.harmonicFrequencies, harmonicAmplitudes = state.harmonicAmplitudes,
-            harmonicPhases = state.harmonicPhases
+            harmonicPhases = state.harmonicPhases,
+            isCalculating = state.isCalculating,
+            cachedHarmonics = state.cachedHarmonics
         )
 
         FourierActionControls(

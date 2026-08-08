@@ -37,7 +37,7 @@ fun FourierVisualizerBox(
     waveType: WaveType,
     nTerms: Int,
     onNTermsChange: (Int) -> Unit,
-    time: Float,
+    timeProvider: () -> Float,
     path: List<PathPoint>,
     showErrorGradient: Boolean,
     errorSensitivity: Float,
@@ -54,7 +54,9 @@ fun FourierVisualizerBox(
     removedHarmonics: Map<Int, Boolean> = emptyMap(),
     harmonicFrequencies: Map<Int, Float> = emptyMap(),
     harmonicAmplitudes: Map<Int, Float> = emptyMap(),
-    harmonicPhases: Map<Int, Float> = emptyMap()
+    harmonicPhases: Map<Int, Float> = emptyMap(),
+    isCalculating: Boolean = false,
+    cachedHarmonics: List<FourierLogic.Harmonic> = emptyList()
 ) {
     val density = androidx.compose.ui.platform.LocalDensity.current
     val radiusBasePx = with(density) { AppDesign.unitCircleRadius.toPx() }
@@ -247,77 +249,30 @@ fun FourierVisualizerBox(
                 translate(actualCenterX, centerY) {
                     var x = 0f
                     var y = 0f
-                    val termsToDraw = when (waveType) {
-                        WaveType.PURE_SIGNAL -> nTerms.coerceAtMost(customFunctionSignals.size)
-                        WaveType.MY_SIGNAL_2D -> nTerms.coerceAtMost(customCoefficients2D.size).coerceAtMost(250)
-                        WaveType.SVG -> nTerms.coerceAtMost(svgCoefficients.size).coerceAtMost(250)
-                        else -> nTerms.coerceAtMost(50)
-                    }
+                    
+                    val harmonics = cachedHarmonics
+                    val termsToDraw = if (waveType == WaveType.PURE_SIGNAL) harmonics.size else nTerms
+                    val currentTime = timeProvider()
 
                     for (i in 0 until termsToDraw) {
-                        if (waveType == WaveType.SINE && i > 0) continue
-                        if (waveType == WaveType.PURE_SIGNAL) {
-                            if (customFunctionSignals[i].isPaused) continue
-                        } else {
-                            if (removedHarmonics[i] == true || pausedHarmonics[i] == true) continue
-                        }
-
+                        if (i >= harmonics.size) break
+                        if (removedHarmonics[i] == true || pausedHarmonics[i] == true) continue
+                        
+                        val h = harmonics[i]
                         val prevX = x
                         val prevY = y
 
-                        val n = harmonicFrequencies[i] ?: when (waveType) {
-                            WaveType.SINE -> 1f
-                            WaveType.SQUARE -> (i * 2 + 1).toFloat()
-                            WaveType.SAWTOOTH -> (i + 1).toFloat()
-                            WaveType.TRIANGLE -> (i * 2 + 1).toFloat()
-                            WaveType.MY_SIGNAL -> i.toFloat()
-                            WaveType.FORMULA -> i.toFloat()
-                            WaveType.MY_SIGNAL_2D -> if (i < customCoefficients2D.size) customCoefficients2D[i].freq.toFloat() else 0f
-                            WaveType.SVG -> if (i < svgCoefficients.size) svgCoefficients[i].freq.toFloat() else 0f
-                            WaveType.PURE_SIGNAL -> if (i < customFunctionSignals.size) customFunctionSignals[i].freq.toFloatOrNull() ?: 0f else 0f
-                        }
-
-                        val baseN = when (waveType) {
-                            WaveType.SINE -> 1f
-                            WaveType.SQUARE -> (i * 2 + 1).toFloat()
-                            WaveType.SAWTOOTH -> (i + 1).toFloat()
-                            WaveType.TRIANGLE -> (i * 2 + 1).toFloat()
-                            else -> 1f
-                        }
-
-                        val defaultAmp: Float
-                        val analyzedPhase: Float
-                        when (waveType) {
-                            WaveType.SINE -> { defaultAmp = 1f; analyzedPhase = 0f }
-                            WaveType.SQUARE -> { defaultAmp = 4f / (baseN * PI.toFloat()); analyzedPhase = 0f }
-                            WaveType.SAWTOOTH -> {
-                                val sign = if (baseN.toInt() % 2 == 0) -1f else 1f
-                                defaultAmp = (2f / (baseN * PI.toFloat())) * sign; analyzedPhase = 0f
-                            }
-                            WaveType.TRIANGLE -> {
-                                val sign = if (((baseN.toInt() - 1) / 2) % 2 != 0) -1f else 1f
-                                defaultAmp = (8f / (baseN * baseN * PI.toFloat() * PI.toFloat())) * sign; analyzedPhase = 0f
-                            }
-                            WaveType.MY_SIGNAL -> if (i < customCoefficients.size) { defaultAmp = customCoefficients[i].first; analyzedPhase = (PI.toFloat() / 2f - customCoefficients[i].second) } else { defaultAmp = 0f; analyzedPhase = 0f }
-                            WaveType.FORMULA -> if (i < formulaCoefficients.size) { defaultAmp = formulaCoefficients[i].first; analyzedPhase = (PI.toFloat() / 2f - formulaCoefficients[i].second) } else { defaultAmp = 0f; analyzedPhase = 0f }
-                            WaveType.MY_SIGNAL_2D -> if (i < customCoefficients2D.size) { defaultAmp = customCoefficients2D[i].amp; analyzedPhase = customCoefficients2D[i].phase } else { defaultAmp = 0f; analyzedPhase = 0f }
-                            WaveType.SVG -> if (i < svgCoefficients.size) { defaultAmp = svgCoefficients[i].amp; analyzedPhase = svgCoefficients[i].phase } else { defaultAmp = 0f; analyzedPhase = 0f }
-                            WaveType.PURE_SIGNAL -> if (i < customFunctionSignals.size) {
-                                defaultAmp = harmonicAmplitudes[i] ?: (customFunctionSignals[i].amp.toFloatOrNull() ?: 0f)
-                                analyzedPhase = customFunctionSignals[i].cachedPhase
-                            } else { defaultAmp = 0f; analyzedPhase = 0f }
-                        }
-
-                        val amp = harmonicAmplitudes[i] ?: defaultAmp
-                        val phase = harmonicPhases[i] ?: analyzedPhase
+                        val n = harmonicFrequencies[i] ?: h.freq
+                        val amp = harmonicAmplitudes[i] ?: h.amp
+                        val phase = harmonicPhases[i] ?: h.phase
 
                         if (kotlin.math.abs(amp) < 0.005f && i > 0) continue
 
-                        val totalAngle = (2 * PI.toFloat() * n * time) + phase
-                        val nextX = x + (amp * radiusBasePx) * cos(totalAngle)
-                        val nextY = y - (amp * radiusBasePx) * sin(totalAngle)
+                        val totalAngle = (2 * PI.toFloat() * n * currentTime) + phase
+                        val nextX = x + (amp * radiusBasePx) * cos(totalAngle.toDouble()).toFloat()
+                        val nextY = y - (amp * radiusBasePx) * sin(totalAngle.toDouble()).toFloat()
 
-                        val termColor = (if (waveType == WaveType.PURE_SIGNAL && i < customFunctionSignals.size) customFunctionSignals[i].colorArgb else colors.accentCyan)
+                        val termColor = if (h.colorArgb != 0) Color(h.colorArgb) else colors.accentCyan
                         drawCircle(
                             color = termColor.copy(alpha = AppDesign.opacityLow * 2f),
                             radius = kotlin.math.abs(amp * radiusBasePx),
@@ -354,26 +309,23 @@ fun FourierVisualizerBox(
                                 val lerp = (p1.error / maxErr).coerceIn(0f, 1f)
                                 drawLine(
                                     color = lerpColor(colors.accentCyan, colors.accentViolet, lerp),
-                                    start = Offset(waveStartX + (time - p1.offset.x) * pixelsPerTimeUnit, p1.offset.y),
-                                    end = Offset(waveStartX + (time - p2.offset.x) * pixelsPerTimeUnit, p2.offset.y),
+                                    start = Offset(waveStartX + (currentTime - p1.offset.x) * pixelsPerTimeUnit, p1.offset.y),
+                                    end = Offset(waveStartX + (currentTime - p2.offset.x) * pixelsPerTimeUnit, p2.offset.y),
                                     strokeWidth = AppDesign.strokeStandard.toPx(),
                                     cap = StrokeCap.Round
                                 )
                             }
                         } else if (path.isNotEmpty()) {
-                            // OPTIMIZATION: Reset and reuse path to avoid allocation
                             reusableWavePath.reset()
                             
-                            // BUG FIX: Calculate correct start X for the oldest point (path[0])
-                            // instead of forcing it to waveStartX.
-                            val startX = waveStartX + (time - path[0].offset.x) * pixelsPerTimeUnit
+                            val startX = waveStartX + (currentTime - path[0].offset.x) * pixelsPerTimeUnit
                             reusableWavePath.moveTo(startX, path[0].offset.y)
                             
                             val currentPathStep = pathStep * 2
                             for (i in 1 until path.size step currentPathStep) {
-                                reusableWavePath.lineTo(waveStartX + (time - path[i].offset.x) * pixelsPerTimeUnit, path[i].offset.y)
+                                reusableWavePath.lineTo(waveStartX + (currentTime - path[i].offset.x) * pixelsPerTimeUnit, path[i].offset.y)
                             }
-                            reusableWavePath.lineTo(waveStartX + (time - path.last().offset.x) * pixelsPerTimeUnit, path.last().offset.y)
+                            reusableWavePath.lineTo(waveStartX + (currentTime - path.last().offset.x) * pixelsPerTimeUnit, path.last().offset.y)
 
                             drawPath(
                                 path = reusableWavePath,
@@ -394,7 +346,6 @@ fun FourierVisualizerBox(
                                 )
                             }
                         } else {
-                            // OPTIMIZATION: Reusable trace path
                             reusableTracePath.reset()
                             reusableTracePath.moveTo(path[0].offset.x, path[0].offset.y)
                             for (i in 1 until path.size step pathStep) {
@@ -412,14 +363,13 @@ fun FourierVisualizerBox(
             } else if (displayMode == FourierDisplayMode.WRAPPING) {
                 translate(size.width / 2f, centerY) {
                     if (path.isNotEmpty()) {
-                        // OPTIMIZATION: Reusable wrapped path
                         reusableWrappedPath.reset()
                         var sumX = 0f; var sumY = 0f; var processedCount = 0
                         for (i in path.indices step pathStep) {
                             val point = path[i].offset
                             val angle = -2 * PI.toFloat() * windingFrequency * point.x
-                            val wx = point.y * cos(angle)
-                            val wy = point.y * sin(angle)
+                            val wx = point.y * cos(angle.toDouble()).toFloat()
+                            val wy = point.y * sin(angle.toDouble()).toFloat()
 
                             if (i == 0) reusableWrappedPath.moveTo(wx, wy)
                             else reusableWrappedPath.lineTo(wx, wy)
@@ -439,6 +389,33 @@ fun FourierVisualizerBox(
                             drawLine(colors.textSecondary.copy(alpha = AppDesign.opacityMedium), Offset.Zero, Offset(avgX, avgY), AppDesign.strokeThin.toPx())
                         }
                     }
+                }
+            }
+        }
+
+        // Status Indicators
+        if (isCalculating) {
+            Box(
+                modifier = Modifier
+                    .padding(AppDesign.radiusLarge)
+                    .align(Alignment.TopCenter)
+                    .clip(RoundedCornerShape(AppDesign.radiusMedium))
+                    .background(colors.cardSurface.copy(alpha = 0.8f))
+                    .border(1.dp, colors.accentCyan.copy(alpha = 0.3f), RoundedCornerShape(AppDesign.radiusMedium))
+                    .padding(horizontal = 12.dp, vertical = 6.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        color = colors.accentCyan,
+                        strokeWidth = 2.dp
+                    )
+                    Text(
+                        "Analyzing Signal...",
+                        color = colors.textPrimary,
+                        fontSize = AppDesign.textCaption,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
         }

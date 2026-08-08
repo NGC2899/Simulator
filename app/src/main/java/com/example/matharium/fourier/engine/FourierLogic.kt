@@ -72,6 +72,68 @@ object FourierLogic {
 
     data class ComplexCoeff(val freq: Int, val amp: Float, val phase: Float)
 
+    data class Harmonic(val freq: Float, val amp: Float, val phase: Float, val colorArgb: Int = 0)
+
+    /**
+     * Pre-calculates the first N harmonics for standard wave types.
+     */
+    fun calculateStandardHarmonics(waveType: WaveType, nTerms: Int): List<Harmonic> {
+        val result = mutableListOf<Harmonic>()
+        for (i in 0 until nTerms) {
+            val freq: Float
+            val amp: Float
+            val phase: Float
+            
+            when (waveType) {
+                WaveType.SINE -> {
+                    if (i > 0) break
+                    freq = 1f; amp = 1f; phase = 0f
+                }
+                WaveType.SQUARE -> {
+                    freq = (i * 2 + 1).toFloat()
+                    amp = 4f / (freq * PI.toFloat()); phase = 0f
+                }
+                WaveType.SAWTOOTH -> {
+                    freq = (i + 1).toFloat()
+                    val sign = if (freq.toInt() % 2 == 0) -1f else 1f
+                    amp = (2f / (freq * PI.toFloat())) * sign; phase = 0f
+                }
+                WaveType.TRIANGLE -> {
+                    freq = (i * 2 + 1).toFloat()
+                    val sign = if (((freq.toInt() - 1) / 2) % 2 != 0) -1f else 1f
+                    amp = (8f / (freq * freq * PI.toFloat() * PI.toFloat())) * sign; phase = 0f
+                }
+                else -> { freq = 0f; amp = 0f; phase = 0f }
+            }
+            result.add(Harmonic(freq, amp, phase))
+        }
+        return result
+    }
+
+    /**
+     * Creates a wavetable for the ideal signal across one period [0, 1].
+     */
+    fun generateWavetable(
+        size: Int,
+        waveType: WaveType,
+        radiusBase: Float,
+        drawingPoints: List<Float>,
+        drawingPoints2D: List<Offset>,
+        resampledPoints2D: List<Offset>,
+        svgPoints: List<Offset>,
+        formulaString: String,
+        customFunctionSignals: List<SignalInstance>
+    ): Array<Offset> {
+        return Array(size) { i ->
+            val t = i.toFloat() / size
+            getIdealValue(
+                t, waveType, radiusBase, FourierDisplayMode.COMPLEX, // Force complex for both components
+                drawingPoints, drawingPoints2D, resampledPoints2D, svgPoints,
+                formulaString, customFunctionSignals
+            )
+        }
+    }
+
     data class SymmetryResult(val evenPercent: Float, val oddPercent: Float)
 
     fun detectSymmetry(samples: List<Float>): SymmetryResult {
