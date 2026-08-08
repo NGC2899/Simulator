@@ -15,7 +15,6 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.lerp as lerpColor
-import androidx.compose.ui.layout.Measurable
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -42,6 +41,7 @@ fun FourierVisualizerBox(
     pathY: FloatArray,
     pathError: FloatArray,
     pathCountProvider: () -> Int,
+    trailPointerProvider: () -> Int,
     showErrorGradient: Boolean,
     errorSensitivity: Float,
     waveStretch: Float,
@@ -64,7 +64,6 @@ fun FourierVisualizerBox(
 ) {
     val density = androidx.compose.ui.platform.LocalDensity.current
     
-    // OPTIMIZATION: Use remember for density-aware constants to avoid per-frame calculations
     val layoutConstants = remember(density, waveStretch) {
         object {
             val radiusBasePx = with(density) { AppDesign.unitCircleRadius.toPx() }
@@ -80,13 +79,9 @@ fun FourierVisualizerBox(
         }
     }
 
-    // Perfect resolution for flagship devices
     val pathStep = 1
 
-    // OPTIMIZATION: Pre-calculate labels to avoid String.format in DrawScope
-    val labelCache = remember(displayMode, layoutConstants.unitScale) {
-        mutableMapOf<Float, String>()
-    }
+    val labelCache = remember(displayMode, layoutConstants.unitScale) { mutableMapOf<Float, String>() }
     fun getLabel(value: Float, isComplex: Boolean): String {
         return labelCache.getOrPut(value) {
             if (isComplex) String.format(java.util.Locale.US, "%.1fi", value)
@@ -94,12 +89,10 @@ fun FourierVisualizerBox(
         }
     }
 
-    // OPTIMIZATION: Reusable Paths
     val reusableWavePath = remember { Path() }
     val reusableTracePath = remember { Path() }
     val reusableWrappedPath = remember { Path() }
 
-    // OPTIMIZATION: Static paints
     val axisColor = colors.textSecondary.copy(alpha = AppDesign.opacityLow + AppDesign.opacitySubtle)
     val gridColor = colors.accentCyan.copy(alpha = AppDesign.opacityGrid)
     val labelColor = colors.textSecondary.copy(alpha = AppDesign.opacityMedium).toArgb()
@@ -112,132 +105,84 @@ fun FourierVisualizerBox(
     }
 
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(AppDesign.canvasHeightSmall)
-            .clip(RoundedCornerShape(AppDesign.radiusCard))
-            .background(colors.cardSurface.copy(alpha = 0.45f))
-            .border(AppDesign.borderThin, colors.cardBorder.copy(alpha = 0.6f), RoundedCornerShape(AppDesign.radiusCard))
+        modifier = Modifier.fillMaxWidth().height(AppDesign.canvasHeightSmall).clip(RoundedCornerShape(AppDesign.radiusCard)).background(colors.cardSurface.copy(alpha = 0.45f)).border(AppDesign.borderThin, colors.cardBorder.copy(alpha = 0.6f), RoundedCornerShape(AppDesign.radiusCard))
     ) {
         Canvas(
-            modifier = Modifier
-                .fillMaxSize()
-                .drawWithCache {
-                    val centerX = size.width * 0.20f
-                    val centerY = size.height * 0.5f
-                    val actualCenterX = if (displayMode == FourierDisplayMode.COMPLEX) size.width * 0.5f else centerX
-                    
-                    val staticGridPath = Path()
-                    val staticAxisPath = Path()
-                    val step = layoutConstants.gridStepPx
-                    
+            modifier = Modifier.fillMaxSize().drawWithCache {
+                val actualCenterX = if (displayMode == FourierDisplayMode.COMPLEX) size.width * 0.5f else size.width * 0.20f
+                val centerY = size.height * 0.5f
+                val staticGridPath = Path()
+                val staticAxisPath = Path()
+                val step = layoutConstants.gridStepPx
+                
+                if (displayMode != FourierDisplayMode.WRAPPING) {
+                    val left = -actualCenterX; val right = size.width - actualCenterX
+                    val top = -centerY; val bottom = size.height - centerY
+                    var gx = 0f
+                    while (gx <= right) { staticGridPath.moveTo(gx, top); staticGridPath.lineTo(gx, bottom); gx += step }
+                    gx = -step
+                    while (gx >= left) { staticGridPath.moveTo(gx, top); staticGridPath.lineTo(gx, bottom); gx -= step }
+                    var gy = 0f
+                    while (gy <= bottom) { staticGridPath.moveTo(left, gy); staticGridPath.lineTo(right, gy); gy += step }
+                    gy = -step
+                    while (gy >= top) { staticGridPath.moveTo(left, gy); staticGridPath.lineTo(right, gy); gy -= step }
+                    staticAxisPath.moveTo(left, 0f); staticAxisPath.lineTo(right, 0f)
+                    staticAxisPath.moveTo(0f, top); staticAxisPath.lineTo(0f, bottom)
+                } else {
+                    val hw = size.width / 2f; val hh = size.height / 2f
+                    var gx = 0f
+                    while (gx <= hw) { staticGridPath.moveTo(gx, -hh); staticGridPath.lineTo(gx, hh); if (gx > 0) { staticGridPath.moveTo(-gx, -hh); staticGridPath.lineTo(-gx, hh) }; gx += step }
+                    var gy = 0f
+                    while (gy <= hh) { staticGridPath.moveTo(-hw, gy); staticGridPath.lineTo(hw, gy); if (gy > 0) { staticGridPath.moveTo(-hw, -gy); staticGridPath.lineTo(-hw, -gy) }; gy += step }
+                    staticAxisPath.moveTo(-hw, 0f); staticAxisPath.lineTo(hw, 0f); staticAxisPath.moveTo(0f, -hh); staticAxisPath.lineTo(0f, hh)
+                }
+
+                onDrawBehind {
                     if (displayMode != FourierDisplayMode.WRAPPING) {
-                        val left = -actualCenterX; val right = size.width - actualCenterX
-                        val top = -centerY; val bottom = size.height - centerY
-                        var gx = 0f
-                        while (gx <= right) { staticGridPath.moveTo(gx, top); staticGridPath.lineTo(gx, bottom); gx += step }
-                        gx = -step
-                        while (gx >= left) { staticGridPath.moveTo(gx, top); staticGridPath.lineTo(gx, bottom); gx -= step }
-                        var gy = 0f
-                        while (gy <= bottom) { staticGridPath.moveTo(left, gy); staticGridPath.lineTo(right, gy); gy += step }
-                        gy = -step
-                        while (gy >= top) { staticGridPath.moveTo(left, gy); staticGridPath.lineTo(right, gy); gy -= step }
-                        staticAxisPath.moveTo(left, 0f); staticAxisPath.lineTo(right, 0f)
-                        staticAxisPath.moveTo(0f, top); staticAxisPath.lineTo(0f, bottom)
+                        translate(actualCenterX, centerY) {
+                            drawPath(staticGridPath, gridColor, style = Stroke(width = AppDesign.strokeThin.toPx()))
+                            drawPath(staticAxisPath, axisColor, style = Stroke(width = AppDesign.strokeThin.toPx()))
+                            val labelStep = layoutConstants.gridStepPx * 2
+                            val right = size.width - actualCenterX; val left = -actualCenterX
+                            val bottom = size.height - centerY
+
+                            textPaint.textAlign = android.graphics.Paint.Align.CENTER
+                            var lx = labelStep
+                            while (lx <= right) { drawIntoCanvas { it.nativeCanvas.drawText(getLabel(lx / layoutConstants.unitScale, false), lx, layoutConstants.labelOffsetX, textPaint) }; lx += labelStep }
+                            lx = -labelStep
+                            while (lx >= left) { drawIntoCanvas { it.nativeCanvas.drawText(getLabel(lx / layoutConstants.unitScale, false), lx, layoutConstants.labelOffsetX, textPaint) }; lx -= labelStep }
+
+                            textPaint.textAlign = android.graphics.Paint.Align.RIGHT
+                            var ly = labelStep
+                            while (ly <= bottom) { val txt = getLabel(-ly / layoutConstants.unitScale, displayMode == FourierDisplayMode.COMPLEX); drawIntoCanvas { it.nativeCanvas.drawText(txt, -layoutConstants.labelOffsetAxis, ly + layoutConstants.labelOffsetY, textPaint) }; ly += labelStep }
+                            ly = -labelStep
+                            while (ly >= -centerY) { val txt = getLabel(-ly / layoutConstants.unitScale, displayMode == FourierDisplayMode.COMPLEX); drawIntoCanvas { it.nativeCanvas.drawText(txt, -layoutConstants.labelOffsetAxis, ly + layoutConstants.labelOffsetY, textPaint) }; ly -= labelStep }
+                        }
                     } else {
-                        val hw = size.width / 2f; val hh = size.height / 2f
-                        var gx = 0f
-                        while (gx <= hw) {
-                            staticGridPath.moveTo(gx, -hh); staticGridPath.lineTo(gx, hh)
-                            if (gx > 0) { staticGridPath.moveTo(-gx, -hh); staticGridPath.lineTo(-gx, hh) }
-                            gx += step
-                        }
-                        var gy = 0f
-                        while (gy <= hh) {
-                            staticGridPath.moveTo(-hw, gy); staticGridPath.lineTo(hw, gy)
-                            if (gy > 0) { staticGridPath.moveTo(-hw, -gy); staticGridPath.lineTo(-hw, -gy) }
-                            gy += step
-                        }
-                        staticAxisPath.moveTo(-hw, 0f); staticAxisPath.lineTo(hw, 0f)
-                        staticAxisPath.moveTo(0f, -hh); staticAxisPath.lineTo(0f, hh)
-                    }
-
-                    onDrawBehind {
-                        if (displayMode != FourierDisplayMode.WRAPPING) {
-                            translate(actualCenterX, centerY) {
-                                drawPath(staticGridPath, gridColor, style = Stroke(width = AppDesign.strokeThin.toPx()))
-                                drawPath(staticAxisPath, axisColor, style = Stroke(width = AppDesign.strokeThin.toPx()))
-                                
-                                val labelStep = layoutConstants.gridStepPx * 2
-                                val left = -actualCenterX; val right = size.width - actualCenterX
-                                val bottom = size.height - centerY; val top = -centerY
-
-                                textPaint.textAlign = android.graphics.Paint.Align.CENTER
-                                var lx = labelStep
-                                while (lx <= right) {
-                                    drawIntoCanvas { it.nativeCanvas.drawText(getLabel(lx / layoutConstants.unitScale, false), lx, layoutConstants.labelOffsetX, textPaint) }
-                                    lx += labelStep
-                                }
-                                lx = -labelStep
-                                while (lx >= left) {
-                                    drawIntoCanvas { it.nativeCanvas.drawText(getLabel(lx / layoutConstants.unitScale, false), lx, layoutConstants.labelOffsetX, textPaint) }
-                                    lx -= labelStep
-                                }
-
-                                textPaint.textAlign = android.graphics.Paint.Align.RIGHT
-                                var ly = labelStep
-                                while (ly <= bottom) {
-                                    val txt = getLabel(-ly / layoutConstants.unitScale, displayMode == FourierDisplayMode.COMPLEX)
-                                    drawIntoCanvas { it.nativeCanvas.drawText(txt, -layoutConstants.labelOffsetAxis, ly + layoutConstants.labelOffsetY, textPaint) }
-                                    ly += labelStep
-                                }
-                                ly = -labelStep
-                                while (ly >= top) {
-                                    val txt = getLabel(-ly / layoutConstants.unitScale, displayMode == FourierDisplayMode.COMPLEX)
-                                    drawIntoCanvas { it.nativeCanvas.drawText(txt, -layoutConstants.labelOffsetAxis, ly + layoutConstants.labelOffsetY, textPaint) }
-                                    ly -= labelStep
-                                }
-                            }
-                        } else {
-                            translate(size.width / 2f, centerY) {
-                                drawPath(staticGridPath, gridColor, style = Stroke(width = AppDesign.strokeThin.toPx()))
-                                drawPath(staticAxisPath, axisColor, style = Stroke(width = AppDesign.strokeThin.toPx()))
-                                val labelStep = layoutConstants.gridStepPx * 2
-                                val hw = size.width / 2f; val hh = size.height / 2f
-                                
-                                textPaint.textAlign = android.graphics.Paint.Align.CENTER
-                                var lx = labelStep
-                                while (lx <= hw) {
-                                    drawIntoCanvas { it.nativeCanvas.drawText(getLabel(lx / layoutConstants.unitScale, false), lx, layoutConstants.labelOffsetWrappingX, textPaint) }
-                                    lx += labelStep
-                                }
-                                lx = -labelStep
-                                while (lx >= -hw) {
-                                    drawIntoCanvas { it.nativeCanvas.drawText(getLabel(lx / layoutConstants.unitScale, false), lx, layoutConstants.labelOffsetWrappingX, textPaint) }
-                                    lx -= labelStep
-                                }
-
-                                textPaint.textAlign = android.graphics.Paint.Align.RIGHT
-                                var ly = labelStep
-                                while (ly <= hh) {
-                                    drawIntoCanvas { it.nativeCanvas.drawText(getLabel(-ly / layoutConstants.unitScale, false), -layoutConstants.labelOffsetAxis, ly + layoutConstants.labelOffsetY, textPaint) }
-                                    ly += labelStep
-                                }
-                                ly = -labelStep
-                                while (ly >= -hh) {
-                                    drawIntoCanvas { it.nativeCanvas.drawText(getLabel(-ly / layoutConstants.unitScale, false), -layoutConstants.labelOffsetAxis, ly + layoutConstants.labelOffsetY, textPaint) }
-                                    ly -= labelStep
-                                }
-                            }
+                        translate(size.width / 2f, centerY) {
+                            drawPath(staticGridPath, gridColor, style = Stroke(width = AppDesign.strokeThin.toPx()))
+                            drawPath(staticAxisPath, axisColor, style = Stroke(width = AppDesign.strokeThin.toPx()))
+                            val labelStep = layoutConstants.gridStepPx * 2
+                            val hw = size.width / 2f; val hh = size.height / 2f
+                            textPaint.textAlign = android.graphics.Paint.Align.CENTER
+                            var lx = labelStep
+                            while (lx <= hw) { drawIntoCanvas { it.nativeCanvas.drawText(getLabel(lx / layoutConstants.unitScale, false), lx, layoutConstants.labelOffsetWrappingX, textPaint) }; lx += labelStep }
+                            lx = -labelStep
+                            while (lx >= -hw) { drawIntoCanvas { it.nativeCanvas.drawText(getLabel(lx / layoutConstants.unitScale, false), lx, layoutConstants.labelOffsetWrappingX, textPaint) }; lx -= labelStep }
+                            textPaint.textAlign = android.graphics.Paint.Align.RIGHT
+                            var ly = labelStep
+                            while (ly <= hh) { drawIntoCanvas { it.nativeCanvas.drawText(getLabel(-ly / layoutConstants.unitScale, false), -layoutConstants.labelOffsetAxis, ly + layoutConstants.labelOffsetY, textPaint) }; ly += labelStep }
+                            ly = -labelStep
+                            while (ly >= -hh) { drawIntoCanvas { it.nativeCanvas.drawText(getLabel(-ly / layoutConstants.unitScale, false), -layoutConstants.labelOffsetAxis, ly + layoutConstants.labelOffsetY, textPaint) }; ly -= labelStep }
                         }
                     }
                 }
+            }
         ) {
-            val centerX = size.width * 0.20f
+            val actualCenterX = if (displayMode == FourierDisplayMode.COMPLEX) size.width * 0.5f else size.width * 0.20f
             val centerY = size.height * 0.5f
 
             if ((displayMode == FourierDisplayMode.CIRCULAR) || (displayMode == FourierDisplayMode.COMPLEX)) {
-                val actualCenterX = if (displayMode == FourierDisplayMode.COMPLEX) size.width * 0.5f else centerX
                 translate(actualCenterX, centerY) {
                     var x = 0f; var y = 0f
                     val harmonics = cachedHarmonics
@@ -249,22 +194,13 @@ fun FourierVisualizerBox(
                         if (removedHarmonics[i] == true || pausedHarmonics[i] == true) continue
                         val h = harmonics[i]
                         val prevX = x; val prevY = y
-                        val n = harmonicFrequencies[i] ?: h.freq
-                        val amp = harmonicAmplitudes[i] ?: h.amp
-                        val phase = harmonicPhases[i] ?: h.phase
+                        val n = harmonicFrequencies[i] ?: h.freq; val amp = harmonicAmplitudes[i] ?: h.amp; val phase = harmonicPhases[i] ?: h.phase
                         if (kotlin.math.abs(amp) < 0.005f && i > 0) continue
-
                         val totalAngle = (2 * PI.toFloat() * n * currentTime) + phase
                         val nextX = x + (amp * layoutConstants.radiusBasePx) * cos(totalAngle.toDouble()).toFloat()
                         val nextY = y - (amp * layoutConstants.radiusBasePx) * sin(totalAngle.toDouble()).toFloat()
-
                         val termColor = if (h.colorArgb != 0) Color(h.colorArgb) else colors.accentCyan
-                        drawCircle(
-                            color = termColor.copy(alpha = AppDesign.opacityLow * 2f),
-                            radius = kotlin.math.abs(amp * layoutConstants.radiusBasePx),
-                            center = Offset(prevX, prevY),
-                            style = Stroke(width = AppDesign.strokeThin.toPx())
-                        )
+                        drawCircle(color = termColor.copy(alpha = AppDesign.opacityLow * 2f), radius = kotlin.math.abs(amp * layoutConstants.radiusBasePx), center = Offset(prevX, prevY), style = Stroke(width = AppDesign.strokeThin.toPx()))
                         x = nextX; y = nextY
                         drawLine(color = termColor.copy(alpha = AppDesign.opacityMedium), start = Offset(prevX, prevY), end = Offset(x, y), strokeWidth = AppDesign.strokeThin.toPx() + 0.5f)
                     }
@@ -275,22 +211,21 @@ fun FourierVisualizerBox(
                         drawLine(color = axisColor, start = Offset(x, y), end = Offset(layoutConstants.waveStartX, y), strokeWidth = AppDesign.strokeThin.toPx())
                         val count = pathCountProvider()
                         if (count > 0) {
+                            val tp = trailPointerProvider()
+                            val startIdx = (tp - count + 2000) % 2000
                             if (showErrorGradient) {
                                 val maxErr = (101f - errorSensitivity).coerceAtLeast(1f)
                                 for (i in 0 until count - 1 step (pathStep * 2)) {
-                                    val lerp = (pathError[i] / maxErr).coerceIn(0f, 1f)
-                                    drawLine(
-                                        color = lerpColor(colors.accentCyan, colors.accentViolet, lerp),
-                                        start = Offset(layoutConstants.waveStartX + (currentTime - pathX[i]) * layoutConstants.pixelsPerTimeUnit, pathY[i]),
-                                        end = Offset(layoutConstants.waveStartX + (currentTime - pathX[i+1]) * layoutConstants.pixelsPerTimeUnit, pathY[i+1]),
-                                        strokeWidth = AppDesign.strokeStandard.toPx(), cap = StrokeCap.Round
-                                    )
+                                    val idx1 = (startIdx + i) % 2000; val idx2 = (startIdx + i + 1) % 2000
+                                    val lerp = (pathError[idx1] / maxErr).coerceIn(0f, 1f)
+                                    drawLine(color = lerpColor(colors.accentCyan, colors.accentViolet, lerp), start = Offset(layoutConstants.waveStartX + (currentTime - pathX[idx1]) * layoutConstants.pixelsPerTimeUnit, pathY[idx1]), end = Offset(layoutConstants.waveStartX + (currentTime - pathX[idx2]) * layoutConstants.pixelsPerTimeUnit, pathY[idx2]), strokeWidth = AppDesign.strokeStandard.toPx(), cap = StrokeCap.Round)
                                 }
                             } else {
                                 reusableWavePath.reset()
-                                reusableWavePath.moveTo(layoutConstants.waveStartX + (currentTime - pathX[0]) * layoutConstants.pixelsPerTimeUnit, pathY[0])
+                                reusableWavePath.moveTo(layoutConstants.waveStartX + (currentTime - pathX[startIdx]) * layoutConstants.pixelsPerTimeUnit, pathY[startIdx])
                                 for (i in 1 until count step (pathStep * 2)) {
-                                    reusableWavePath.lineTo(layoutConstants.waveStartX + (currentTime - pathX[i]) * layoutConstants.pixelsPerTimeUnit, pathY[i])
+                                    val idx = (startIdx + i) % 2000
+                                    reusableWavePath.lineTo(layoutConstants.waveStartX + (currentTime - pathX[idx]) * layoutConstants.pixelsPerTimeUnit, pathY[idx])
                                 }
                                 drawPath(path = reusableWavePath, color = colors.accentCyan, style = Stroke(width = AppDesign.strokeStandard.toPx(), cap = StrokeCap.Round))
                             }
@@ -298,16 +233,19 @@ fun FourierVisualizerBox(
                     } else {
                         val count = pathCountProvider()
                         if (count > 0) {
+                            val tp = trailPointerProvider()
+                            val startIdx = (tp - count + 2000) % 2000
                             if (showErrorGradient) {
                                 val maxErr = (101f - errorSensitivity).coerceAtLeast(1f)
                                 for (i in 0 until count - 1 step pathStep) {
-                                    val lerp = (pathError[i] / maxErr).coerceIn(0f, 1f)
-                                    drawLine(color = lerpColor(colors.accentCyan, colors.accentViolet, lerp), start = Offset(pathX[i], pathY[i]), end = Offset(pathX[i+1], pathY[i+1]), strokeWidth = AppDesign.strokeStandard.toPx(), cap = StrokeCap.Round)
+                                    val idx1 = (startIdx + i) % 2000; val idx2 = (startIdx + i + 1) % 2000
+                                    val lerp = (pathError[idx1] / maxErr).coerceIn(0f, 1f)
+                                    drawLine(color = lerpColor(colors.accentCyan, colors.accentViolet, lerp), start = Offset(pathX[idx1], pathY[idx1]), end = Offset(pathX[idx2], pathY[idx2]), strokeWidth = AppDesign.strokeStandard.toPx(), cap = StrokeCap.Round)
                                 }
                             } else {
                                 reusableTracePath.reset()
-                                reusableTracePath.moveTo(pathX[0], pathY[0])
-                                for (i in 1 until count step pathStep) { reusableTracePath.lineTo(pathX[i], pathY[i]) }
+                                reusableTracePath.moveTo(pathX[startIdx], pathY[startIdx])
+                                for (i in 1 until count step pathStep) { val idx = (startIdx + i) % 2000; reusableTracePath.lineTo(pathX[idx], pathY[idx]) }
                                 drawPath(path = reusableTracePath, color = colors.accentCyan, style = Stroke(width = AppDesign.strokeStandard.toPx(), cap = StrokeCap.Round))
                             }
                         }
@@ -318,11 +256,13 @@ fun FourierVisualizerBox(
                     val count = pathCountProvider()
                     if (count > 0) {
                         reusableWrappedPath.reset()
+                        val tp = trailPointerProvider()
+                        val startIdx = (tp - count + 2000) % 2000
                         var sumX = 0f; var sumY = 0f; var processed = 0
                         for (i in 0 until count step pathStep) {
-                            val angle = -2 * PI.toFloat() * windingFrequency * pathX[i]
-                            val wx = pathY[i] * cos(angle.toDouble()).toFloat()
-                            val wy = pathY[i] * sin(angle.toDouble()).toFloat()
+                            val idx = (startIdx + i) % 2000
+                            val angle = -2 * PI.toFloat() * windingFrequency * pathX[idx]
+                            val wx = pathY[idx] * cos(angle.toDouble()).toFloat(); val wy = pathY[idx] * sin(angle.toDouble()).toFloat()
                             if (i == 0) reusableWrappedPath.moveTo(wx, wy) else reusableWrappedPath.lineTo(wx, wy)
                             sumX += wx; sumY += wy; processed++
                         }
@@ -347,11 +287,6 @@ fun FourierVisualizerBox(
         }
 
         FourierLeftSidebar(displayMode = displayMode, onDisplayModeChange = onDisplayModeChange, onClearPath = onClearPath, colors = colors)
-        FourierRightSidebar(
-            displayNTermsProvider = intendedNTermsProvider,
-            onDisplayNTermsChange = onIntendedNTermsChange,
-            onActiveNTermsChange = onActiveNTermsChange,
-            colors = colors
-        )
+        FourierRightSidebar(displayNTermsProvider = intendedNTermsProvider, onDisplayNTermsChange = onIntendedNTermsChange, onActiveNTermsChange = onActiveNTermsChange, colors = colors)
     }
 }

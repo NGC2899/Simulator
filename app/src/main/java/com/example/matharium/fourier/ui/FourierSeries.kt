@@ -113,7 +113,8 @@ fun FourierSeries() {
 
     // Handle internal tweaks (harmonic version) - Debounced background update
     LaunchedEffect(state.harmonicVersion) {
-        state.rebuildCache(fullRebuild = false)
+        val isFull = state.waveType == WaveType.PURE_SIGNAL
+        state.rebuildCache(fullRebuild = isFull)
     }
 
     LaunchedEffect(state.waveType, state.drawingVersion, state.drawing2DVersion, state.harmonicVersion, state.formulaString, state.nTerms) {
@@ -179,6 +180,7 @@ fun FourierSeries() {
             timeProvider = { state.time }, 
             pathX = state.pathX, pathY = state.pathY, pathError = state.pathError,
             pathCountProvider = { state.pathCount },
+            trailPointerProvider = { state.trailPointer },
             showErrorGradient = state.showErrorGradient,
             errorSensitivity = state.errorSensitivity, waveStretch = state.waveStretch,
             onClearPath = { state.clearPath() }, windingFrequency = state.windingFrequency,

@@ -580,13 +580,13 @@ object FourierLogic {
                 }
             }
             WaveType.PURE_SIGNAL -> {
-                // For Pure Signal (manual builder), the target is the sum of ALL active signals,
-                // regardless of the nTerms slider (which acts as a view filter in other modes).
-                for (s in customFunctionSignals) {
+                // For Pure Signal (manual builder), the target is the sum of ALL active signals.
+                for (i in customFunctionSignals.indices) {
+                    val s = customFunctionSignals[i]
                     if (s.isPaused) continue
-                    val freq = harmonicFrequencies[s.id] ?: s.cachedFreq
-                    val amp = (harmonicAmplitudes[s.id] ?: s.cachedAmp) * radiusBase
-                    val phase = harmonicPhases[s.id] ?: s.cachedPhase
+                    val freq = harmonicFrequencies[i] ?: s.cachedFreq
+                    val amp = (harmonicAmplitudes[i] ?: s.cachedAmp) * radiusBase
+                    val phase = harmonicPhases[i] ?: s.cachedPhase
                     val angle = 2 * PI.toFloat() * freq * time + phase
                     sumX += amp * cos(angle)
                     sumY += -amp * sin(angle)
