@@ -8,9 +8,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import com.example.matharium.R
 import com.example.matharium.app.*
 import com.example.matharium.pendulum.engine.DoublePendulumConstants
 import java.util.Locale

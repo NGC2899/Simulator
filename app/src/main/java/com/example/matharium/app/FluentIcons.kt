@@ -14,8 +14,6 @@ import androidx.compose.ui.unit.dp
  */
 object FluentIcons {
 
-    private const val K = 0.55228475f // Magic number for circle approximation
-
     val PhosphorWaveSquare: ImageVector
         get() {
             if (_PhosphorWaveSquare != null) return _PhosphorWaveSquare!!
@@ -1008,70 +1006,6 @@ object FluentIcons {
         }
 
     private var _BootstrapStars: ImageVector? = null
-
-    val BubbleMultiple: ImageVector
-        get() {
-            if (_FluentuiSystemIconsBubbleMultiple != null) return _FluentuiSystemIconsBubbleMultiple!!
-
-            _FluentuiSystemIconsBubbleMultiple = ImageVector.Builder(
-                name = "bubble-multiple",
-                defaultWidth = 24.dp,
-                defaultHeight = 24.dp,
-                viewportWidth = 20f,
-                viewportHeight = 20f
-            ).apply {
-                path(
-                    fill = SolidColor(Color.Black)
-                ) {
-                    moveTo(15.5f, 2f)
-                    curveTo(14.1193f, 2f, 13f, 3.11929f, 13f, 4.5f)
-                    curveTo(13f, 5.88071f, 14.1193f, 7f, 15.5f, 7f)
-                    curveTo(16.8807f, 7f, 18f, 5.88071f, 18f, 4.5f)
-                    curveTo(18f, 3.11929f, 16.8807f, 2f, 15.5f, 2f)
-                    close()
-                    moveTo(12f, 4.5f)
-                    curveTo(12f, 2.567f, 13.567f, 1f, 15.5f, 1f)
-                    curveTo(17.433f, 1f, 19f, 2.567f, 19f, 4.5f)
-                    curveTo(19f, 6.433f, 17.433f, 8f, 15.5f, 8f)
-                    curveTo(13.567f, 8f, 12f, 6.433f, 12f, 4.5f)
-                    close()
-                    moveTo(3f, 10f)
-                    curveTo(3f, 7.79086f, 4.79086f, 6f, 7f, 6f)
-                    curveTo(9.20914f, 6f, 11f, 7.79086f, 11f, 10f)
-                    curveTo(11f, 12.2091f, 9.20914f, 14f, 7f, 14f)
-                    curveTo(4.79086f, 14f, 3f, 12.2091f, 3f, 10f)
-                    close()
-                    moveTo(7f, 5f)
-                    curveTo(4.23858f, 5f, 2f, 7.23858f, 2f, 10f)
-                    curveTo(2f, 12.7614f, 4.23858f, 15f, 7f, 15f)
-                    curveTo(9.76142f, 15f, 12f, 12.7614f, 12f, 10f)
-                    curveTo(12f, 7.23858f, 9.76142f, 5f, 7f, 5f)
-                    close()
-                    moveTo(12.4989f, 17.9989f)
-                    curveTo(10.9484f, 17.9989f, 9.63342f, 16.9907f, 9.17368f, 15.5941f)
-                    curveTo(9.49109f, 15.4707f, 9.7954f, 15.3211f, 10.0839f, 15.1478f)
-                    curveTo(10.3697f, 16.2139f, 11.3426f, 16.9989f, 12.4989f, 16.9989f)
-                    curveTo(13.8796f, 16.9989f, 14.9989f, 15.8796f, 14.9989f, 14.4989f)
-                    curveTo(14.9989f, 13.1713f, 13.9642f, 12.0855f, 12.6572f, 12.0038f)
-                    curveTo(12.769f, 11.6882f, 12.8552f, 11.3605f, 12.9131f, 11.0231f)
-                    curveTo(14.6509f, 11.228f, 15.9989f, 12.706f, 15.9989f, 14.4989f)
-                    curveTo(15.9989f, 16.4319f, 14.4319f, 17.9989f, 12.4989f, 17.9989f)
-                    close()
-                    moveTo(7.66662f, 7.20046f)
-                    curveTo(7.40626f, 7.10843f, 7.1206f, 7.24489f, 7.02858f, 7.50525f)
-                    curveTo(6.93656f, 7.76561f, 7.07302f, 8.05127f, 7.33338f, 8.14329f)
-                    curveTo(8.04309f, 8.39414f, 8.6065f, 8.95737f, 8.85759f, 9.66698f)
-                    curveTo(8.9497f, 9.92731f, 9.23541f, 10.0637f, 9.49574f, 9.97155f)
-                    curveTo(9.75606f, 9.87944f, 9.89242f, 9.59373f, 9.80031f, 9.33341f)
-                    curveTo(9.44849f, 8.33911f, 8.66108f, 7.55195f, 7.66662f, 7.20046f)
-                    close()
-                }
-            }.build()
-
-            return _FluentuiSystemIconsBubbleMultiple!!
-        }
-
-    private var _FluentuiSystemIconsBubbleMultiple: ImageVector? = null
 
     val BootstrapFiletypeSvg: ImageVector
         get() {

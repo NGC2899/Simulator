@@ -5,6 +5,7 @@ import androidx.compose.ui.graphics.toArgb
 import com.example.matharium.app.*
 import com.example.matharium.fourier.engine.*
 import kotlinx.coroutines.*
+import kotlin.time.Duration.Companion.milliseconds
 
 class FourierState(
     val prefs: AppPreferences,
@@ -145,7 +146,7 @@ class FourierState(
         cacheJob = scope.launch(Dispatchers.Default) {
             isSynthesizing = true
             // Debounce for UI sliders if it's a source change
-            if (fullRebuild) delay(300)
+            if (fullRebuild) delay(300.milliseconds)
             
             val harmonics = prepareHarmonicsList()
 

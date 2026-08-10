@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.media.*
 import android.util.Log
 import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * Handles Android-specific Audio Hardware interaction.
@@ -39,7 +40,7 @@ object VoiceHardwareManager {
             while (samplesRead < totalSamples && isRecording()) {
                 val read = audioRecord.read(rawBuffer, samplesRead, totalSamples - samplesRead)
                 if (read > 0) samplesRead += read else break
-                delay(10)
+                delay(10.milliseconds)
             }
             rawBuffer
         } catch (e: Exception) {
@@ -78,7 +79,7 @@ object VoiceHardwareManager {
         try {
             audioTrack.write(audioData, 0, audioData.size)
             audioTrack.play()
-            delay((audioData.size.toFloat() / sampleRate * 1000).toLong())
+            delay((audioData.size.toFloat() / sampleRate * 1000).toLong().milliseconds)
         } catch (e: Exception) {
             Log.e(TAG, "Error during playback", e)
         } finally {
