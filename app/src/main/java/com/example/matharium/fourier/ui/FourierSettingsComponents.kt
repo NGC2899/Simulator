@@ -4,11 +4,7 @@ import androidx.compose.animation.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -17,11 +13,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -472,6 +465,16 @@ fun SimulatorEnvironmentSettings(state: FourierState) {
                     ToggleRow(label = "Enable error gradient", checked = state.showErrorGradient, onCheckedChange = { state.showErrorGradient = it }, colors = colors)
                     AnimatedVisibility(visible = state.showErrorGradient) {
                         LabeledSlider(label = "Error Sensitivity", valueDisplay = String.format(Locale.US, "%.0f%%", state.errorSensitivity), value = state.errorSensitivity, range = 1f..100f, colors = colors) { state.errorSensitivity = it }
+                    }
+
+                    AnimatedVisibility(visible = state.displayMode == FourierDisplayMode.WRAPPING) {
+                        LabeledSlider(
+                            label = "Winding Frequency",
+                            valueDisplay = String.format(Locale.US, "%.2f Hz", state.windingFrequency),
+                            value = state.windingFrequency,
+                            range = 0.1f..5f,
+                            colors = colors
+                        ) { state.windingFrequency = it }
                     }
                 }
             }

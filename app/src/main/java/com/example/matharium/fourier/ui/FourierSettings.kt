@@ -9,12 +9,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import com.example.matharium.R
 import com.example.matharium.app.*
 import com.example.matharium.fourier.state.*
-import java.util.Locale
 
 @Composable
 fun FourierSettingsCard(
@@ -59,16 +56,6 @@ fun FourierSettingsCard(
                         WaveType.PURE_SIGNAL, WaveType.FORMULA -> CustomSignalSettings(state)
                         WaveType.SVG -> SVGSettings(state, svgPickerLauncher)
                         else -> {}
-                    }
-
-                    AnimatedVisibility(visible = state.displayMode == FourierDisplayMode.WRAPPING) {
-                        LabeledSlider(
-                            label = "Winding Frequency",
-                            valueDisplay = String.format(Locale.US, "%.2f Hz", state.windingFrequency),
-                            value = state.windingFrequency,
-                            range = 0.1f..5f,
-                            colors = colors
-                        ) { state.windingFrequency = it }
                     }
                 }
             }

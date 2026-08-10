@@ -86,6 +86,7 @@ fun HarmonicComponents(
     GlassCard(colors = colors) {
         Column(
             modifier = Modifier
+                .padding(horizontal = AppDesign.radiusLarge)
                 .animateContentSize(animationSpec = tween(AppDesign.animDurationStandard)),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -625,6 +626,7 @@ fun ComplexHarmonicComponents(
     GlassCard(colors = colors) {
         Column(
             modifier = Modifier
+                .padding(horizontal = AppDesign.radiusLarge)
                 .animateContentSize(animationSpec = tween(AppDesign.animDurationStandard)),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {

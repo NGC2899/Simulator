@@ -304,30 +304,46 @@ class FourierState(
             val maxFreq = 5.0f
             val spectrumPoints = 500
             
-            // Map coefficients directly to spectrum bins
+            // The simulation trail buffer (2000 samples) creates a rectangular window.
+            // Frequency resolution (L) is the time duration of this window.
+            // 2000 samples at ~120 steps/sec (60fps * 2 substeps) = ~16.6s baseline.
+            val L = 16.0f * speed 
+
             val result = List(spectrumPoints) { i ->
                 val f = (i.toFloat() / spectrumPoints) * maxFreq
                 var totalRe = 0.0
                 var totalIm = 0.0
                 
-                // Find harmonics that fall into this frequency bin
-                // We use a small epsilon for grouping to ensure smooth visualization
                 for (hIdx in harmonics.indices) {
                     if (removedHarmonics[hIdx] == true || pausedHarmonics[hIdx] == true) continue
                     val h = harmonics[hIdx]
                     val freq = harmonicFrequencies[hIdx] ?: h.freq
+                    val amp = harmonicAmplitudes[hIdx] ?: h.amp
+                    val phase = harmonicPhases[hIdx] ?: h.phase
                     
-                    // Simple peak representation: 
-                    // If harmonic freq matches bin freq, add its amplitude.
-                    // We use a Gaussian-like distribution for visual "peaks"
-                    val diff = kotlin.math.abs(freq - f)
-                    if (diff < 0.05f) {
-                        val weight = kotlin.math.exp((-diff * diff / 0.001).toDouble())
-                        val amp = harmonicAmplitudes[hIdx] ?: h.amp
-                        val phase = harmonicPhases[hIdx] ?: h.phase
-                        totalRe += weight * amp * kotlin.math.cos(phase.toDouble())
-                        totalIm += weight * amp * kotlin.math.sin(phase.toDouble())
-                    }
+                    // The simulation synthesizes: s(t) = -A * sin(2*PI*f*t + phase)
+                    // The Fourier coefficient for this component at resonance is:
+                    // Cn = (A/2) * e^(i * (phase + PI/2)) = (A/2) * (-sin(phase) + i*cos(phase))
+                    // To match valProj = re*cos + im*sin in FrequencyDomainGraph, we need Cn.conj
+                    val cnRe = -0.5 * amp * kotlin.math.sin(phase.toDouble())
+                    val cnIm = -0.5 * amp * kotlin.math.cos(phase.toDouble())
+                    
+                    // Smearing kernel: Sinc function for a rectangular window.
+                    // This creates the "smooth wavy/bumpy" side lobes.
+                    val df = f - freq
+                    val sincArg = df * L
+                    val weight = if (kotlin.math.abs(sincArg) < 1e-9) 1.0 
+                                 else kotlin.math.sin(kotlin.math.PI * sincArg) / (kotlin.math.PI * sincArg)
+                    
+                    // Window phase shift for interference (windowing from T-L to T)
+                    // M(f) = Cn * sinc(df*L) * e^(-i * PI * df * L)
+                    val shiftAngle = -kotlin.math.PI * df * L
+                    val cosS = kotlin.math.cos(shiftAngle)
+                    val sinS = kotlin.math.sin(shiftAngle)
+                    
+                    // Complex multiplication: (cnRe + i*cnIm) * (cosS + i*sinS)
+                    totalRe += weight * (cnRe * cosS - cnIm * sinS)
+                    totalIm += weight * (cnRe * sinS + cnIm * cosS)
                 }
                 FourierLogic.Complex(totalRe, totalIm)
             }
