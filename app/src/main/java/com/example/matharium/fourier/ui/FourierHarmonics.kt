@@ -242,10 +242,10 @@ fun HarmonicComponents(
                     WaveType.PURE_SIGNAL -> (customFunctionSignals[i].amp.toFloatOrNull() ?: 0f) to customFunctionSignals[i].cachedPhase
                     else -> 0f to 0f
                 }
-                
+
                 val radius = getHarmonicAmplitude(i, defaultRadius)
                 val phase = getHarmonicPhase(i, analyzedPhase)
-                
+
                 FourierExportLogic.TermData(n, radius, phase)
             }
         }
@@ -296,7 +296,7 @@ fun HarmonicItemRow(
     val isPaused = isHarmonicPaused(i)
 
     val density = androidx.compose.ui.platform.LocalDensity.current
-    val radiusBase = with(density) { 12.dp.toPx() } 
+    val radiusBase = with(density) { 12.dp.toPx() }
     val pixelsPerTimeUnit = with(density) { 60.dp.toPx() }
 
     val baseN = when (waveType) {
@@ -333,28 +333,6 @@ fun HarmonicItemRow(
     val phase = getHarmonicPhase(i, analyzedPhase)
 
     val freqLabel = remember(n) { "f = $n" }
-    
-    // OPTIMIZATION: Cache the waveform Path. 
-    // We generate a double-width path to allow seamless scrolling without recalculation.
-    val cachedPath = remember(n, amp, phase, density.density) {
-        val path = Path()
-        val densityVal = density.density
-        val centerY = 35.dp.value * densityVal / 2f
-        val samples = 300
-        val pixelsPerTimeUnitVal = 60.dp.value * densityVal
-        val timeRange = (60.dp.value * densityVal) / pixelsPerTimeUnitVal
-        val pixelsPerSample = (60.dp.value * densityVal) / samples
-        
-        // Generate enough points for 2 widths
-        for (s in 0..samples * 2) {
-            val x = s.toFloat() * pixelsPerSample
-            val waveT = - (s.toFloat() / samples) * timeRange
-            val totalAngle = 2 * PI.toFloat() * n * waveT + phase
-            val y = centerY - (amp * 12.dp.value * densityVal) * kotlin.math.sin(totalAngle.toDouble()).toFloat()
-            if (s == 0) path.moveTo(x, y) else path.lineTo(x, y)
-        }
-        path
-    }
 
     Row(
         modifier = Modifier
@@ -380,29 +358,57 @@ fun HarmonicItemRow(
                 .weight(1f)
                 .fillMaxHeight()
                 .clipToBounds() // FIX: Prevent overlapping other UI elements
-        ) {
-            val centerY = size.height / 2
-            val currentTime = timeProvider()
-            
-            // FIX: Seamless scrolling logic for double-width cached path
-            val periodWidth = size.width
-            val horizontalOffset = (currentTime * pixelsPerTimeUnit) % periodWidth
-            
-            val subAxisColor = colors.textSecondary.copy(alpha = 0.2f)
-            drawLine(subAxisColor, Offset(0f, centerY), Offset(size.width, centerY), AppDesign.strokeThin.toPx())
-            drawLine(subAxisColor, Offset(0f, 0f), Offset(0f, size.height), AppDesign.strokeThin.toPx())
+                .drawWithCache {
+                    // OPTIMIZATION: Cache the waveform Path.
+                    // We generate a double-width path to allow seamless scrolling without recalculation.
+                    // BUGFIX: the template width now comes from this canvas's own measured `size`
+                    // (only available here, inside drawWithCache) instead of a hardcoded 60.dp.
+                    // This row's canvas is Modifier.weight(1f) -- i.e. as wide as the screen -- so a
+                    // path pre-rendered for a fixed 60dp template was far narrower than the real
+                    // canvas. The scroll translate below then had little or no cached wave left to
+                    // reveal inside the visible area, so most harmonics rendered blank or as a
+                    // truncated, jumping sliver instead of a continuous scrolling sine wave.
+                    val centerY = size.height / 2
+                    val samples = 300
+                    val periodWidth = size.width
+                    val timeRange = periodWidth / pixelsPerTimeUnit
+                    val pixelsPerSample = periodWidth / samples
 
-            withTransform({
-                // Translate by (offset - periodWidth) to ensure the double-width path
-                // always covers the visible area [0, periodWidth]
-                translate(left = horizontalOffset - periodWidth)
-            }) {
-                drawPath(
-                    path = cachedPath,
-                    color = colors.accentCyan.copy(alpha = 0.6f),
-                    style = Stroke(width = AppDesign.strokeStandard.toPx(), cap = StrokeCap.Round)
-                )
-            }
+                    val path = Path()
+                    for (s in 0..samples * 2) {
+                        val x = s.toFloat() * pixelsPerSample
+                        val waveT = -(s.toFloat() / samples) * timeRange
+                        val totalAngle = 2 * PI.toFloat() * n * waveT + phase
+                        val y = centerY - (amp * 12.dp.toPx()) * kotlin.math.sin(totalAngle.toDouble()).toFloat()
+                        if (s == 0) path.moveTo(x, y) else path.lineTo(x, y)
+                    }
+
+                    val subAxisColor = colors.textSecondary.copy(alpha = 0.2f)
+
+                    onDrawBehind {
+                        drawLine(subAxisColor, Offset(0f, centerY), Offset(size.width, centerY), AppDesign.strokeThin.toPx())
+                        drawLine(subAxisColor, Offset(0f, 0f), Offset(0f, size.height), AppDesign.strokeThin.toPx())
+
+                        val currentTime = timeProvider()
+
+                        // FIX: Seamless scrolling logic for double-width cached path
+                        val horizontalOffset = (currentTime * pixelsPerTimeUnit) % periodWidth
+
+                        withTransform({
+                            // Translate by (offset - periodWidth) to ensure the double-width path
+                            // always covers the visible area [0, periodWidth]
+                            translate(left = horizontalOffset - periodWidth)
+                        }) {
+                            drawPath(
+                                path = path,
+                                color = colors.accentCyan.copy(alpha = 0.6f),
+                                style = Stroke(width = AppDesign.strokeStandard.toPx(), cap = StrokeCap.Round)
+                            )
+                        }
+                    }
+                }
+        ) {
+            // Draw logic moved to drawWithCache
         }
 
         // Edit Menu
@@ -782,10 +788,10 @@ fun ComplexHarmonicComponents(
                     WaveType.PURE_SIGNAL -> (customFunctionSignals[i].amp.toFloatOrNull() ?: 0f) to customFunctionSignals[i].cachedPhase
                     else -> 0f to 0f
                 }
-                
+
                 val radius = getHarmonicAmplitude(i, defaultRadius)
                 val phase = getHarmonicPhase(i, analyzedPhase)
-                
+
                 FourierExportLogic.TermData(n, radius, phase)
             }
         }
@@ -863,7 +869,7 @@ fun ComplexHarmonicItemRow(
         WaveType.PURE_SIGNAL -> (customFunctionSignals[i].amp.toFloatOrNull() ?: 0f) to customFunctionSignals[i].cachedPhase
         else -> 0f to 0f
     }
-    
+
     val radius = getHarmonicAmplitude(i, defaultRadius)
     val phase = getHarmonicPhase(i, analyzedPhase)
 
@@ -911,7 +917,7 @@ fun ComplexHarmonicItemRow(
                     onDrawBehind {
                         drawPath(staticCirclesPath, colors.accentCyan.copy(alpha = 0.1f), style = Stroke(width = 1.dp.toPx()))
                         drawPath(staticAxisPath, colors.textSecondary.copy(alpha = 0.1f), style = Stroke(width = 1.dp.toPx()))
-                        
+
                         val currentTime = timeProvider()
                         val totalAngle = if (isPaused) 0f else 2 * PI.toFloat() * n * currentTime + phase
                         val end = Offset(
