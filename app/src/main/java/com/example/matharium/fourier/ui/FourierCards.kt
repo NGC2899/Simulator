@@ -58,9 +58,9 @@ fun SignalSettingsCard(
             AnimatedVisibility(visible = signal.isExpanded) {
                 Column(modifier = Modifier.padding(top = AppDesign.spacingMedium)) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(AppDesign.spacingMedium)) {
-                        SignalField(label = "Freq", unit = "Hz", icon = painterResource(id = R.drawable.caret_forward_outline), value = signal.freq, colors = colors, onValueChange = { signal.freq = it; signal.updateCache(); onParameterChange() })
-                        SignalField(label = "Amp", unit = "", icon = painterResource(id = R.drawable.add_outline), value = signal.amp, colors = colors, onValueChange = { signal.amp = it; signal.updateCache(); onParameterChange() })
-                        SignalField(label = "Phase", unit = "°", icon = rememberVectorPainter(Icons.Default.Refresh), value = signal.phase, colors = colors, onValueChange = { signal.phase = it; signal.updateCache(); onParameterChange() })
+                        SignalField(label = "Freq", unit = "Hz", icon = painterResource(id = R.drawable.caret_forward_outline), value = signal.freq, colors = colors, onValueChange = { signal.freq = it; signal.initialFreq = it; signal.updateCache(); onParameterChange() })
+                        SignalField(label = "Amp", unit = "", icon = painterResource(id = R.drawable.add_outline), value = signal.amp, colors = colors, onValueChange = { signal.amp = it; signal.initialAmp = it; signal.updateCache(); onParameterChange() })
+                        SignalField(label = "Phase", unit = "°", icon = rememberVectorPainter(Icons.Default.Refresh), value = signal.phase, colors = colors, onValueChange = { signal.phase = it; signal.initialPhase = it; signal.updateCache(); onParameterChange() })
                     }
                 }
             }

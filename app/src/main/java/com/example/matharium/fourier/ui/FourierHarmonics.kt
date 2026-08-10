@@ -20,7 +20,6 @@ import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -34,8 +33,6 @@ import com.example.matharium.fourier.engine.FourierLogic
 import com.example.matharium.fourier.state.*
 import java.util.Locale
 import kotlin.math.PI
-import kotlin.math.cos
-import kotlin.math.sin
 
 @Composable
 fun HarmonicComponents(
@@ -89,12 +86,11 @@ fun HarmonicComponents(
     GlassCard(colors = colors) {
         Column(
             modifier = Modifier
-                .padding(AppDesign.radiusLarge)
                 .animateContentSize(animationSpec = tween(AppDesign.animDurationStandard)),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth().heightIn(min = 40.dp),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 55.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -629,12 +625,11 @@ fun ComplexHarmonicComponents(
     GlassCard(colors = colors) {
         Column(
             modifier = Modifier
-                .padding(AppDesign.radiusLarge)
                 .animateContentSize(animationSpec = tween(AppDesign.animDurationStandard)),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth().heightIn(min = 40.dp),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 55.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {

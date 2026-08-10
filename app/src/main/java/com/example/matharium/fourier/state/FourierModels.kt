@@ -15,9 +15,9 @@ enum class FourierDisplayMode {
 class SignalInstance(
     val id: Int,
     var colorArgb: Color,
-    val initialFreq: String = "1.0",
-    val initialAmp: String = "0.5",
-    val initialPhase: String = "0.0"
+    var initialFreq: String = "1.0",
+    var initialAmp: String = "0.5",
+    var initialPhase: String = "0.0"
 ) {
     var freq by mutableStateOf(initialFreq)
     var amp by mutableStateOf(initialAmp)
