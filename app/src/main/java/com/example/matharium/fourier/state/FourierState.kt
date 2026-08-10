@@ -178,7 +178,12 @@ class FourierState(
             simAmps[i] = harmonicAmplitudes[i] ?: h.amp
             simPhases[i] = harmonicPhases[i] ?: h.phase
             simColors[i] = h.colorArgb
-            simActive[i] = removedHarmonics[i] != true && pausedHarmonics[i] != true
+            val isPaused = if (waveType == WaveType.PURE_SIGNAL && i < customFunctionSignals.size) {
+                customFunctionSignals[i].isPaused || pausedHarmonics[i] == true
+            } else {
+                pausedHarmonics[i] == true
+            }
+            simActive[i] = removedHarmonics[i] != true && !isPaused
         }
     }
 

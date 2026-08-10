@@ -296,6 +296,11 @@ fun CustomSignalSettings(state: FourierState) {
                             val color = Color.hsv(kotlin.random.Random.nextFloat() * 360f, 0.7f, 0.9f)
                             state.customFunctionSignals.add(SignalInstance(state.nextSignalId, color, last?.freq ?: "1.0", last?.amp ?: "0.5", last?.phase ?: "0.0"))
                             state.nextSignalId++
+                            state.harmonicVersion++
+                            state.nTerms = state.customFunctionSignals.size
+                            state.intendedNTerms = state.customFunctionSignals.size
+                            state.time = 0f
+                            state.clearPath()
                         },
                     contentAlignment = Alignment.Center
                 ) {
@@ -308,7 +313,17 @@ fun CustomSignalSettings(state: FourierState) {
                 Box(
                     modifier = Modifier.weight(0.5f).fillMaxHeight().clip(RoundedCornerShape(AppDesign.radiusButton)).background(colors.accentHell.copy(alpha = 0.1f))
                         .border(BorderStroke(AppDesign.borderThin, colors.accentHell.copy(alpha = 0.3f)), RoundedCornerShape(AppDesign.radiusButton))
-                        .clickable { state.clearOverrides(); state.customFunctionSignals.clear(); state.nextSignalId = 0; state.running = false; state.clearPath() },
+                        .clickable {
+                            state.clearOverrides()
+                            state.customFunctionSignals.clear()
+                            state.nextSignalId = 0
+                            state.running = false
+                            state.clearPath()
+                            state.harmonicVersion++
+                            state.nTerms = 0
+                            state.intendedNTerms = 0
+                            state.time = 0f
+                        },
                     contentAlignment = Alignment.Center
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
@@ -324,7 +339,27 @@ fun CustomSignalSettings(state: FourierState) {
                 Column(verticalArrangement = Arrangement.spacedBy(AppDesign.spacingSmall)) {
                     val displayList = if (state.isSignalsExpanded) state.customFunctionSignals else state.customFunctionSignals.take(5)
                     displayList.forEach { signal ->
-                        SignalSettingsCard(signal = signal, colors = colors, showDel = state.customFunctionSignals.size > 1, onParameterChange = { state.clearPath(); state.prefs.saveFourierSignals(state.customFunctionSignals.toList()) }, onDel = { state.customFunctionSignals.remove(signal); state.removedHarmonics.clear(); state.prefs.saveFourierSignals(state.customFunctionSignals.toList()); if (state.customFunctionSignals.isEmpty()) state.nextSignalId = 0 })
+                        SignalSettingsCard(
+                            signal = signal,
+                            colors = colors,
+                            showDel = state.customFunctionSignals.size > 1,
+                            onParameterChange = {
+                                state.clearPath()
+                                state.harmonicVersion++
+                                state.prefs.saveFourierSignals(state.customFunctionSignals.toList())
+                            },
+                            onDel = {
+                                state.customFunctionSignals.remove(signal)
+                                state.removedHarmonics.clear()
+                                state.prefs.saveFourierSignals(state.customFunctionSignals.toList())
+                                if (state.customFunctionSignals.isEmpty()) state.nextSignalId = 0
+                                state.harmonicVersion++
+                                state.nTerms = state.customFunctionSignals.size
+                                state.intendedNTerms = state.customFunctionSignals.size
+                                state.time = 0f
+                                state.clearPath()
+                            }
+                        )
                     }
                     if (state.customFunctionSignals.size > 5) {
                         Box(modifier = Modifier.fillMaxWidth().padding(top = AppDesign.spacingSmall).clip(RoundedCornerShape(AppDesign.radiusSmall)).background(colors.accentCyan.copy(alpha = 0.05f)).border(BorderStroke(AppDesign.borderThin, colors.accentCyan.copy(alpha = 0.1f)), RoundedCornerShape(AppDesign.radiusSmall)).clickable { state.isSignalsExpanded = !state.isSignalsExpanded }, contentAlignment = Alignment.Center) {

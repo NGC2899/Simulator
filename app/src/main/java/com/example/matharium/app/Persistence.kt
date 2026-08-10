@@ -7,62 +7,63 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import com.example.matharium.fourier.state.SignalInstance
 import com.example.matharium.pendulum.state.PendulumInstance
+import androidx.core.content.edit
 
 class AppPreferences(context: Context) {
     private val prefs: SharedPreferences = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
 
     var isDarkTheme: Boolean
         get() = prefs.getBoolean("is_dark_theme", true)
-        set(value) = prefs.edit().putBoolean("is_dark_theme", value).apply()
+        set(value) = prefs.edit { putBoolean("is_dark_theme", value) }
 
     var isAnimatedBackground: Boolean
         get() = prefs.getBoolean("is_animated_background", false)
-        set(value) = prefs.edit().putBoolean("is_animated_background", value).apply()
+        set(value) = prefs.edit { putBoolean("is_animated_background", value) }
 
     var hapticFeedbackEnabled: Boolean
         get() = prefs.getBoolean("haptic_feedback_enabled", true)
-        set(value) = prefs.edit().putBoolean("haptic_feedback_enabled", value).apply()
+        set(value) = prefs.edit { putBoolean("haptic_feedback_enabled", value) }
 
     // Fourier Settings
     var fourierNTerms: Int
         get() = prefs.getInt("fourier_n_terms", 5)
-        set(value) = prefs.edit().putInt("fourier_n_terms", value).apply()
+        set(value) = prefs.edit { putInt("fourier_n_terms", value) }
 
     var fourierWaveType: String
         get() = prefs.getString("fourier_wave_type", "SQUARE") ?: "SQUARE"
-        set(value) = prefs.edit().putString("fourier_wave_type", value).apply()
+        set(value) = prefs.edit { putString("fourier_wave_type", value) }
 
     var fourierSpeed: Float
         get() = prefs.getFloat("fourier_speed", 1.0f)
-        set(value) = prefs.edit().putFloat("fourier_speed", value).apply()
+        set(value) = prefs.edit { putFloat("fourier_speed", value) }
 
     var fourierDisplayMode: String
         get() = prefs.getString("fourier_display_mode", "CIRCULAR") ?: "CIRCULAR"
-        set(value) = prefs.edit().putString("fourier_display_mode", value).apply()
+        set(value) = prefs.edit { putString("fourier_display_mode", value) }
 
     var fourierFormula: String
         get() = prefs.getString("fourier_formula", "abs(sin(x))") ?: "abs(sin(x))"
-        set(value) = prefs.edit().putString("fourier_formula", value).apply()
+        set(value) = prefs.edit { putString("fourier_formula", value) }
 
     var fourierWindingFrequency: Float
         get() = prefs.getFloat("fourier_winding_frequency", 1.0f)
-        set(value) = prefs.edit().putFloat("fourier_winding_frequency", value).apply()
+        set(value) = prefs.edit { putFloat("fourier_winding_frequency", value) }
 
     var fourierErrorSensitivity: Float
         get() = prefs.getFloat("fourier_error_sensitivity", 20.0f)
-        set(value) = prefs.edit().putFloat("fourier_error_sensitivity", value).apply()
+        set(value) = prefs.edit { putFloat("fourier_error_sensitivity", value) }
 
     var fourierWaveStretch: Float
         get() = prefs.getFloat("fourier_wave_stretch", 120.0f)
-        set(value) = prefs.edit().putFloat("fourier_wave_stretch", value).apply()
+        set(value) = prefs.edit { putFloat("fourier_wave_stretch", value) }
 
     var fourierShowErrorGradient: Boolean
         get() = prefs.getBoolean("fourier_show_error_gradient", false)
-        set(value) = prefs.edit().putBoolean("fourier_show_error_gradient", value).apply()
+        set(value) = prefs.edit { putBoolean("fourier_show_error_gradient", value) }
 
     var drawingPoints: List<Float>
         get() = prefs.getString("drawing_points", "")?.split(",")?.filter { it.isNotEmpty() }?.mapNotNull { it.toFloatOrNull() } ?: emptyList()
-        set(value) = prefs.edit().putString("drawing_points", value.joinToString(",")).apply()
+        set(value) = prefs.edit { putString("drawing_points", value.joinToString(",")) }
 
     var drawingPoints2D: List<Offset>
         get() {
@@ -77,7 +78,11 @@ class AppPreferences(context: Context) {
                 } else null
             }
         }
-        set(value) = prefs.edit().putString("drawing_points_2d", value.joinToString(";") { "${it.x},${it.y}" }).apply()
+        set(value) = prefs.edit {
+            putString(
+                "drawing_points_2d",
+                value.joinToString(";") { "${it.x},${it.y}" })
+        }
 
     var fourierSvgPoints: List<Offset>
         get() {
@@ -92,14 +97,14 @@ class AppPreferences(context: Context) {
                 } else null
             }
         }
-        set(value) = prefs.edit().putString("fourier_svg_points", value.joinToString(";") { "${it.x},${it.y}" }).apply()
+        set(value) = prefs.edit { putString("fourier_svg_points", value.joinToString(";") { "${it.x},${it.y}" })}
 
     private fun escape(s: String) = s.replace("%", "%25").replace("|", "%7C").replace(";", "%3B")
     private fun unescape(s: String) = s.replace("%7C", "|").replace("%3B", ";").replace("%25", "%")
 
     fun saveFourierSignals(signals: List<SignalInstance>) {
         val serialized = signals.joinToString(";") { "${it.id}|${it.colorArgb.toArgb()}|${escape(it.freq)}|${escape(it.amp)}|${escape(it.phase)}" }
-        prefs.edit().putString("fourier_signals", serialized).apply()
+        prefs.edit { putString("fourier_signals", serialized) }
     }
 
     fun loadFourierSignals(defaultColorArgb: Int): List<SignalInstance> {
@@ -134,7 +139,11 @@ class AppPreferences(context: Context) {
                 } else null
             }
         }
-        set(value) = prefs.edit().putString("custom_coeffs", value.joinToString(";") { "${it.first},${it.second}" }).apply()
+        set(value) = prefs.edit {
+            putString(
+                "custom_coeffs",
+                value.joinToString(";") { "${it.first},${it.second}" })
+        }
 
     var customCoefficients2D: List<com.example.matharium.fourier.engine.FourierLogic.ComplexCoeff>
         get() {
@@ -150,38 +159,42 @@ class AppPreferences(context: Context) {
                 } else null
             }
         }
-        set(value) = prefs.edit().putString("custom_coeffs_2d", value.joinToString(";") { "${it.freq},${it.amp},${it.phase}" }).apply()
+        set(value) = prefs.edit {
+            putString(
+                "custom_coeffs_2d",
+                value.joinToString(";") { "${it.freq},${it.amp},${it.phase}" })
+        }
 
     // Pendulum Settings
     var pendulumScale: Float
         get() = prefs.getFloat("pendulum_scale", 100f)
-        set(value) = prefs.edit().putFloat("pendulum_scale", value).apply()
+        set(value) = prefs.edit { putFloat("pendulum_scale", value) }
 
     var pendulumFrictionEnabled: Boolean
         get() = prefs.getBoolean("pendulum_friction_enabled", false)
-        set(value) = prefs.edit().putBoolean("pendulum_friction_enabled", value).apply()
+        set(value) = prefs.edit { putBoolean("pendulum_friction_enabled", value) }
 
     var pendulumFrictionAmount: Float
         get() = prefs.getFloat("pendulum_friction_amount", 0.0002f)
-        set(value) = prefs.edit().putFloat("pendulum_friction_amount", value).apply()
+        set(value) = prefs.edit { putFloat("pendulum_friction_amount", value) }
 
     var pendulumGravityAmount: Float
         get() = prefs.getFloat("pendulum_gravity_amount", 9.8f)
-        set(value) = prefs.edit().putFloat("pendulum_gravity_amount", value).apply()
+        set(value) = prefs.edit { putFloat("pendulum_gravity_amount", value) }
 
     var pendulumSpeedMultiplier: Float
         get() = prefs.getFloat("pendulum_speed_multiplier", 1f)
-        set(value) = prefs.edit().putFloat("pendulum_speed_multiplier", value).apply()
+        set(value) = prefs.edit { putFloat("pendulum_speed_multiplier", value) }
 
     var pendulumColorByVelocity: Boolean
         get() = prefs.getBoolean("pendulum_color_by_velocity", false)
-        set(value) = prefs.edit().putBoolean("pendulum_color_by_velocity", value).apply()
+        set(value) = prefs.edit { putBoolean("pendulum_color_by_velocity", value) }
 
     fun savePendulums(pendulums: List<PendulumInstance>) {
         val serialized = pendulums.joinToString(";") {
             "${it.id}|${it.baseColor.toArgb()}|${escape(it.startT1)}|${escape(it.startT2)}|${escape(it.l1)}|${escape(it.l2)}"
         }
-        prefs.edit().putString("pendulums", serialized).apply()
+        prefs.edit { putString("pendulums", serialized) }
     }
 
     fun loadPendulums(accentColor: Color): List<PendulumInstance> {

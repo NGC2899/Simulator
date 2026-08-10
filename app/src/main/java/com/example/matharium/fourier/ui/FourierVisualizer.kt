@@ -192,7 +192,12 @@ fun FourierVisualizerBox(
 
                     for (i in 0 until termsToDraw) {
                         if (i >= harmonics.size) break
-                        if (removedHarmonics[i] == true || pausedHarmonics[i] == true) continue
+                        val isPaused = if (waveType == WaveType.PURE_SIGNAL && i < customFunctionSignals.size) {
+                            customFunctionSignals[i].isPaused || pausedHarmonics[i] == true
+                        } else {
+                            pausedHarmonics[i] == true
+                        }
+                        if (removedHarmonics[i] == true || isPaused) continue
                         val h = harmonics[i]
                         val prevX = x; val prevY = y
                         val n = harmonicFrequencies[i] ?: h.freq; val amp = harmonicAmplitudes[i] ?: h.amp; val phase = harmonicPhases[i] ?: h.phase
