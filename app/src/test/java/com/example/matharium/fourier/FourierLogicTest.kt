@@ -1,6 +1,5 @@
 package com.example.matharium.fourier
 
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import com.example.matharium.fourier.engine.FourierLogic
 import com.example.matharium.fourier.state.FourierDisplayMode
@@ -56,7 +55,7 @@ class FourierLogicTest {
 
     @Test
     fun testGetIdealValue_SVGAlignment() {
-        val svgPoints = listOf(Offset(0f, 1f)) // Math space (up positive)
+        val svgPoints = listOf(FourierLogic.MathPoint(0f, 1f)) // Math space (up positive)
         val target = FourierLogic.getIdealValue(
             time = 0f,
             waveType = WaveType.SVG,
