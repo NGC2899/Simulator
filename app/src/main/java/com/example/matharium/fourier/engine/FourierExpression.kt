@@ -62,17 +62,26 @@ object FourierExpressionEvaluator {
         }
     }
 
-    private val cache = mutableMapOf<String, Node?>()
+    private val cache = java.util.concurrent.ConcurrentHashMap<String, Node>()
+
+    private object ErrorNode : Node {
+        override fun eval(x: Double) = Double.NaN
+    }
 
     fun compile(expression: String): Node? {
-        if (expression.isBlank()) return null
         val clean = expression.lowercase(java.util.Locale.US).replace(" ", "")
-        return cache.getOrPut(clean) {
-            try {
-                Parser(clean).parse()
-            } catch (e: Exception) {
-                null
-            }
+        if (clean.isBlank()) return null
+        
+        val cached = cache[clean]
+        if (cached != null) return if (cached === ErrorNode) null else cached
+        
+        return try {
+            val node = Parser(clean).parse()
+            cache[clean] = node
+            node
+        } catch (e: Exception) {
+            cache[clean] = ErrorNode
+            null
         }
     }
 
@@ -80,6 +89,8 @@ object FourierExpressionEvaluator {
         val node = compile(expression) ?: return Double.NaN
         return node.eval(x)
     }
+
+    private val functions = setOf("sin", "cos", "tan", "sqrt", "abs", "log", "ln", "exp", "floor", "ceil")
 
     private class Parser(val input: String) {
         var pos = -1
@@ -98,9 +109,10 @@ object FourierExpressionEvaluator {
         }
 
         fun parse(): Node {
+            if (input.isBlank()) throw Exception("Empty expression")
             nextChar()
             val node = parseExpression()
-            if (pos < input.length) throw Exception("Unexpected char")
+            if (pos < input.length) throw Exception("Unexpected character: '${input[pos]}'")
             return node
         }
 
@@ -133,26 +145,43 @@ object FourierExpressionEvaluator {
             val startPos = pos
             if (eat('('.code)) {
                 node = parseExpression()
-                eat(')'.code)
+                if (!eat(')'.code)) {
+                    throw Exception("Expected ')'")
+                }
             } else if (ch >= '0'.code && ch <= '9'.code || ch == '.'.code) {
                 while (ch >= '0'.code && ch <= '9'.code || ch == '.'.code) nextChar()
                 node = Constant(input.substring(startPos, pos).toDouble())
             } else if (ch >= 'a'.code && ch <= 'z'.code) {
                 while (ch >= 'a'.code && ch <= 'z'.code) nextChar()
-                val func = input.substring(startPos, pos)
-                if (func == "x" || func == "t") {
+                val word = input.substring(startPos, pos)
+                if (word == "x" || word == "t") {
                     node = Variable()
-                } else if (func == "pi") {
+                } else if (word == "pi") {
                     node = Constant(PI)
-                } else if (func == "e") {
+                } else if (word == "e") {
                     node = Constant(E)
                 } else {
-                    if (eat('('.code)) {
-                        node = Function(func, parseExpression())
-                        eat(')'.code)
-                    } else throw Exception("Invalid function")
+                    if (functions.contains(word)) {
+                        if (eat('('.code)) {
+                            val argument = parseExpression()
+                            if (!eat(')'.code)) {
+                                throw Exception("Expected ')' after function argument")
+                            }
+                            node = Function(word, argument)
+                        } else {
+                            throw Exception("Function '$word' requires parentheses")
+                        }
+                    } else if (word.startsWith("x") || word.startsWith("t")) {
+                        // Handle cases like "xsin(x)" where "x" is followed by a function
+                        // Backtrack to just after the 'x' or 't'
+                        pos = startPos + 1
+                        ch = if (pos < input.length) input[pos].code else -1
+                        node = Variable()
+                    } else {
+                        throw Exception("Unknown function or variable: '$word'")
+                    }
                 }
-            } else throw Exception("Unexpected char")
+            } else throw Exception("Unexpected character: '${ch.toChar()}'")
 
             if (eat('^'.code)) node = Binary('^', node, parseFactor())
 

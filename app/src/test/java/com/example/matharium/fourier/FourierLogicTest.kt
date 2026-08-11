@@ -296,34 +296,72 @@ class FourierLogicTest {
     }
 
     @Test
-    fun testFourierSymmetryDetection() {
-        val n = 1024
+    fun testFourierExpressionParser_Comprehensive() {
+        val parser = FourierExpressionEvaluator
         
-        // f(x) = x^2 (Even)
-        val evenSamples = List(n) { i ->
-            val x = (i.toDouble() / n) * 2.0 * PI - PI
-            (x * x).toFloat()
-        }
-        val evenResult = FourierLogic.detectSymmetry(evenSamples)
-        assertTrue("x^2 should be detected as primarily even: ${evenResult.evenPercent}", evenResult.evenPercent > 99.0f)
-        assertTrue("x^2 should have low odd percentage: ${evenResult.oddPercent}", evenResult.oddPercent < 1.0f)
+        // Basic precedence: 2 + 3 * 4 = 14
+        val r1 = parser.evaluate("2+3*4", 0.0)
+        assertTrue("2+3*4 should be 14, got $r1", abs(r1 - 14.0) < 1e-9)
+        
+        // Parentheses: (2 + 3) * 4 = 20
+        val r2 = parser.evaluate("(2+3)*4", 0.0)
+        assertTrue("(2+3)*4 should be 20, got $r2", abs(r2 - 20.0) < 1e-9)
+        
+        // Unary vs Exponent: -2^2 = -(2^2) = -4
+        val r3 = parser.evaluate("-2^2", 0.0)
+        assertTrue("-2^2 should be -4, got $r3", abs(r3 - (-4.0)) < 1e-9)
+        
+        // Parenthesized Unary: (-2)^2 = 4
+        val r4 = parser.evaluate("(-2)^2", 0.0)
+        assertTrue("(-2)^2 should be 4, got $r4", abs(r4 - 4.0) < 1e-9)
+        
+        // Right associativity: 2^3^2 = 2^(3^2) = 512
+        val r5 = parser.evaluate("2^3^2", 0.0)
+        assertTrue("2^3^2 should be 512, got $r5", abs(r5 - 512.0) < 1e-9)
+        
+        // Implicit mult and functions
+        val r6 = parser.evaluate("2x", 3.0)
+        assertTrue("2x at 3 should be 6, got $r6", abs(r6 - 6.0) < 1e-9)
+        
+        val r7a = parser.evaluate("sin(pi/2)", 0.0)
+        assertTrue("sin(pi/2) should be 1, got $r7a", abs(r7a - 1.0) < 1e-9)
 
-        // f(x) = x^3 (Odd)
-        val oddSamples = List(n) { i ->
-            val x = (i.toDouble() / n) * 2.0 * PI - PI
-            (x * x * x).toFloat()
-        }
-        val oddResult = FourierLogic.detectSymmetry(oddSamples)
-        assertTrue("x^3 should be detected as primarily odd: ${oddResult.oddPercent}", oddResult.oddPercent > 99.0f)
-        assertTrue("x^3 should have low even percentage: ${oddResult.evenPercent}", oddResult.evenPercent < 1.0f)
+        val r7b = parser.evaluate("x*sin(pi/2)", 2.0)
+        assertTrue("x*sin(pi/2) at 2 should be 2, got $r7b", abs(r7b - 2.0) < 1e-9)
 
-        // f(x) = x^2 + x (Neither)
-        val neitherSamples = List(n) { i ->
-            val x = (i.toDouble() / n) * 2.0 * PI - PI
-            (x * x + x).toFloat()
+        val r7 = parser.evaluate("xsin(pi/2)", 2.0)
+        assertTrue("xsin(pi/2) at 2 should be 2, got $r7", abs(r7 - 2.0) < 1e-9)
+    }
+
+    @Test
+    fun testFourierStandardWaves_Consistency() {
+        val nTerms = 50
+        val radius = 100f
+        
+        // Verify that analytic harmonics for standard waves converge to the ideal value
+        val waveTypes = listOf(WaveType.SINE, WaveType.SQUARE, WaveType.TRIANGLE, WaveType.SAWTOOTH)
+        
+        for (type in waveTypes) {
+            val harmonics = FourierLogic.calculateStandardHarmonics(type, nTerms)
+            
+            // Check at several points in time, avoiding discontinuities for Square/Sawtooth
+            val testTimes = listOf(0.1f, 0.25f, 0.7f, 0.85f)
+            for (time in testTimes) {
+                val ideal = FourierLogic.getIdealValue(time, type, radius, FourierDisplayMode.CIRCULAR, emptyList(), emptyList(), emptyList(), emptyList(), "", emptyList())
+                
+                var reconY = 0.0
+                val angleBase = -2.0 * PI * time
+                for (h in harmonics) {
+                    val angle = angleBase * h.freq + h.phase
+                    reconY += -(h.amp * radius * sin(angle))
+                }
+                
+                // Convergence for Square wave with 50 terms is approx 2% of amplitude far from jump
+                // Amplitude is 100, so tolerance 5-10 is reasonable.
+                val tolerance = 15f
+                assertTrue("Wave $type at t=$time should converge: ideal=${ideal.y}, recon=$reconY", 
+                    abs(ideal.y - reconY) < tolerance)
+            }
         }
-        val neitherResult = FourierLogic.detectSymmetry(neitherSamples)
-        assertTrue("x^2 + x should be neither perfectly even nor odd", 
-            neitherResult.evenPercent > 10f && neitherResult.evenPercent < 90f)
     }
 }

@@ -231,9 +231,10 @@ class FourierState(
             isAnalyzing = true
             val samples = if (waveType == WaveType.FORMULA) {
                 val list = mutableListOf<Float>()
+                val compiled = FourierExpressionEvaluator.compile(formulaString)
                 for (i in 0 until samplesCount) {
                     val x = (i.toDouble() / samplesCount) * 2.0 * kotlin.math.PI - kotlin.math.PI
-                    val eval = FourierExpressionEvaluator.evaluate(formulaString, x)
+                    val eval = compiled?.eval(x) ?: Double.NaN
                     list.add(if (eval.isFinite()) eval.toFloat() else 0f)
                 }
                 list
