@@ -354,7 +354,7 @@ class FourierState(
             
             var approxX = 0f
             var approxY = 0f
-            val angleBase = twoPi * time
+            val angleBase = -twoPi * time
             for (i in 0 until termsToProcess) {
                 if (i >= simTermsCount) break
                 if (!simActive[i]) continue

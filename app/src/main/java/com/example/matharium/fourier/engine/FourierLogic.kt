@@ -511,25 +511,28 @@ object FourierLogic {
 
         when (waveType) {
             WaveType.SINE -> {
-                val angle = 2 * PI.toFloat() * 1f * time
-                sumX = radiusBase * cos(angle)
-                sumY = -radiusBase * sin(angle)
+                val angle = -2 * PI.toFloat() * 1f * time
+                sumX = radiusBase * cos(angle.toDouble()).toFloat()
+                sumY = -radiusBase * sin(angle.toDouble()).toFloat()
             }
             WaveType.SQUARE -> {
-                val angle = 2 * PI.toFloat() * 1f * time
-                val value = if (sin(angle) >= 0) 1f else -1f
+                val angle = -2 * PI.toFloat() * 1f * time
+                val value = if (sin(angle.toDouble()) >= 0) 1f else -1f
                 sumX = 0f // Squares are usually 1D in this app's context
                 sumY = -radiusBase * value
             }
             WaveType.SAWTOOTH -> {
                 // Sawtooth from 1 to -1 over one period
-                val value = 1f - 2f * normalizedT
+                // Negate T to match reversed simulation for 1D consistency
+                val value = 1f - 2f * ((1f - normalizedT) % 1f)
                 sumX = 0f
                 sumY = -radiusBase * value
             }
             WaveType.TRIANGLE -> {
                 // Triangle from 0 to 1 to 0 to -1 to 0
-                val t = normalizedT * 4f
+                // Negate T to match reversed simulation for 1D consistency
+                val revT = (1f - normalizedT) % 1f
+                val t = revT * 4f
                 val value = when {
                     t < 1f -> t
                     t < 3f -> 2f - t
@@ -590,9 +593,9 @@ object FourierLogic {
                     val freq = harmonicFrequencies[i] ?: s.cachedFreq
                     val amp = (harmonicAmplitudes[i] ?: s.cachedAmp) * radiusBase
                     val phase = harmonicPhases[i] ?: s.cachedPhase
-                    val angle = 2 * PI.toFloat() * freq * time + phase
-                    sumX += amp * cos(angle)
-                    sumY += -amp * sin(angle)
+                    val angle = -2 * PI.toFloat() * freq * time + phase
+                    sumX += amp * cos(angle.toDouble()).toFloat()
+                    sumY += -amp * sin(angle.toDouble()).toFloat()
                 }
             }
         }

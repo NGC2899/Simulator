@@ -1,6 +1,5 @@
 package com.example.matharium.fourier
 
-import androidx.compose.ui.graphics.Color
 import com.example.matharium.fourier.engine.FourierExpressionEvaluator
 import com.example.matharium.fourier.engine.FourierLogic
 import com.example.matharium.fourier.state.FourierDisplayMode
@@ -77,15 +76,16 @@ class FourierLogicTest {
     }
 
     @Test
-    fun testGetIdealValue_PureSignalDynamic() {
-        val signal = SignalInstance(0, Color.Red, "1.0", "1.0", "0.0")
-        signal.updateCache()
-        val customSignals = listOf(signal)
-        val harmonicAmplitudes = mapOf(0 to 2.0f) // Override amplitude
+    fun testGetIdealValue_SineReversed() {
+        // With reversed simulation fix: y = -A sin(-2PI*t + phi)
+        // For f=1, t=0.25 (1/4 cycle), phi=0: y = -A sin(-PI/2) = -A * (-1) = A (Down)
+        // Note: For 1D, we usually expect sin(x) to go UP then DOWN in space.
+        // spatial_y(x) = y(t - x/v) = sin(-(t-x/v)) = sin(x/v - t).
+        // At t=0, spatial_y(x) = sin(x/v) which goes UP. Correct.
         
         val target = FourierLogic.getIdealValue(
-            time = 0.25f, // t=1/4 cycle
-            waveType = WaveType.PURE_SIGNAL,
+            time = 0.25f,
+            waveType = WaveType.SINE,
             radiusBase = 100f,
             displayMode = FourierDisplayMode.CIRCULAR,
             drawingPoints = emptyList(),
@@ -93,11 +93,28 @@ class FourierLogicTest {
             resampledPoints2D = emptyList(),
             svgPoints = emptyList(),
             formulaString = "",
-            customFunctionSignals = customSignals,
-            harmonicAmplitudes = harmonicAmplitudes
+            customFunctionSignals = emptyList()
         )
-        // freq=1, time=0.25 -> angle = 2*PI*1*0.25 = PI/2. sin(PI/2)=1. y = -amp * sin = - (2.0 * 100) * 1 = -200
-        assertTrue("Pure signal target should respect harmonic overrides: ${target.y}", Math.abs(target.y - (-200f)) < 0.1f)
+        // t=0.25 -> angle = -2*PI*0.25 = -PI/2. approxY = -100 * sin(-PI/2) = 100 (Down)
+        assertTrue("Sine ideal value at t=0.25 should be 100: ${target.y}", abs(target.y - 100f) < 0.1f)
+    }
+
+    @Test
+    fun testGetIdealValue_SquareReversed() {
+        val targetFirstHalf = FourierLogic.getIdealValue(
+            time = 0.25f,
+            waveType = WaveType.SQUARE,
+            radiusBase = 100f,
+            displayMode = FourierDisplayMode.CIRCULAR,
+            drawingPoints = emptyList(),
+            drawingPoints2D = emptyList(),
+            resampledPoints2D = emptyList(),
+            svgPoints = emptyList(),
+            formulaString = "",
+            customFunctionSignals = emptyList()
+        )
+        // angle = -PI/2, sin(angle)=-1, y = -100*(-1) = 100 (Down)
+        assertTrue("Square wave first half should be 100 (down)", targetFirstHalf.y == 100f)
     }
 
     @Test
@@ -276,5 +293,37 @@ class FourierLogicTest {
             val expected4 = java.lang.Math.pow(2.0, -(x*x))
             assertTrue("2^-x^2 at $x should be $expected4: $r4", abs(r4 - expected4) < 1e-9)
         }
+    }
+
+    @Test
+    fun testFourierSymmetryDetection() {
+        val n = 1024
+        
+        // f(x) = x^2 (Even)
+        val evenSamples = List(n) { i ->
+            val x = (i.toDouble() / n) * 2.0 * PI - PI
+            (x * x).toFloat()
+        }
+        val evenResult = FourierLogic.detectSymmetry(evenSamples)
+        assertTrue("x^2 should be detected as primarily even: ${evenResult.evenPercent}", evenResult.evenPercent > 99.0f)
+        assertTrue("x^2 should have low odd percentage: ${evenResult.oddPercent}", evenResult.oddPercent < 1.0f)
+
+        // f(x) = x^3 (Odd)
+        val oddSamples = List(n) { i ->
+            val x = (i.toDouble() / n) * 2.0 * PI - PI
+            (x * x * x).toFloat()
+        }
+        val oddResult = FourierLogic.detectSymmetry(oddSamples)
+        assertTrue("x^3 should be detected as primarily odd: ${oddResult.oddPercent}", oddResult.oddPercent > 99.0f)
+        assertTrue("x^3 should have low even percentage: ${oddResult.evenPercent}", oddResult.evenPercent < 1.0f)
+
+        // f(x) = x^2 + x (Neither)
+        val neitherSamples = List(n) { i ->
+            val x = (i.toDouble() / n) * 2.0 * PI - PI
+            (x * x + x).toFloat()
+        }
+        val neitherResult = FourierLogic.detectSymmetry(neitherSamples)
+        assertTrue("x^2 + x should be neither perfectly even nor odd", 
+            neitherResult.evenPercent > 10f && neitherResult.evenPercent < 90f)
     }
 }

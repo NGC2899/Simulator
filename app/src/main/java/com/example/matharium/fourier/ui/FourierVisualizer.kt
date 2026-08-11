@@ -199,7 +199,7 @@ fun FourierVisualizerBox(
                         val prevX = x; val prevY = y
                         val n = harmonicFrequencies[i] ?: h.freq; val amp = harmonicAmplitudes[i] ?: h.amp; val phase = harmonicPhases[i] ?: h.phase
                         if (kotlin.math.abs(amp) < 0.005f && i > 0) continue
-                        val totalAngle = (2 * PI.toFloat() * n * currentTime) + phase
+                        val totalAngle = -(2 * PI.toFloat() * n * currentTime) + phase
                         val nextX = x + (amp * layoutConstants.radiusBasePx) * cos(totalAngle.toDouble()).toFloat()
                         val nextY = y - (amp * layoutConstants.radiusBasePx) * sin(totalAngle.toDouble()).toFloat()
                         val termColor = if (h.colorArgb != 0) Color(h.colorArgb) else colors.accentCyan
@@ -267,7 +267,7 @@ fun FourierVisualizerBox(
                         var sumX = 0f; var sumY = 0f; var processed = 0
                         for (i in 0 until count step pathStep) {
                             val idx = (startIdx + i) % trailSize
-                            val angle = -2 * PI.toFloat() * windingFrequency * pathX[idx]
+                            val angle = 2 * PI.toFloat() * windingFrequency * pathX[idx]
                             val wx = pathY[idx] * cos(angle.toDouble()).toFloat(); val wy = pathY[idx] * sin(angle.toDouble()).toFloat()
                             if (i == 0) reusableWrappedPath.moveTo(wx, wy) else reusableWrappedPath.lineTo(wx, wy)
                             sumX += wx; sumY += wy; processed++
