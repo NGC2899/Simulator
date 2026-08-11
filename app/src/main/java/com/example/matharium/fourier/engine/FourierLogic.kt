@@ -311,7 +311,7 @@ object FourierLogic {
             if (rawPoints.isEmpty()) return emptyList()
 
             // 1. Resample points uniformly along the path
-            val resampledPoints = resamplePath(rawPoints, 1000)
+            val resampledPoints = resamplePath(rawPoints, 1024)
             
             if (resampledPoints.isEmpty()) return emptyList()
 

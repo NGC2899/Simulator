@@ -154,7 +154,7 @@ class FourierState(
             // Rebuilt only if source changes.
             val table = if (fullRebuild || idealWavetable.isEmpty()) {
                 FourierLogic.generateWavetable(
-                    1000, waveType, radiusBasePx,
+                    1024, waveType, radiusBasePx,
                     drawingPoints.toList(), drawingPoints2D.toList(), resampledPoints2D.toList(),
                     svgPoints.toList(), formulaString, customFunctionSignals.toList()
                 )
@@ -243,7 +243,7 @@ class FourierState(
             }
             val coeffs = try { FourierLogic.performDFT(samples, samplesCount) } catch (e: Exception) { emptyList() }
             val symmetry = FourierLogic.detectSymmetry(samples)
-            val idealTable = FourierLogic.generateWavetable(1000, waveType, radiusBasePx, if (waveType == WaveType.FORMULA) emptyList() else drawingPoints.toList(), drawingPoints2D.toList(), resampledPoints2D.toList(), svgPoints.toList(), formulaString, customFunctionSignals.toList())
+            val idealTable = FourierLogic.generateWavetable(1024, waveType, radiusBasePx, if (waveType == WaveType.FORMULA) emptyList() else drawingPoints.toList(), drawingPoints2D.toList(), resampledPoints2D.toList(), svgPoints.toList(), formulaString, customFunctionSignals.toList())
 
             withContext(Dispatchers.Main) {
                 symmetryResult = symmetry
@@ -260,10 +260,10 @@ class FourierState(
         dftJob = scope.launch(Dispatchers.Default) {
             isAnalyzing = true
             if (drawingPoints2D.isEmpty()) { withContext(Dispatchers.Main) { isAnalyzing = false }; return@launch }
-            val resampled = FourierLogic.resamplePath(drawingPoints2D.toList(), 1000)
+            val resampled = FourierLogic.resamplePath(drawingPoints2D.toList(), 1024)
             val normalizedPoints = resampled.map { FourierLogic.MathPoint(it.x / radiusBasePx, -it.y / radiusBasePx) }
             val coeffs = try { FourierLogic.performComplexDFT(normalizedPoints) } catch (e: Exception) { emptyList() }
-            val idealTable = FourierLogic.generateWavetable(1000, waveType, radiusBasePx, emptyList(), drawingPoints2D.toList(), resampledPoints2D.toList(), svgPoints.toList(), formulaString, customFunctionSignals.toList())
+            val idealTable = FourierLogic.generateWavetable(1024, waveType, radiusBasePx, emptyList(), drawingPoints2D.toList(), resampledPoints2D.toList(), svgPoints.toList(), formulaString, customFunctionSignals.toList())
 
             withContext(Dispatchers.Main) {
                 resampledPoints2D.clear(); resampledPoints2D.addAll(resampled)
@@ -280,7 +280,7 @@ class FourierState(
             isAnalyzing = true
             if (svgPoints.isEmpty()) { withContext(Dispatchers.Main) { isAnalyzing = false }; return@launch }
             val coeffs = try { FourierLogic.performComplexDFT(svgPoints.toList()) } catch (e: Exception) { emptyList() }
-            val idealTable = FourierLogic.generateWavetable(1000, waveType, radiusBasePx, emptyList(), drawingPoints2D.toList(), resampledPoints2D.toList(), svgPoints.toList(), formulaString, customFunctionSignals.toList())
+            val idealTable = FourierLogic.generateWavetable(1024, waveType, radiusBasePx, emptyList(), drawingPoints2D.toList(), resampledPoints2D.toList(), svgPoints.toList(), formulaString, customFunctionSignals.toList())
 
             withContext(Dispatchers.Main) {
                 svgCoefficients = coeffs; baseSvgCoefficients = coeffs; idealWavetable = idealTable
@@ -371,8 +371,8 @@ class FourierState(
             if (displayMode == FourierDisplayMode.COMPLEX) {
                 // Linear Interpolation for Ideal Wavetable (Error Calculation)
                 val target = if (wavetable.isNotEmpty()) {
-                    val fIdx = normalizedTime * 999f
-                    val i1 = fIdx.toInt(); val i2 = (i1 + 1) % 1000; val frac = fIdx - i1
+                    val fIdx = normalizedTime * 1023f
+                    val i1 = fIdx.toInt(); val i2 = (i1 + 1) % 1024; val frac = fIdx - i1
                     val p1 = wavetable[i1]; val p2 = wavetable[i2]
                     FourierLogic.MathPoint(p1.x * (1 - frac) + p2.x * frac, p1.y * (1 - frac) + p2.y * frac)
                 } else {
@@ -384,8 +384,8 @@ class FourierState(
             } else {
                 approxX = time
                 val targetY = if (wavetable.isNotEmpty()) {
-                    val fIdx = normalizedTime * 999f
-                    val i1 = fIdx.toInt(); val i2 = (i1 + 1) % 1000; val frac = fIdx - i1
+                    val fIdx = normalizedTime * 1023f
+                    val i1 = fIdx.toInt(); val i2 = (i1 + 1) % 1024; val frac = fIdx - i1
                     wavetable[i1].y * (1 - frac) + wavetable[i2].y * frac
                 } else {
                     FourierLogic.getIdealValue(time, waveType, radiusBase, displayMode, drawingPoints, drawingPoints2D, resampledPoints2D, svgPoints, formulaString, customFunctionSignals, harmonicFrequencies, harmonicAmplitudes, harmonicPhases).y
@@ -421,7 +421,7 @@ class FourierState(
 }
 
 @Composable
-fun rememberFourierState(prefs: AppPreferences, colors: AppColors, scope: CoroutineScope, samplesCount: Int = 1000, radiusBasePx: Float): FourierState {
+fun rememberFourierState(prefs: AppPreferences, colors: AppColors, scope: CoroutineScope, samplesCount: Int = 1024, radiusBasePx: Float): FourierState {
     val defaultColorArgb = colors.accentCyan.toArgb()
     return remember { FourierState(prefs, scope, samplesCount, radiusBasePx, defaultColorArgb) }
 }

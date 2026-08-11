@@ -1,12 +1,16 @@
 package com.example.matharium.fourier
 
 import androidx.compose.ui.graphics.Color
+import com.example.matharium.fourier.engine.FourierExpressionEvaluator
 import com.example.matharium.fourier.engine.FourierLogic
 import com.example.matharium.fourier.state.FourierDisplayMode
 import com.example.matharium.fourier.state.SignalInstance
 import com.example.matharium.fourier.state.WaveType
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import kotlin.math.PI
+import kotlin.math.abs
+import kotlin.math.sin
 
 class FourierLogicTest {
 
@@ -203,6 +207,74 @@ class FourierLogicTest {
                 val isSineLike = kotlin.math.abs(normalizedPhase) < 0.1f
                 assertTrue("Harmonic $k should be sine-like (abs phase near 0): ${h.second}", isSineLike)
             }
+        }
+    }
+
+    @Test
+    fun testFourierExpressionParser_Precedence() {
+        // -x^2 at x=2 should be -4
+        val e1 = FourierExpressionEvaluator.evaluate("-x^2", 2.0)
+        assertTrue("Precedence -x^2 should be -4: $e1", abs(e1 - (-4.0)) < 1e-9)
+
+        // (-x)^2 at x=2 should be 4
+        val e2 = FourierExpressionEvaluator.evaluate("(-x)^2", 2.0)
+        assertTrue("Precedence (-x)^2 should be 4: $e2", abs(e2 - 4.0) < 1e-9)
+
+        // 2x at x=3 should be 6
+        val e3 = FourierExpressionEvaluator.evaluate("2x", 3.0)
+        assertTrue("Implicit mult 2x should be 6: $e3", abs(e3 - 6.0) < 1e-9)
+
+        // 2(x+1) at x=2 should be 6
+        val e4 = FourierExpressionEvaluator.evaluate("2(x+1)", 2.0)
+        assertTrue("Implicit mult 2(x+1) should be 6: $e4", abs(e4 - 6.0) < 1e-9)
+
+        // 2sin(x) at x=PI/2 should be 2
+        val e5 = FourierExpressionEvaluator.evaluate("2sin(x)", PI / 2.0)
+        assertTrue("Implicit mult 2sin(x) should be 2: $e5", abs(e5 - 2.0) < 1e-9)
+
+        // 2^-x^2 at x=0 should be 1, at x=1 should be 0.5
+        val e6 = FourierExpressionEvaluator.evaluate("2^-x^2", 0.0)
+        assertTrue("2^-x^2 at 0 should be 1: $e6", abs(e6 - 1.0) < 1e-9)
+        val e7 = FourierExpressionEvaluator.evaluate("2^-x^2", 1.0)
+        assertTrue("2^-x^2 at 1 should be 0.5: $e7", abs(e7 - 0.5) < 1e-9)
+    }
+
+    @Test
+    fun testFourierExpressionParser_UnaryAndExponents() {
+        // -2^2 should be -4
+        val e1 = FourierExpressionEvaluator.evaluate("-2^2", 0.0)
+        assertTrue("-2^2 should be -4: $e1", abs(e1 - (-4.0)) < 1e-9)
+
+        // 2^-2 should be 0.25
+        val e2 = FourierExpressionEvaluator.evaluate("2^-2", 0.0)
+        assertTrue("2^-2 should be 0.25: $e2", abs(e2 - 0.25) < 1e-9)
+
+        // x^2^3 is x^(2^3) = x^8. at x=2, result 256
+        val e3 = FourierExpressionEvaluator.evaluate("x^2^3", 2.0)
+        assertTrue("x^2^3 should be x^8 = 256: $e3", abs(e3 - 256.0) < 1e-9)
+    }
+
+    @Test
+    fun testFourierExpressionParser_NumericalValues() {
+        val testValues = listOf(2.0, -2.0, 0.5)
+        
+        for (x in testValues) {
+            // -x^2
+            val r1 = FourierExpressionEvaluator.evaluate("-x^2", x)
+            assertTrue("-x^2 at $x should be ${-(x*x)}: $r1", abs(r1 - (-(x*x))) < 1e-9)
+
+            // (-x)^2
+            val r2 = FourierExpressionEvaluator.evaluate("(-x)^2", x)
+            assertTrue("(-x)^2 at $x should be ${(-x)*(-x)}: $r2", abs(r2 - ((-x)*(-x))) < 1e-9)
+
+            // 2sin(x)
+            val r3 = FourierExpressionEvaluator.evaluate("2sin(x)", x)
+            assertTrue("2sin(x) at $x should be ${2*sin(x)}: $r3", abs(r3 - (2*sin(x))) < 1e-9)
+
+            // 2^-x^2
+            val r4 = FourierExpressionEvaluator.evaluate("2^-x^2", x)
+            val expected4 = java.lang.Math.pow(2.0, -(x*x))
+            assertTrue("2^-x^2 at $x should be $expected4: $r4", abs(r4 - expected4) < 1e-9)
         }
     }
 }
