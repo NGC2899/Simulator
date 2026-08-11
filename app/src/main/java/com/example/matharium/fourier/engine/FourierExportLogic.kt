@@ -32,7 +32,7 @@ object FourierExportLogic {
                 val a = abs(term.amp)
                 if (abs(a - 1.0f) > 0.001f) sb.append("%.2f".format(Locale.US, a))
                 
-                sb.append("cos(")
+                sb.append(if (is2D) "cos(" else "sin(")
                 if (abs(term.freq - 1.0f) < 0.001f) {
                     sb.append("2πt")
                 } else if (abs(term.freq) < 0.001f) {

@@ -64,24 +64,21 @@ fun FrequencyDomainGraph(
                     
                     var maxVal = 0.1f
                     for (i in 0 until spectrumPoints) {
-                        val f = (i.toFloat() / spectrumPoints) * maxFreq
-                        val coeff = spectrumData[i]
-                        val angle = 2 * PI.toFloat() * f * timeProvider()
-                        val valProj = (coeff.re * cos(angle) + coeff.im * sin(angle)).toFloat()
-                        projectedValuesBuffer[i] = valProj
-                        val absVal = if (valProj < 0) -valProj else valProj
-                        if (absVal > maxVal) maxVal = absVal
+                        val valMag = spectrumData[i].re.toFloat()
+                        projectedValuesBuffer[i] = valMag
+                        if (valMag > maxVal) maxVal = valMag
                     }
                     
                     val axisColor = colors.textSecondary.copy(alpha = 0.2f)
-                    val centerY = h / 2f
+                    val centerY = h * 0.9f // Position baseline near bottom for magnitude spectrum
                     drawLine(axisColor, Offset(0f, centerY), Offset(w, centerY), 1.dp.toPx())
                     drawLine(axisColor, Offset(0f, 0f), Offset(0f, h), 1.dp.toPx())
 
                     spectrumPath.reset()
                     for (i in 0 until spectrumPoints) {
                         val x = (i.toFloat() / (spectrumPoints - 1)) * w
-                        val y = centerY - (projectedValuesBuffer[i] / maxVal) * (h / 2f) * 0.9f
+                        // Magnitude is always positive, so we draw upwards from baseline
+                        val y = centerY - (projectedValuesBuffer[i] / maxVal) * (h * 0.8f)
                         if (i == 0) spectrumPath.moveTo(x, y) else spectrumPath.lineTo(x, y)
                     }
                     

@@ -20,14 +20,20 @@ object FourierLogic {
         val coeffs = mutableListOf<Pair<Float, Float>>()
         
         // n=0 (DC offset)
-        coeffs.add((complexResults[0].re / n).toFloat() to 0f)
+        val dc = complexResults[0]
+        val dcAmp = (dc.re / n).toFloat()
+        // For DC, freq=0. A sin(0*t + phase) = A sin(phase). 
+        // We use phase = PI/2 to make sin(phase)=1, so result is just dcAmp.
+        coeffs.add(dcAmp to (PI.toFloat() / 2f))
 
         // Harmonics 1 to 250
         for (k in 1..250) {
             val c = complexResults[k]
             // For real input FFT, the amplitude of harmonic k is 2/N * |X[k]|
             val amp = (2.0 * sqrt(c.re * c.re + c.im * c.im) / n).toFloat()
-            val phase = atan2(c.im, c.re).toFloat()
+            // Canonical Phase for 1D: A sin(2πft + φ)
+            // Relationship: φ = atan2(im, re) + π/2
+            val phase = (atan2(c.im, c.re) + PI / 2.0).toFloat()
             coeffs.add(amp to phase)
         }
         return coeffs
@@ -82,8 +88,9 @@ object FourierLogic {
                 }
                 WaveType.SAWTOOTH -> {
                     freq = (i + 1).toFloat()
-                    val sign = if (freq.toInt() % 2 == 0) -1f else 1f
-                    amp = (2f / (freq * PI.toFloat())) * sign; phase = 0f
+                    // Ramp from -1 to 1 on [0, 1] domain has coeffs b_n = -2/(n*PI)
+                    // In our approxY = -A sin(...) convention, amp = 2/(n*PI) gives -2/(n*PI)
+                    amp = 2f / (freq * PI.toFloat()); phase = 0f
                 }
                 WaveType.TRIANGLE -> {
                     freq = (i * 2 + 1).toFloat()

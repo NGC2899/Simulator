@@ -189,20 +189,20 @@ class FourierState(
     }
 
     private fun prepareHarmonicsList(): List<FourierLogic.Harmonic> {
-        val maxTerms = 250
+        val maxTerms = if (waveType == WaveType.PURE_SIGNAL) 250 else nTerms
         val harmonics = mutableListOf<FourierLogic.Harmonic>()
         when (waveType) {
             WaveType.SINE, WaveType.SQUARE, WaveType.SAWTOOTH, WaveType.TRIANGLE -> {
                 harmonics.addAll(FourierLogic.calculateStandardHarmonics(waveType, maxTerms))
             }
             WaveType.MY_SIGNAL -> {
-                customCoefficients.forEachIndexed { i, c ->
-                    harmonics.add(FourierLogic.Harmonic(i.toFloat(), c.first, -c.second + (kotlin.math.PI.toFloat() / 2f)))
+                customCoefficients.take(maxTerms).forEachIndexed { i, c ->
+                    harmonics.add(FourierLogic.Harmonic(i.toFloat(), c.first, c.second))
                 }
             }
             WaveType.FORMULA -> {
-                formulaCoefficients.forEachIndexed { i, c ->
-                    harmonics.add(FourierLogic.Harmonic(i.toFloat(), c.first, -c.second + (kotlin.math.PI.toFloat() / 2f)))
+                formulaCoefficients.take(maxTerms).forEachIndexed { i, c ->
+                    harmonics.add(FourierLogic.Harmonic(i.toFloat(), c.first, c.second))
                 }
             }
             WaveType.MY_SIGNAL_2D -> {
@@ -305,48 +305,29 @@ class FourierState(
             val maxFreq = 5.0f
             val spectrumPoints = 500
             
-            // The simulation trail buffer (2000 samples) creates a rectangular window.
-            // Frequency resolution (L) is the time duration of this window.
-            // 2000 samples at ~120 steps/sec (60fps * 2 substeps) = ~16.6s baseline.
-            val L = 16.0f * speed 
+            // MATHARIUM CANONICAL SPECTRUM
+            // This represents the Amplitude Spectrum (A_n) of the Fourier Series.
+            // We use a Gaussian kernel for smooth visualization without sinc leakage artifacts.
+            val sigma = 0.04f
+            val twoSigmaSq = 2f * sigma * sigma
 
             val result = List(spectrumPoints) { i ->
                 val f = (i.toFloat() / spectrumPoints) * maxFreq
-                var totalRe = 0.0
-                var totalIm = 0.0
+                var magnitudeSum = 0.0
                 
                 for (hIdx in harmonics.indices) {
                     if (removedHarmonics[hIdx] == true || pausedHarmonics[hIdx] == true) continue
                     val h = harmonics[hIdx]
                     val freq = harmonicFrequencies[hIdx] ?: h.freq
                     val amp = harmonicAmplitudes[hIdx] ?: h.amp
-                    val phase = harmonicPhases[hIdx] ?: h.phase
                     
-                    // The simulation synthesizes: s(t) = -A * sin(2*PI*f*t + phase)
-                    // The Fourier coefficient for this component at resonance is:
-                    // Cn = (A/2) * e^(i * (phase + PI/2)) = (A/2) * (-sin(phase) + i*cos(phase))
-                    // To match valProj = re*cos + im*sin in FrequencyDomainGraph, we need Cn.conj
-                    val cnRe = -0.5 * amp * kotlin.math.sin(phase.toDouble())
-                    val cnIm = -0.5 * amp * kotlin.math.cos(phase.toDouble())
-                    
-                    // Smearing kernel: Sinc function for a rectangular window.
-                    // This creates the "smooth wavy/bumpy" side lobes.
+                    // Gaussian Kernel: K(f) = A * exp(-(f-f0)^2 / (2*sigma^2))
                     val df = f - freq
-                    val sincArg = df * L
-                    val weight = if (kotlin.math.abs(sincArg) < 1e-9) 1.0 
-                                 else kotlin.math.sin(kotlin.math.PI * sincArg) / (kotlin.math.PI * sincArg)
-                    
-                    // Window phase shift for interference (windowing from T-L to T)
-                    // M(f) = Cn * sinc(df*L) * e^(-i * PI * df * L)
-                    val shiftAngle = -kotlin.math.PI * df * L
-                    val cosS = kotlin.math.cos(shiftAngle)
-                    val sinS = kotlin.math.sin(shiftAngle)
-                    
-                    // Complex multiplication: (cnRe + i*cnIm) * (cosS + i*sinS)
-                    totalRe += weight * (cnRe * cosS - cnIm * sinS)
-                    totalIm += weight * (cnRe * sinS + cnIm * cosS)
+                    val weight = kotlin.math.exp(-(df * df) / twoSigmaSq)
+                    magnitudeSum += (kotlin.math.abs(amp) * weight).toDouble()
                 }
-                FourierLogic.Complex(totalRe, totalIm)
+                // Store magnitude in Re, 0 in Im for stable visualization
+                FourierLogic.Complex(magnitudeSum, 0.0)
             }
             withContext(Dispatchers.Main) { spectrumData = result }
         }

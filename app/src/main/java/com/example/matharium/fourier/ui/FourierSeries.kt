@@ -32,7 +32,10 @@ fun FourierSeries() {
     val state = rememberFourierState(prefs, colors, scope, radiusBasePx = radiusBasePx)
 
     // CONSOLIDATED Persistence & Simple Settings
-    LaunchedEffect(state.nTerms) { state.prefs.fourierNTerms = state.nTerms }
+    LaunchedEffect(state.nTerms) {
+        state.prefs.fourierNTerms = state.nTerms
+        state.rebuildCache(fullRebuild = false)
+    }
     LaunchedEffect(state.speed) { state.prefs.fourierSpeed = state.speed }
     LaunchedEffect(state.windingFrequency) { state.prefs.fourierWindingFrequency = state.windingFrequency }
     LaunchedEffect(state.waveStretch) { state.prefs.fourierWaveStretch = state.waveStretch }

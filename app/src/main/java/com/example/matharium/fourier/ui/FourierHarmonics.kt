@@ -227,16 +227,13 @@ fun HarmonicComponents(
                 val (defaultRadius, analyzedPhase) = when (waveType) {
                     WaveType.SINE -> Pair(1.0f, 0f)
                     WaveType.SQUARE -> Pair(4f / (baseN * PI.toFloat()), 0f)
-                    WaveType.SAWTOOTH -> {
-                        val sign = if (baseN.toInt() % 2 == 0) -1f else 1f
-                        Pair((2f / (baseN * PI.toFloat())) * sign, 0f)
-                    }
+                    WaveType.SAWTOOTH -> Pair(2f / (baseN * PI.toFloat()), 0f)
                     WaveType.TRIANGLE -> {
                         val sign = if (((baseN.toInt() - 1) / 2) % 2 != 0) -1f else 1f
                         Pair((8f / (baseN * baseN * PI.toFloat() * PI.toFloat())) * sign, 0f)
                     }
-                    WaveType.MY_SIGNAL -> if (i < customCoefficients.size) (customCoefficients[i].first to (PI.toFloat() / 2f - customCoefficients[i].second)) else (0f to 0f)
-                    WaveType.FORMULA -> if (i < formulaCoefficients.size) (formulaCoefficients[i].first to (PI.toFloat() / 2f - formulaCoefficients[i].second)) else (0f to 0f)
+                    WaveType.MY_SIGNAL -> if (i < customCoefficients.size) (customCoefficients[i].first to customCoefficients[i].second) else (0f to 0f)
+                    WaveType.FORMULA -> if (i < formulaCoefficients.size) (formulaCoefficients[i].first to formulaCoefficients[i].second) else (0f to 0f)
                     WaveType.MY_SIGNAL_2D -> if (i < customCoefficients2D.size) (customCoefficients2D[i].amp to customCoefficients2D[i].phase) else (0f to 0f)
                     WaveType.SVG -> if (i < svgCoefficients.size) (svgCoefficients[i].amp to svgCoefficients[i].phase) else (0f to 0f)
                     WaveType.PURE_SIGNAL -> (customFunctionSignals[i].amp.toFloatOrNull() ?: 0f) to customFunctionSignals[i].cachedPhase
@@ -781,8 +778,8 @@ fun ComplexHarmonicComponents(
                         val sign = if (((baseN.toInt() - 1) / 2) % 2 != 0) -1f else 1f
                         Pair((8f / (baseN * baseN * PI.toFloat() * PI.toFloat())) * sign, 0f)
                     }
-                    WaveType.MY_SIGNAL -> if (i < customCoefficients.size) (customCoefficients[i].first to (PI.toFloat() / 2f - customCoefficients[i].second)) else (0f to 0f)
-                    WaveType.FORMULA -> if (i < formulaCoefficients.size) (formulaCoefficients[i].first to (PI.toFloat() / 2f - formulaCoefficients[i].second)) else (0f to 0f)
+                    WaveType.MY_SIGNAL -> if (i < customCoefficients.size) (customCoefficients[i].first to customCoefficients[i].second) else (0f to 0f)
+                    WaveType.FORMULA -> if (i < formulaCoefficients.size) (formulaCoefficients[i].first to formulaCoefficients[i].second) else (0f to 0f)
                     WaveType.MY_SIGNAL_2D -> if (i < customCoefficients2D.size) (customCoefficients2D[i].amp to customCoefficients2D[i].phase) else (0f to 0f)
                     WaveType.SVG -> if (i < svgCoefficients.size) (svgCoefficients[i].amp to svgCoefficients[i].phase) else (0f to 0f)
                     WaveType.PURE_SIGNAL -> (customFunctionSignals[i].amp.toFloatOrNull() ?: 0f) to customFunctionSignals[i].cachedPhase
@@ -862,8 +859,8 @@ fun ComplexHarmonicItemRow(
             val sign = if (((baseN.toInt() - 1) / 2) % 2 != 0) -1f else 1f
             Pair((8f / (baseN * baseN * PI.toFloat() * PI.toFloat())) * sign, 0f)
         }
-        WaveType.MY_SIGNAL -> if (i < customCoefficients.size) (customCoefficients[i].first to (PI.toFloat() / 2f - customCoefficients[i].second)) else (0f to 0f)
-        WaveType.FORMULA -> if (i < formulaCoefficients.size) (formulaCoefficients[i].first to (PI.toFloat() / 2f - formulaCoefficients[i].second)) else (0f to 0f)
+        WaveType.MY_SIGNAL -> if (i < customCoefficients.size) (customCoefficients[i].first to customCoefficients[i].second) else (0f to 0f)
+        WaveType.FORMULA -> if (i < formulaCoefficients.size) (formulaCoefficients[i].first to formulaCoefficients[i].second) else (0f to 0f)
         WaveType.MY_SIGNAL_2D -> if (i < customCoefficients2D.size) (customCoefficients2D[i].amp to customCoefficients2D[i].phase) else (0f to 0f)
         WaveType.SVG -> if (i < svgCoefficients.size) (svgCoefficients[i].amp to svgCoefficients[i].phase) else (0f to 0f)
         WaveType.PURE_SIGNAL -> (customFunctionSignals[i].amp.toFloatOrNull() ?: 0f) to customFunctionSignals[i].cachedPhase
