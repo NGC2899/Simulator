@@ -76,12 +76,9 @@ class FourierLogicTest {
     }
 
     @Test
-    fun testGetIdealValue_SineReversed() {
-        // With reversed simulation fix: y = -A sin(-2PI*t + phi)
-        // For f=1, t=0.25 (1/4 cycle), phi=0: y = -A sin(-PI/2) = -A * (-1) = A (Down)
-        // Note: For 1D, we usually expect sin(x) to go UP then DOWN in space.
-        // spatial_y(x) = y(t - x/v) = sin(-(t-x/v)) = sin(x/v - t).
-        // At t=0, spatial_y(x) = sin(x/v) which goes UP. Correct.
+    fun testGetIdealValue_SineUpright() {
+        // Upright mathematical SINE wave: y = A sin(2PI*t + phi)
+        // For f=1, t=0.25 (1/4 cycle), phi=0: y = 100 * sin(PI/2) = 100 (UP)
         
         val target = FourierLogic.getIdealValue(
             time = 0.25f,
@@ -95,12 +92,11 @@ class FourierLogicTest {
             formulaString = "",
             customFunctionSignals = emptyList()
         )
-        // t=0.25 -> angle = -2*PI*0.25 = -PI/2. approxY = -100 * sin(-PI/2) = 100 (Down)
-        assertTrue("Sine ideal value at t=0.25 should be 100: ${target.y}", abs(target.y - 100f) < 0.1f)
+        assertTrue("Sine ideal value at t=0.25 should be 100 (math UP): ${target.y}", abs(target.y - 100f) < 0.1f)
     }
 
     @Test
-    fun testGetIdealValue_SquareReversed() {
+    fun testGetIdealValue_SquareUpright() {
         val targetFirstHalf = FourierLogic.getIdealValue(
             time = 0.25f,
             waveType = WaveType.SQUARE,
@@ -113,8 +109,8 @@ class FourierLogicTest {
             formulaString = "",
             customFunctionSignals = emptyList()
         )
-        // angle = -PI/2, sin(angle)=-1, y = -100*(-1) = 100 (Down)
-        assertTrue("Square wave first half should be 100 (down)", targetFirstHalf.y == 100f)
+        // angle = PI/2, sin(angle)=1, y = 100 (UP)
+        assertTrue("Square wave first half should be 100 (math UP)", targetFirstHalf.y == 100f)
     }
 
     @Test
@@ -350,10 +346,10 @@ class FourierLogicTest {
                 val ideal = FourierLogic.getIdealValue(time, type, radius, FourierDisplayMode.CIRCULAR, emptyList(), emptyList(), emptyList(), emptyList(), "", emptyList())
                 
                 var reconY = 0.0
-                val angleBase = -2.0 * PI * time
+                val angleBase = 2.0 * PI * time
                 for (h in harmonics) {
                     val angle = angleBase * h.freq + h.phase
-                    reconY += -(h.amp * radius * sin(angle))
+                    reconY += (h.amp * radius * sin(angle))
                 }
                 
                 // Convergence for Square wave with 50 terms is approx 2% of amplitude far from jump

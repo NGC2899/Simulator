@@ -89,8 +89,8 @@ object FourierLogic {
                 WaveType.SAWTOOTH -> {
                     freq = (i + 1).toFloat()
                     // Ramp from -1 to 1 on [0, 1] domain has coeffs b_n = -2/(n*PI)
-                    // In our approxY = -A sin(...) convention, amp = 2/(n*PI) gives -2/(n*PI)
-                    amp = 2f / (freq * PI.toFloat()); phase = 0f
+                    // In our approxY = A sin(...) convention, we use phase = PI to get -sin
+                    amp = 2f / (freq * PI.toFloat()); phase = PI.toFloat()
                 }
                 WaveType.TRIANGLE -> {
                     freq = (i * 2 + 1).toFloat()
@@ -501,9 +501,8 @@ object FourierLogic {
         harmonicAmplitudes: Map<Int, Float> = emptyMap(),
         harmonicPhases: Map<Int, Float> = emptyMap()
     ): MathPoint {
-        // To unify and fix the error gradient logic, the "Ideal Value" now represents
-        // the true mathematical or sampled target signal, NOT the Fourier approximation.
-        // This allows the error gradient to reflect how well the series converges.
+        // Ideal Value represents the signal in mathematical coordinates (+Y = Up).
+        // Conversion to Canvas coordinates happens at the rendering boundary.
 
         val normalizedT = ((time % 1f) + 1f) % 1f
         var sumX = 0f
@@ -511,35 +510,32 @@ object FourierLogic {
 
         when (waveType) {
             WaveType.SINE -> {
-                val angle = -2 * PI.toFloat() * 1f * time
+                val angle = 2 * PI.toFloat() * 1f * time
                 sumX = radiusBase * cos(angle.toDouble()).toFloat()
-                sumY = -radiusBase * sin(angle.toDouble()).toFloat()
+                sumY = radiusBase * sin(angle.toDouble()).toFloat()
             }
             WaveType.SQUARE -> {
-                val angle = -2 * PI.toFloat() * 1f * time
+                val angle = 2 * PI.toFloat() * 1f * time
                 val value = if (sin(angle.toDouble()) >= 0) 1f else -1f
-                sumX = 0f // Squares are usually 1D in this app's context
-                sumY = -radiusBase * value
+                sumX = 0f
+                sumY = radiusBase * value
             }
             WaveType.SAWTOOTH -> {
-                // Sawtooth from 1 to -1 over one period
-                // Negate T to match reversed simulation for 1D consistency
-                val value = 1f - 2f * ((1f - normalizedT) % 1f)
+                // Increasing sawtooth from -1 to 1 over one period
+                val value = 2f * normalizedT - 1f
                 sumX = 0f
-                sumY = -radiusBase * value
+                sumY = radiusBase * value
             }
             WaveType.TRIANGLE -> {
                 // Triangle from 0 to 1 to 0 to -1 to 0
-                // Negate T to match reversed simulation for 1D consistency
-                val revT = (1f - normalizedT) % 1f
-                val t = revT * 4f
+                val t = normalizedT * 4f
                 val value = when {
                     t < 1f -> t
                     t < 3f -> 2f - t
                     else -> t - 4f
                 }
                 sumX = 0f
-                sumY = -radiusBase * value
+                sumY = radiusBase * value
             }
             WaveType.MY_SIGNAL -> {
                 if (drawingPoints.isNotEmpty()) {
@@ -547,17 +543,17 @@ object FourierLogic {
                     val i1 = floatIdx.toInt()
                     val i2 = (i1 + 1).coerceAtMost(drawingPoints.size - 1)
                     val frac = floatIdx - i1
-                    // drawingPoints stores raw pixel offsets which are already screen-aligned (Y-down)
-                    val y = drawingPoints[i1] * (1 - frac) + drawingPoints[i2] * frac
+                    // drawingPoints stores raw pixel offsets (Canvas coordinates, Y-down)
+                    val yScreen = drawingPoints[i1] * (1 - frac) + drawingPoints[i2] * frac
                     sumX = 0f
-                    sumY = y
+                    sumY = -yScreen // Convert Canvas to Math (Y-up)
                 }
             }
             WaveType.FORMULA -> {
                 val x = normalizedT.toDouble() * 2.0 * PI - PI
                 val eval = FourierExpressionEvaluator.evaluate(formulaString, x)
                 sumX = 0f
-                sumY = -(if (eval.isFinite()) eval.toFloat() else 0f) * radiusBase
+                sumY = (if (eval.isFinite()) eval.toFloat() else 0f) * radiusBase
             }
             WaveType.MY_SIGNAL_2D -> {
                 val source = if (resampledPoints2D.isNotEmpty()) resampledPoints2D else drawingPoints2D
@@ -580,22 +576,21 @@ object FourierLogic {
                     val frac = floatIdx - i1
                     val p1 = svgPoints[i1]
                     val p2 = svgPoints[i2]
-                    // svgPoints are now Math-aligned (Y-up), so we negate to get screen-aligned Y
+                    // svgPoints are already Math-aligned (Y-up)
                     sumX = (p1.x * (1 - frac) + p2.x * frac) * radiusBase
-                    sumY = -(p1.y * (1 - frac) + p2.y * frac) * radiusBase
+                    sumY = (p1.y * (1 - frac) + p2.y * frac) * radiusBase
                 }
             }
             WaveType.PURE_SIGNAL -> {
-                // For Pure Signal (manual builder), the target is the sum of ALL active signals.
                 for (i in customFunctionSignals.indices) {
                     val s = customFunctionSignals[i]
                     if (s.isPaused) continue
                     val freq = harmonicFrequencies[i] ?: s.cachedFreq
                     val amp = (harmonicAmplitudes[i] ?: s.cachedAmp) * radiusBase
                     val phase = harmonicPhases[i] ?: s.cachedPhase
-                    val angle = -2 * PI.toFloat() * freq * time + phase
+                    val angle = 2 * PI.toFloat() * freq * time + phase
                     sumX += amp * cos(angle.toDouble()).toFloat()
-                    sumY += -amp * sin(angle.toDouble()).toFloat()
+                    sumY += amp * sin(angle.toDouble()).toFloat()
                 }
             }
         }

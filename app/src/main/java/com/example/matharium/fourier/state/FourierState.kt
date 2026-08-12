@@ -355,7 +355,7 @@ class FourierState(
             
             var approxX = 0f
             var approxY = 0f
-            val angleBase = -twoPi * time
+            val angleBase = twoPi * time
             for (i in 0 until termsToProcess) {
                 if (i >= simTermsCount) break
                 if (!simActive[i]) continue
@@ -365,7 +365,7 @@ class FourierState(
                 val phase = simPhases[i].toDouble()
                 val angle = angleBase * freq + phase
                 approxX += (amp * kotlin.math.cos(angle)).toFloat()
-                approxY += -(amp * kotlin.math.sin(angle)).toFloat()
+                approxY += (amp * kotlin.math.sin(angle)).toFloat() // Mathematical Y (up is positive)
             }
 
             val error: Float

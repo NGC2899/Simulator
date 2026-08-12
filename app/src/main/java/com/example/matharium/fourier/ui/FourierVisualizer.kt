@@ -199,19 +199,19 @@ fun FourierVisualizerBox(
                         val prevX = x; val prevY = y
                         val n = harmonicFrequencies[i] ?: h.freq; val amp = harmonicAmplitudes[i] ?: h.amp; val phase = harmonicPhases[i] ?: h.phase
                         if (kotlin.math.abs(amp) < 0.005f && i > 0) continue
-                        val totalAngle = -(2 * PI.toFloat() * n * currentTime) + phase
+                        val totalAngle = (2 * PI.toFloat() * n * currentTime) + phase
                         val nextX = x + (amp * layoutConstants.radiusBasePx) * cos(totalAngle.toDouble()).toFloat()
-                        val nextY = y - (amp * layoutConstants.radiusBasePx) * sin(totalAngle.toDouble()).toFloat()
+                        val nextY = y + (amp * layoutConstants.radiusBasePx) * sin(totalAngle.toDouble()).toFloat()
                         val termColor = if (h.colorArgb != 0) Color(h.colorArgb) else colors.accentCyan
-                        drawCircle(color = termColor.copy(alpha = AppDesign.opacityLow * 2f), radius = kotlin.math.abs(amp * layoutConstants.radiusBasePx), center = Offset(prevX, prevY), style = Stroke(width = AppDesign.strokeThin.toPx()))
+                        drawCircle(color = termColor.copy(alpha = AppDesign.opacityLow * 2f), radius = kotlin.math.abs(amp * layoutConstants.radiusBasePx), center = Offset(prevX, -prevY), style = Stroke(width = AppDesign.strokeThin.toPx()))
                         x = nextX; y = nextY
-                        drawLine(color = termColor.copy(alpha = AppDesign.opacityMedium), start = Offset(prevX, prevY), end = Offset(x, y), strokeWidth = AppDesign.strokeThin.toPx() + 0.5f)
+                        drawLine(color = termColor.copy(alpha = AppDesign.opacityMedium), start = Offset(prevX, -prevY), end = Offset(x, -y), strokeWidth = AppDesign.strokeThin.toPx() + 0.5f)
                     }
 
-                    drawCircle(colors.accentViolet, layoutConstants.indicatorSize, Offset(x, y))
+                    drawCircle(colors.accentViolet, layoutConstants.indicatorSize, Offset(x, -y))
 
                     if (displayMode == FourierDisplayMode.CIRCULAR) {
-                        drawLine(color = axisColor, start = Offset(x, y), end = Offset(layoutConstants.waveStartX, y), strokeWidth = AppDesign.strokeThin.toPx())
+                        drawLine(color = axisColor, start = Offset(x, -y), end = Offset(layoutConstants.waveStartX, -y), strokeWidth = AppDesign.strokeThin.toPx())
                         val count = pathCountProvider()
                         if (count > 0) {
                             val tp = trailPointerProvider()
@@ -221,14 +221,14 @@ fun FourierVisualizerBox(
                                 for (i in 0 until count - 1 step (pathStep * 2)) {
                                     val idx1 = (startIdx + i) % trailSize; val idx2 = (startIdx + i + 1) % trailSize
                                     val lerp = (pathError[idx1] / maxErr).coerceIn(0f, 1f)
-                                    drawLine(color = lerpColor(colors.accentCyan, colors.accentViolet, lerp), start = Offset(layoutConstants.waveStartX + (currentTime - pathX[idx1]) * layoutConstants.pixelsPerTimeUnit, pathY[idx1]), end = Offset(layoutConstants.waveStartX + (currentTime - pathX[idx2]) * layoutConstants.pixelsPerTimeUnit, pathY[idx2]), strokeWidth = AppDesign.strokeStandard.toPx(), cap = StrokeCap.Round)
+                                    drawLine(color = lerpColor(colors.accentCyan, colors.accentViolet, lerp), start = Offset(layoutConstants.waveStartX + (currentTime - pathX[idx1]) * layoutConstants.pixelsPerTimeUnit, -pathY[idx1]), end = Offset(layoutConstants.waveStartX + (currentTime - pathX[idx2]) * layoutConstants.pixelsPerTimeUnit, -pathY[idx2]), strokeWidth = AppDesign.strokeStandard.toPx(), cap = StrokeCap.Round)
                                 }
                             } else {
                                 reusableWavePath.reset()
-                                reusableWavePath.moveTo(layoutConstants.waveStartX + (currentTime - pathX[startIdx]) * layoutConstants.pixelsPerTimeUnit, pathY[startIdx])
+                                reusableWavePath.moveTo(layoutConstants.waveStartX + (currentTime - pathX[startIdx]) * layoutConstants.pixelsPerTimeUnit, -pathY[startIdx])
                                 for (i in 1 until count step (pathStep * 2)) {
                                     val idx = (startIdx + i) % trailSize
-                                    reusableWavePath.lineTo(layoutConstants.waveStartX + (currentTime - pathX[idx]) * layoutConstants.pixelsPerTimeUnit, pathY[idx])
+                                    reusableWavePath.lineTo(layoutConstants.waveStartX + (currentTime - pathX[idx]) * layoutConstants.pixelsPerTimeUnit, -pathY[idx])
                                 }
                                 drawPath(path = reusableWavePath, color = colors.accentCyan, style = Stroke(width = AppDesign.strokeStandard.toPx(), cap = StrokeCap.Round))
                             }
@@ -243,14 +243,14 @@ fun FourierVisualizerBox(
                                 for (i in 0 until count - 1 step pathStep) {
                                     val idx1 = (startIdx + i) % trailSize; val idx2 = (startIdx + i + 1) % trailSize
                                     val lerp = (pathError[idx1] / maxErr).coerceIn(0f, 1f)
-                                    drawLine(color = lerpColor(colors.accentCyan, colors.accentViolet, lerp), start = Offset(pathX[idx1], pathY[idx1]), end = Offset(pathX[idx2], pathY[idx2]), strokeWidth = AppDesign.strokeStandard.toPx(), cap = StrokeCap.Round)
+                                    drawLine(color = lerpColor(colors.accentCyan, colors.accentViolet, lerp), start = Offset(pathX[idx1], -pathY[idx1]), end = Offset(pathX[idx2], -pathY[idx2]), strokeWidth = AppDesign.strokeStandard.toPx(), cap = StrokeCap.Round)
                                 }
                             } else {
                                 reusableTracePath.reset()
-                                reusableTracePath.moveTo(pathX[startIdx], pathY[startIdx])
+                                reusableTracePath.moveTo(pathX[startIdx], -pathY[startIdx])
                                 for (i in 1 until count step pathStep) {
                                     val idx = (startIdx + i) % trailSize
-                                    reusableTracePath.lineTo(pathX[idx], pathY[idx])
+                                    reusableTracePath.lineTo(pathX[idx], -pathY[idx])
                                 }
                                 drawPath(path = reusableTracePath, color = colors.accentCyan, style = Stroke(width = AppDesign.strokeStandard.toPx(), cap = StrokeCap.Round))
                             }
@@ -267,16 +267,16 @@ fun FourierVisualizerBox(
                         var sumX = 0f; var sumY = 0f; var processed = 0
                         for (i in 0 until count step pathStep) {
                             val idx = (startIdx + i) % trailSize
-                            val angle = 2 * PI.toFloat() * windingFrequency * pathX[idx]
+                            val angle = -2 * PI.toFloat() * windingFrequency * pathX[idx]
                             val wx = pathY[idx] * cos(angle.toDouble()).toFloat(); val wy = pathY[idx] * sin(angle.toDouble()).toFloat()
-                            if (i == 0) reusableWrappedPath.moveTo(wx, wy) else reusableWrappedPath.lineTo(wx, wy)
+                            if (i == 0) reusableWrappedPath.moveTo(wx, -wy) else reusableWrappedPath.lineTo(wx, -wy)
                             sumX += wx; sumY += wy; processed++
                         }
                         drawPath(path = reusableWrappedPath, color = colors.accentCyan.copy(alpha = AppDesign.opacityTrace), style = Stroke(width = AppDesign.strokeStandard.toPx(), cap = StrokeCap.Round))
                         if (processed > 0) {
                             val ax = sumX / processed; val ay = sumY / processed
-                            drawCircle(colors.accentHell, layoutConstants.indicatorSize + 1f, Offset(ax, ay))
-                            drawLine(colors.textSecondary.copy(alpha = AppDesign.opacityMedium), Offset.Zero, Offset(ax, ay), AppDesign.strokeThin.toPx())
+                            drawCircle(colors.accentHell, layoutConstants.indicatorSize + 1f, Offset(ax, -ay))
+                            drawLine(colors.textSecondary.copy(alpha = AppDesign.opacityMedium), Offset.Zero, Offset(ax, -ay), AppDesign.strokeThin.toPx())
                         }
                     }
                 }
